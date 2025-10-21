@@ -37,10 +37,10 @@ module CrystalGPT5
             end
 
             if definition_start?
-              node = case token_text(current_token)
-                when "def"
+              node = case current_token.kind
+                when Token::Kind::Def
                   parse_def
-                when "class"
+                when Token::Kind::Class
                   parse_class
                 else
                   PREFIX_ERROR
@@ -107,9 +107,8 @@ module CrystalGPT5
         end
 
         private def definition_start?
-          return false unless current_token.kind == Token::Kind::Identifier
-          keyword = token_text(current_token)
-          keyword == "def" || keyword == "class"
+          token = current_token
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class
         end
 
         private def parse_macro_definition : ExprId
@@ -176,7 +175,7 @@ module CrystalGPT5
           loop do
             skip_trivia
             token = current_token
-            break if token.kind == Token::Kind::Identifier && token_text(token) == "end"
+            break if token.kind == Token::Kind::End
             break if token.kind == Token::Kind::EOF
 
             expr = parse_expression(0)
@@ -231,6 +230,127 @@ module CrystalGPT5
           params
         end
 
+        private def parse_if : ExprId
+          if_token = current_token
+          advance
+          skip_trivia
+
+          # Parse condition
+          condition = parse_expression(0)
+          return PREFIX_ERROR if condition.invalid?
+
+          skip_trivia
+          # Optional "then" keyword
+          token = current_token
+          if token.kind == Token::Kind::Then
+            advance
+          end
+          consume_newlines
+
+          # Parse then body
+          then_body = [] of ExprId
+          loop do
+            skip_trivia
+            token = current_token
+            break if token.kind == Token::Kind::Else || token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            expr = parse_expression(0)
+            then_body << expr unless expr.invalid?
+            consume_newlines
+          end
+
+          # Parse optional else body
+          else_body = nil
+          token = current_token
+          if token.kind == Token::Kind::Else
+            advance
+            consume_newlines
+
+            else_body = [] of ExprId
+            loop do
+              skip_trivia
+              token = current_token
+              break if token.kind == Token::Kind::End
+              break if token.kind == Token::Kind::EOF
+
+              expr = parse_expression(0)
+              else_body << expr unless expr.invalid?
+              consume_newlines
+            end
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          if_span = if end_token
+            if_token.span.cover(end_token.span)
+          else
+            if_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::If,
+              if_span,
+              if_condition: condition,
+              if_then: then_body,
+              if_else: else_body,
+            )
+          )
+        end
+
+        private def parse_while : ExprId
+          while_token = current_token
+          advance
+          skip_trivia
+
+          # Parse condition
+          condition = parse_expression(0)
+          return PREFIX_ERROR if condition.invalid?
+
+          skip_trivia
+          # Optional "do" keyword
+          token = current_token
+          if token.kind == Token::Kind::Do
+            advance
+          end
+          consume_newlines
+
+          # Parse body
+          body_ids = [] of ExprId
+          loop do
+            skip_trivia
+            token = current_token
+            break if token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            expr = parse_expression(0)
+            body_ids << expr unless expr.invalid?
+            consume_newlines
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          while_span = if end_token
+            while_token.span.cover(end_token.span)
+          else
+            while_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::While,
+              while_span,
+              while_condition: condition,
+              while_body: body_ids,
+            )
+          )
+        end
+
         private def parse_class : ExprId
           class_token = current_token
           advance
@@ -263,15 +383,15 @@ module CrystalGPT5
           loop do
             skip_trivia
             token = current_token
-            break if token.kind == Token::Kind::Identifier && token_text(token) == "end"
+            break if token.kind == Token::Kind::End
             break if token.kind == Token::Kind::EOF
 
             # Check for definitions inside class body
             if definition_start?
-              expr = case token_text(current_token)
-                when "def"
+              expr = case current_token.kind
+                when Token::Kind::Def
                   parse_def
-                when "class"
+                when Token::Kind::Class
                   parse_class
                 else
                   parse_expression(0)
@@ -340,7 +460,7 @@ module CrystalGPT5
             token = current_token
             break if token.kind == Token::Kind::EOF
 
-            if control_depth == 0 && token.kind == Token::Kind::Identifier && token_text(token) == "end"
+            if control_depth == 0 && token.kind == Token::Kind::End
               break
             end
 
@@ -489,24 +609,23 @@ module CrystalGPT5
         private def parse_prefix : ExprId
           token = current_token
           case token.kind
+          when Token::Kind::True, Token::Kind::False
+            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Bool, token.span, literal: token.slice))
+            advance
+            id
+          when Token::Kind::Nil
+            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Nil, token.span, literal: token.slice))
+            advance
+            id
+          when Token::Kind::If
+            parse_if
+          when Token::Kind::While
+            parse_while
           when Token::Kind::Identifier
-            # Check for bool and nil literals
-            text = token_text(token)
-            case text
-            when "true", "false"
-              id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Bool, token.span, literal: token.slice))
-              advance
-              id
-            when "nil"
-              id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Nil, token.span, literal: token.slice))
-              advance
-              id
-            else
-              # Regular identifier
-              id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Identifier, token.span, literal: token.slice))
-              advance
-              id
-            end
+            # Regular identifier
+            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Identifier, token.span, literal: token.slice))
+            advance
+            id
           when Token::Kind::Number
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Number, token.span, literal: token.slice))
             advance
@@ -919,10 +1038,35 @@ module CrystalGPT5
 
         private def expect_identifier(expected : String)
           token = current_token
-          if token.kind == Token::Kind::Identifier && token_text(token) == expected
-            advance
+          # Check if expected is a keyword that has its own token kind
+          expected_kind = case expected
+          when "if"    then Token::Kind::If
+          when "else"  then Token::Kind::Else
+          when "end"   then Token::Kind::End
+          when "while" then Token::Kind::While
+          when "do"    then Token::Kind::Do
+          when "then"  then Token::Kind::Then
+          when "def"   then Token::Kind::Def
+          when "class" then Token::Kind::Class
+          when "true"  then Token::Kind::True
+          when "false" then Token::Kind::False
+          when "nil"   then Token::Kind::Nil
           else
-            emit_unexpected(token)
+            nil
+          end
+
+          if expected_kind
+            if token.kind == expected_kind
+              advance
+            else
+              emit_unexpected(token)
+            end
+          else
+            if token.kind == Token::Kind::Identifier && token_text(token) == expected
+              advance
+            else
+              emit_unexpected(token)
+            end
           end
         end
 

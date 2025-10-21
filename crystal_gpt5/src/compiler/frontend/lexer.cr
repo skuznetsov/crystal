@@ -99,9 +99,29 @@ module CrystalGPT5
           if @offset < @rope.size && identifier_suffix?(current_byte)
             advance
           end
+
+          slice = @rope.bytes[from...@offset]
+
+          # Check if this is a keyword
+          kind = case String.new(slice)
+          when "if"    then Token::Kind::If
+          when "else"  then Token::Kind::Else
+          when "end"   then Token::Kind::End
+          when "while" then Token::Kind::While
+          when "do"    then Token::Kind::Do
+          when "then"  then Token::Kind::Then
+          when "def"   then Token::Kind::Def
+          when "class" then Token::Kind::Class
+          when "true"  then Token::Kind::True
+          when "false" then Token::Kind::False
+          when "nil"   then Token::Kind::Nil
+          else
+            Token::Kind::Identifier
+          end
+
           Token.new(
-            Token::Kind::Identifier,
-            @rope.bytes[from...@offset],
+            kind,
+            slice,
             build_span(start_offset, start_line, start_column)
           )
         end

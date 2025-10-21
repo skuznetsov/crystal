@@ -21,6 +21,19 @@ module CrystalGPT5
           Number
           String
 
+          # Keywords
+          If
+          Else
+          End
+          While
+          Do
+          Then
+          Def
+          Class
+          True
+          False
+          Nil
+
           # Arithmetic operators
           Plus        # +
           Minus       # -

@@ -27,6 +27,8 @@ module CrystalGPT5
           Index
           MemberAccess
           Grouping
+          If
+          While
           MacroExpression
           MacroLiteral
           MacroDef
@@ -54,6 +56,11 @@ module CrystalGPT5
         getter class_name : Slice(UInt8)?
         getter class_body : Array(ExprId)?
         getter class_super_name : Slice(UInt8)?
+        getter if_condition : ExprId?
+        getter if_then : Array(ExprId)?
+        getter if_else : Array(ExprId)?
+        getter while_condition : ExprId?
+        getter while_body : Array(ExprId)?
 
         def initialize(
           @kind : Kind,
@@ -76,6 +83,11 @@ module CrystalGPT5
           @class_name : Slice(UInt8)? = nil,
           @class_body : Array(ExprId)? = nil,
           @class_super_name : Slice(UInt8)? = nil,
+          @if_condition : ExprId? = nil,
+          @if_then : Array(ExprId)? = nil,
+          @if_else : Array(ExprId)? = nil,
+          @while_condition : ExprId? = nil,
+          @while_body : Array(ExprId)? = nil,
         )
         end
 
