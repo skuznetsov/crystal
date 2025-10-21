@@ -49,6 +49,50 @@ describe TypeInferenceEngine do
       type.as(PrimitiveType).name.should eq("Int32")
     end
 
+    it "infers Int64 for number literals with _i64 suffix" do
+      source = "42_i64"
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int64")
+    end
+
+    it "infers Float64 for decimal literals" do
+      source = "3.14"
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Float64")
+    end
+
+    it "infers Float64 for integer literals with _f64 suffix" do
+      source = "42_f64"
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Float64")
+    end
+
+    it "infers Int32 for explicit _i32 suffix" do
+      source = "100_i32"
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+
     it "infers String for string literals" do
       source = "\"hello\""
       program, analyzer, engine = infer_types(source)
@@ -59,9 +103,6 @@ describe TypeInferenceEngine do
       type.should be_a(PrimitiveType)
       type.as(PrimitiveType).name.should eq("String")
     end
-
-    # TODO: Parser doesn't support bool, nil, if, while yet
-    # These will be added when parser is extended
   end
 
   describe "Phase 2: Binary Operators" do
@@ -309,6 +350,214 @@ describe TypeInferenceEngine do
       # Comparison operators return Bool
       type.should be_a(PrimitiveType)
       type.as(PrimitiveType).name.should eq("Bool")
+    end
+  end
+
+  describe "Phase 4: Variable Assignments" do
+    it "infers type from simple assignment" do
+      source = "x = 42"
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      # Assignment returns the value type
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "uses tracked type for identifier after assignment" do
+      source = <<-CRYSTAL
+        x = 42
+        x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Check assignment (first root)
+      assign_type = engine.context.get_type(program.roots[0])
+      assign_type.should be_a(PrimitiveType)
+      assign_type.as(PrimitiveType).name.should eq("Int32")
+
+      # Check identifier usage (second root)
+      ident_type = engine.context.get_type(program.roots[1])
+      ident_type.should be_a(PrimitiveType)
+      ident_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers String type from string assignment" do
+      source = <<-CRYSTAL
+        s = "hello"
+        s
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Check identifier has String type
+      ident_type = engine.context.get_type(program.roots[1])
+      ident_type.should be_a(PrimitiveType)
+      ident_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "infers type from expression assignment" do
+      source = <<-CRYSTAL
+        y = 1 + 2
+        y
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Check identifier has Int32 type from arithmetic
+      ident_type = engine.context.get_type(program.roots[1])
+      ident_type.should be_a(PrimitiveType)
+      ident_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles multiple assignments" do
+      source = <<-CRYSTAL
+        x = 42
+        y = "hello"
+        x
+        y
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Check x has Int32 type
+      x_type = engine.context.get_type(program.roots[2])
+      x_type.should be_a(PrimitiveType)
+      x_type.as(PrimitiveType).name.should eq("Int32")
+
+      # Check y has String type
+      y_type = engine.context.get_type(program.roots[3])
+      y_type.should be_a(PrimitiveType)
+      y_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "handles reassignment with different type" do
+      source = <<-CRYSTAL
+        x = 42
+        x = "hello"
+        x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Last assignment wins
+      ident_type = engine.context.get_type(program.roots[2])
+      ident_type.should be_a(PrimitiveType)
+      ident_type.as(PrimitiveType).name.should eq("String")
+    end
+  end
+
+  describe "Phase 5: Numeric Promotion (Production Fallback)" do
+    it "promotes Int32 + Int64 to Int64" do
+      source = "42_i32 + 100_i64"
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int64")
+    end
+
+    it "promotes Int32 + Float64 to Float64" do
+      source = "42_i32 + 3.14_f64"
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Float64")
+    end
+
+    it "promotes Int64 + Float64 to Float64" do
+      source = "100_i64 + 2.5_f64"
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Float64")
+    end
+
+    it "keeps Int32 + Int32 as Int32" do
+      source = "42_i32 + 100_i32"
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "keeps Int64 + Int64 as Int64" do
+      source = "100_i64 + 200_i64"
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int64")
+    end
+
+    it "promotes in complex expressions" do
+      source = "1_i32 + 2_i64 * 3_i32"
+      program, analyzer, engine = infer_types(source)
+
+      # 2_i64 * 3_i32 → Int64 (promotion)
+      # 1_i32 + Int64 → Int64 (promotion)
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int64")
+    end
+  end
+
+  describe "Diagnostic Spans" do
+    it "reports actual error location for type mismatch" do
+      source = <<-CRYSTAL
+        x = 42
+        y = "hello" + x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Should have 1 diagnostic
+      engine.diagnostics.size.should eq(1)
+
+      diagnostic = engine.diagnostics[0]
+      diagnostic.message.should contain("requires numeric types")
+
+      # Verify span points to actual error location (line 2)
+      diagnostic.primary_span.start_line.should eq(2)
+
+      # Should not be dummy span (0,0)
+      diagnostic.primary_span.start_line.should_not eq(0)
+      diagnostic.primary_span.start_column.should_not eq(0)
+    end
+
+    it "reports correct location for boolean type error" do
+      source = <<-CRYSTAL
+        if 42
+          "oops"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      engine.diagnostics.size.should eq(1)
+      diagnostic = engine.diagnostics[0]
+
+      # Error should point to condition location
+      diagnostic.primary_span.start_line.should eq(1)
+      diagnostic.primary_span.start_line.should_not eq(0)
     end
   end
 end

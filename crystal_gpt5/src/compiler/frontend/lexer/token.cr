@@ -1,4 +1,5 @@
 require "../span"
+require "../ast"  # For NumberKind
 
 module CrystalGPT5
   module Compiler
@@ -7,8 +8,9 @@ module CrystalGPT5
         getter kind : Kind
         getter slice : Slice(UInt8)
         getter span : Span
+        getter number_kind : NumberKind?
 
-        def initialize(@kind : Kind, @slice : Slice(UInt8), @span : Span)
+        def initialize(@kind : Kind, @slice : Slice(UInt8), @span : Span, @number_kind : NumberKind? = nil)
         end
 
         def lexeme : String

@@ -14,6 +14,26 @@ module CrystalGPT5
         end
       end
 
+      # Numeric literal kind for precise type inference
+      #
+      # Simplified version covering main use cases:
+      # - I32: Default for integer literals (42)
+      # - I64: Explicit _i64 suffix or large integers
+      # - F64: Decimal point (3.14) or _f64 suffix
+      enum NumberKind
+        I32
+        I64
+        F64
+
+        def to_s : String
+          case self
+          when I32 then "Int32"
+          when I64 then "Int64"
+          when F64 then "Float64"
+          end
+        end
+      end
+
       # Represents an elsif branch in an if expression
       #
       # For production compiler with IDE support, we track:
@@ -44,6 +64,7 @@ module CrystalGPT5
           Grouping
           If
           While
+          Assign
           MacroExpression
           MacroLiteral
           MacroDef
@@ -54,6 +75,7 @@ module CrystalGPT5
         getter kind : Kind
         getter span : Span
         getter literal : Slice(UInt8)?
+        getter number_kind : NumberKind?
         getter operator : Slice(UInt8)?
         getter left : ExprId?
         getter right : ExprId?
@@ -77,11 +99,14 @@ module CrystalGPT5
         getter if_else : Array(ExprId)?
         getter while_condition : ExprId?
         getter while_body : Array(ExprId)?
+        getter assign_target : ExprId?
+        getter assign_value : ExprId?
 
         def initialize(
           @kind : Kind,
           @span : Span,
           @literal : Slice(UInt8)? = nil,
+          @number_kind : NumberKind? = nil,
           @operator : Slice(UInt8)? = nil,
           @left : ExprId? = nil,
           @right : ExprId? = nil,
@@ -105,6 +130,8 @@ module CrystalGPT5
           @if_else : Array(ExprId)? = nil,
           @while_condition : ExprId? = nil,
           @while_body : Array(ExprId)? = nil,
+          @assign_target : ExprId? = nil,
+          @assign_value : ExprId? = nil,
         )
         end
 

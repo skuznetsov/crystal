@@ -130,13 +130,61 @@ module CrystalGPT5
         private def lex_number
           start_offset, start_line, start_column = capture_position
           from = @offset
+
+          # Read integer part
           while @offset < @rope.size && ascii_number?(current_byte)
             advance
           end
+
+          # Check for decimal point (float)
+          has_decimal = false
+          if @offset < @rope.size && current_byte == '.'.ord.to_u8
+            # Peek ahead to ensure next char is a digit (not method call like 42.abs)
+            if @offset + 1 < @rope.size && ascii_number?(@rope.bytes[@offset + 1])
+              has_decimal = true
+              advance  # consume '.'
+              # Read fractional part
+              while @offset < @rope.size && ascii_number?(current_byte)
+                advance
+              end
+            end
+          end
+
+          # Check for suffix (_i32, _i64, _f64)
+          number_kind : NumberKind? = nil
+          if @offset < @rope.size && current_byte == '_'.ord.to_u8
+            suffix_start = @offset
+            advance  # consume '_'
+
+            # Read suffix characters
+            suffix_from = @offset
+            while @offset < @rope.size && (ascii_letter?(current_byte) || ascii_number?(current_byte))
+              advance
+            end
+
+            suffix = String.new(@rope.bytes[suffix_from...@offset])
+            number_kind = case suffix
+            when "i32" then NumberKind::I32
+            when "i64" then NumberKind::I64
+            when "f64" then NumberKind::F64
+            else
+              # Unknown suffix - ignore and treat as separate token
+              # Reset to before underscore
+              @offset = suffix_start
+              nil
+            end
+          end
+
+          # Infer NumberKind if not explicitly specified
+          if number_kind.nil?
+            number_kind = has_decimal ? NumberKind::F64 : NumberKind::I32
+          end
+
           Token.new(
             Token::Kind::Number,
             @rope.bytes[from...@offset],
-            build_span(start_offset, start_line, start_column)
+            build_span(start_offset, start_line, start_column),
+            number_kind: number_kind
           )
         end
 

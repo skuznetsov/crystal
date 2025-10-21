@@ -50,11 +50,54 @@ module CrystalGPT5
               next
             end
 
-            expr = parse_expression(0)
+            expr = parse_statement
             roots << expr unless expr.invalid?
             consume_newlines
           end
           Program.new(@arena, roots)
+        end
+
+        # Parse a statement (assignment or expression)
+        private def parse_statement : ExprId
+          # Parse left side (could be identifier or expression)
+          left = parse_expression(0)
+          return PREFIX_ERROR if left.invalid?
+
+          skip_trivia
+          token = current_token
+
+          # Check for assignment: identifier = value
+          if token.kind == Token::Kind::Eq
+            # Verify left side is an identifier
+            left_node = @arena[left]
+            unless left_node.kind == ExpressionNode::Kind::Identifier
+              @diagnostics << Diagnostic.new("Assignment target must be an identifier", token.span)
+              return PREFIX_ERROR
+            end
+
+            # Consume '=' token
+            eq_token = token
+            advance
+            skip_trivia
+
+            # Parse value expression
+            value = parse_expression(0)
+            return PREFIX_ERROR if value.invalid?
+
+            # Create Assign node
+            value_span = node_span(value)
+            assign_span = left_node.span.cover(value_span)
+
+            return @arena.add(ExpressionNode.new(
+              ExpressionNode::Kind::Assign,
+              assign_span,
+              assign_target: left,
+              assign_value: value
+            ))
+          end
+
+          # Not an assignment, return expression as-is
+          left
         end
 
         def arena
@@ -679,7 +722,12 @@ module CrystalGPT5
             advance
             id
           when Token::Kind::Number
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Number, token.span, literal: token.slice))
+            id = @arena.add(ExpressionNode.new(
+              ExpressionNode::Kind::Number,
+              token.span,
+              literal: token.slice,
+              number_kind: token.number_kind
+            ))
             advance
             id
           when Token::Kind::String

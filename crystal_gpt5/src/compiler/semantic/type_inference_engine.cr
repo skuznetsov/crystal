@@ -33,6 +33,7 @@ module CrystalGPT5
           @context : TypeContext = TypeContext.new
         )
           @diagnostics = [] of Diagnostic
+          @assignments = {} of String => Type  # Track variable assignments: name → type
         end
 
         # Main entry point: Infer types for all root expressions
@@ -59,7 +60,7 @@ module CrystalGPT5
           when .identifier?
             infer_identifier(node, expr_id)
           when .binary?
-            infer_binary(node)
+            infer_binary(node, expr_id)
           when .def?
             # Method definitions don't have value types (they're statements)
             @context.nil_type
@@ -73,6 +74,8 @@ module CrystalGPT5
             infer_if(node)
           when .while?
             infer_while(node)
+          when .assign?
+            infer_assign(node)
           else
             # Unknown expression kind
             @context.nil_type
@@ -84,9 +87,18 @@ module CrystalGPT5
         # ============================================================
 
         private def infer_number(node) : Type
-          # TODO: Parse literal to determine if Int32, Int64, Float64
-          # For now: assume all numbers are Int32
-          @context.int32_type
+          # Use NumberKind from lexer/parser
+          case node.number_kind
+          when NumberKind::I32
+            @context.int32_type
+          when NumberKind::I64
+            @context.int64_type
+          when NumberKind::F64
+            @context.float64_type
+          else
+            # Fallback to Int32 if NumberKind is nil (shouldn't happen)
+            @context.int32_type
+          end
         end
 
         private def infer_string(node) : Type
@@ -106,17 +118,22 @@ module CrystalGPT5
         # ============================================================
 
         private def infer_identifier(node, expr_id : ExprId) : Type
-          # Lookup resolved symbol from name resolution
+          # First, check if this identifier has a tracked assignment
+          if identifier_name = node.literal_string
+            if assigned_type = @assignments[identifier_name]?
+              return assigned_type
+            end
+          end
+
+          # Fallback to symbol lookup from name resolution
           symbol = @identifier_symbols[expr_id]?
 
           return @context.nil_type unless symbol
 
           case symbol
           when VariableSymbol
-            # For Phase 1: Variables without explicit types return Nil
-            # TODO Phase 2: Track assignments for implicit type inference
+            # Explicit type annotation: var : Int32
             if declared_type_name = symbol.declared_type
-              # Explicit type annotation: var : Int32
               parse_type_name(declared_type_name)
             else
               @context.nil_type
@@ -155,7 +172,7 @@ module CrystalGPT5
         # PHASE 2: Binary Operators
         # ============================================================
 
-        private def infer_binary(node) : Type
+        private def infer_binary(node, expr_id : ExprId) : Type
           # Binary node has left, right, operator fields
           left_id = node.left
           right_id = node.right
@@ -172,12 +189,12 @@ module CrystalGPT5
           when "+", "-", "*", "/"
             # Numeric operators
             unless numeric_type?(left_type) && numeric_type?(right_type)
-              emit_error("Operator '#{op}' requires numeric types, got #{left_type} and #{right_type}")
+              emit_error("Operator '#{op}' requires numeric types, got #{left_type} and #{right_type}", expr_id)
               return @context.nil_type
             end
-            # For simplicity: always return Int32
-            # TODO: Proper numeric promotion (Int32 + Int64 → Int64)
-            @context.int32_type
+            # Production-ready fallback: widest type wins (safe, no precision loss)
+            # TODO Phase 4: Check method overload first, then fallback to this
+            promote_numeric_types(left_type, right_type)
 
           when "==", "!=", "<", ">", "<=", ">="
             # Comparison operators → Bool
@@ -186,13 +203,13 @@ module CrystalGPT5
           when "&&", "||"
             # Logical operators
             unless bool_type?(left_type) && bool_type?(right_type)
-              emit_error("Operator '#{op}' requires bool types, got #{left_type} and #{right_type}")
+              emit_error("Operator '#{op}' requires bool types, got #{left_type} and #{right_type}", expr_id)
               return @context.nil_type
             end
             @context.bool_type
 
           else
-            emit_error("Unknown operator '#{op}'")
+            emit_error("Unknown operator '#{op}'", expr_id)
             @context.nil_type
           end
         end
@@ -204,6 +221,52 @@ module CrystalGPT5
 
         private def bool_type?(type : Type) : Bool
           type.is_a?(PrimitiveType) && type.name == "Bool"
+        end
+
+        # Promote two numeric types to their widest common type
+        #
+        # PRODUCTION-READY FALLBACK STRATEGY:
+        # This is a SAFE DEFAULT used when method resolution is not available.
+        # In Phase 4, this will be replaced by exact Crystal behavior:
+        #   1. Check method overload: left_type.+(right_type)
+        #   2. If found: use method's return type (Crystal-exact)
+        #   3. If not found: use this fallback (safe, no precision loss)
+        #
+        # Promotion rules (fallback):
+        #   I32 < I64 < F64 (width ordering)
+        #   Always return widest type to prevent precision loss
+        #
+        # Examples:
+        #   promote(I32, I32) → I32
+        #   promote(I32, I64) → I64  (safe: preserves Int64 range)
+        #   promote(I32, F64) → F64  (safe: preserves float precision)
+        #   promote(I64, F64) → F64
+        #
+        # TODO Phase 4: Replace with method overload lookup when available
+        private def promote_numeric_types(left : Type, right : Type) : Type
+          return @context.nil_type unless left.is_a?(PrimitiveType) && right.is_a?(PrimitiveType)
+
+          # Type width values for ordering
+          left_width = numeric_type_width(left.name)
+          right_width = numeric_type_width(right.name)
+
+          # Return widest type
+          if left_width >= right_width
+            left
+          else
+            right
+          end
+        end
+
+        # Get numeric type width for promotion
+        # I32 = 32, I64 = 64, F64 = 128 (floats wider than ints)
+        private def numeric_type_width(type_name : String) : Int32
+          case type_name
+          when "Int32"   then 32
+          when "Int64"   then 64
+          when "Float64" then 128  # Floats wider than any integer
+          else 0
+          end
         end
 
         # ============================================================
@@ -310,6 +373,31 @@ module CrystalGPT5
         end
 
         # ============================================================
+        # PHASE 2: Assignments
+        # ============================================================
+
+        private def infer_assign(node) : Type
+          # Get target and value expression IDs
+          target_id = node.assign_target
+          value_id = node.assign_value
+
+          return @context.nil_type unless target_id && value_id
+
+          # Infer value type
+          value_type = infer_expression(value_id)
+
+          # Get target identifier name
+          target_node = @program.arena[target_id]
+          if target_name = target_node.literal_string
+            # Track this assignment: identifier name → type
+            @assignments[target_name] = value_type
+          end
+
+          # Assignments return the value type in Crystal
+          value_type
+        end
+
+        # ============================================================
         # Helper Methods
         # ============================================================
 
@@ -331,22 +419,27 @@ module CrystalGPT5
         # ============================================================
 
         private def emit_error(message : String, node_id : ExprId? = nil)
-          # Create diagnostic with primary span
-          # TODO: Use actual node span when available
-          dummy_span = Frontend::Span.new(
-            start_offset: 0,
-            end_offset: 0,
-            start_line: 1,
-            start_column: 1,
-            end_line: 1,
-            end_column: 1
-          )
+          # Get actual span from node if available
+          span = if node_id
+            node = @program.arena[node_id]
+            node.span
+          else
+            # Fallback to dummy span if node not available
+            Frontend::Span.new(
+              start_offset: 0,
+              end_offset: 0,
+              start_line: 1,
+              start_column: 1,
+              end_line: 1,
+              end_column: 1
+            )
+          end
 
           diagnostic = Diagnostic.new(
             level: DiagnosticLevel::Error,
             code: "E3001",  # Type error codes start at E3xxx
             message: message,
-            primary_span: dummy_span
+            primary_span: span
           )
           @diagnostics << diagnostic
         end
