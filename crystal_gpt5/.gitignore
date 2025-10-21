@@ -1,0 +1,14 @@
+# Crystal cache
+.crystal-cache/
+
+# Build artifacts
+bin/crystal-gpt5
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store

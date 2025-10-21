@@ -1,0 +1,17 @@
+name: crystal_gpt5
+version: 0.1.0
+
+authors:
+  - Crystal GPT-5 Team
+
+description: |
+  Experimental next-generation Crystal compiler bootstrap.
+
+targets:
+  crystal_gpt5:
+    main: src/main.cr
+
+dependencies:
+  # Dependencies will be added iteratively as subsystems come online.
+
+license: MIT
