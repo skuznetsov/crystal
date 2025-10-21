@@ -69,6 +69,10 @@ module CrystalGPT5
           when .call?
             # TODO: Implement method call type inference (Phase 4)
             @context.nil_type
+          when .if?
+            infer_if(node)
+          when .while?
+            infer_while(node)
           else
             # Unknown expression kind
             @context.nil_type
@@ -203,10 +207,97 @@ module CrystalGPT5
         end
 
         # ============================================================
-        # PHASE 3: Control Flow (TODO: Parser doesn't support if/while yet)
+        # PHASE 3: Control Flow
         # ============================================================
 
-        # TODO: Add when parser supports if/while/case
+        private def infer_if(node) : Type
+          # Infer condition type
+          condition_id = node.if_condition
+          return @context.nil_type unless condition_id
+
+          condition_type = infer_expression(condition_id)
+
+          # Check condition is Bool
+          unless bool_type?(condition_type)
+            emit_error("If condition must be Bool, got #{condition_type}", condition_id)
+          end
+
+          # Infer then body (type of last expression)
+          then_type = if then_body = node.if_then
+            if then_body.size > 0
+              # Infer all expressions in body, save type of last
+              result_type = @context.nil_type
+              then_body.each do |expr_id|
+                result_type = infer_expression(expr_id)
+                @context.set_type(expr_id, result_type)
+              end
+              result_type
+            else
+              @context.nil_type
+            end
+          else
+            @context.nil_type
+          end
+
+          # Infer else body (or Nil if no else)
+          else_type = if else_body = node.if_else
+            if else_body.size > 0
+              # Infer all expressions in body, save type of last
+              result_type = @context.nil_type
+              else_body.each do |expr_id|
+                result_type = infer_expression(expr_id)
+                @context.set_type(expr_id, result_type)
+              end
+              result_type
+            else
+              @context.nil_type
+            end
+          else
+            # No else branch → implicit Nil
+            @context.nil_type
+          end
+
+          # Create union type of both branches
+          union_of([then_type, else_type])
+        end
+
+        private def infer_while(node) : Type
+          # Infer condition type
+          condition_id = node.while_condition
+          return @context.nil_type unless condition_id
+
+          condition_type = infer_expression(condition_id)
+
+          # Check condition is Bool
+          unless bool_type?(condition_type)
+            emit_error("While condition must be Bool, got #{condition_type}", condition_id)
+          end
+
+          # Infer body expressions (result not used)
+          if body = node.while_body
+            body.each { |expr_id| infer_expression(expr_id) }
+          end
+
+          # While loops always return Nil in Crystal
+          @context.nil_type
+        end
+
+        # ============================================================
+        # Helper Methods
+        # ============================================================
+
+        # Creates a union type from constituent types
+        #
+        # Normalizes the union (flattens, removes duplicates, sorts).
+        # If only one type remains after normalization, returns that type directly.
+        private def union_of(types : Array(Type)) : Type
+          normalized = UnionType.normalize(types)
+          if normalized.size == 1
+            normalized[0]
+          else
+            UnionType.new(types)
+          end
+        end
 
         # ============================================================
         # Error Handling

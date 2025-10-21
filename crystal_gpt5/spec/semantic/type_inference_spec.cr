@@ -129,9 +129,93 @@ describe TypeInferenceEngine do
     end
   end
 
-  # TODO: Phase 3 (Control Flow) - waiting for parser support
-  # Parser doesn't currently support if/while/case expressions
-  # These tests will be added when parser is extended
+  describe "Phase 3: Control Flow" do
+    it "infers union type for if with both branches" do
+      source = <<-CRYSTAL
+        if true
+          42
+        else
+          "hello"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(UnionType)
+      union = type.as(UnionType)
+      union.types.size.should eq(2)
+
+      # Check both Int32 and String are in union
+      type_names = union.types.map(&.to_s).sort
+      type_names.should eq(["Int32", "String"])
+    end
+
+    it "infers union with Nil for if without else" do
+      source = <<-CRYSTAL
+        if true
+          42
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(UnionType)
+      union = type.as(UnionType)
+      union.types.size.should eq(2)
+
+      # Check Int32 and Nil are in union
+      type_names = union.types.map(&.to_s).sort
+      type_names.should eq(["Int32", "Nil"])
+    end
+
+    it "infers Nil for while loop" do
+      source = <<-CRYSTAL
+        while true
+          42
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Nil")
+    end
+
+    it "emits error for non-Bool if condition" do
+      source = <<-CRYSTAL
+        if 42
+          "oops"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      engine.diagnostics.size.should eq(1)
+      engine.diagnostics[0].message.should contain("If condition must be Bool")
+    end
+
+    it "emits error for non-Bool while condition" do
+      source = <<-CRYSTAL
+        while "not bool"
+          42
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      engine.diagnostics.size.should eq(1)
+      engine.diagnostics[0].message.should contain("While condition must be Bool")
+    end
+  end
 
   # TODO: Phase 4 (Method Calls) - waiting for type inference foundation
   # Will add method overload resolution after basic type inference works
