@@ -207,11 +207,11 @@ module CrystalGPT5
         private def parse_method_params
           params = [] of String
           skip_trivia
-          return params unless operator_token?(current_token, "(")
+          return params unless operator_token?(current_token, Token::Kind::LParen)
 
           advance
           skip_trivia
-          unless operator_token?(current_token, ")")
+          unless operator_token?(current_token, Token::Kind::RParen)
             loop do
               token = current_token
               unless token.kind == Token::Kind::Identifier
@@ -221,13 +221,13 @@ module CrystalGPT5
               params << token_text(token)
               advance
               skip_trivia
-              break unless operator_token?(current_token, ",")
+              break unless operator_token?(current_token, Token::Kind::Comma)
               advance
               skip_trivia
             end
           end
 
-          expect_operator(")")
+          expect_operator(Token::Kind::RParen)
           params
         end
 
@@ -246,7 +246,7 @@ module CrystalGPT5
           # Parse optional superclass: < SuperClass
           skip_trivia
           super_name_token = nil
-          if current_token.kind == Token::Kind::Operator && token_text(current_token) == "<"
+          if current_token.kind == Token::Kind::Less
             advance  # Skip <
             skip_trivia
             super_name_token = current_token
@@ -305,18 +305,16 @@ module CrystalGPT5
 
         private def skip_macro_parameters
           skip_trivia
-          return unless current_token.kind == Token::Kind::Operator && token_text(current_token) == "("
+          return unless current_token.kind == Token::Kind::LParen
 
           advance
           depth = 1
           while depth > 0 && current_token.kind != Token::Kind::EOF
-            if current_token.kind == Token::Kind::Operator
-              case token_text(current_token)
-              when "("
-                depth += 1
-              when ")"
-                depth -= 1
-              end
+            case current_token.kind
+            when Token::Kind::LParen
+              depth += 1
+            when Token::Kind::RParen
+              depth -= 1
             end
             advance
           end
@@ -456,14 +454,16 @@ module CrystalGPT5
               break
             end
 
-            if token.kind == Token::Kind::Operator
+            case token.kind
+            when Token::Kind::LParen
+              left = parse_parenthesized_call(left)
+              next
+            when Token::Kind::LBracket
+              left = parse_index(left)
+              next
+            when Token::Kind::Operator
+              # Check for operators not yet converted to enum (e.g., ".")
               case token_text(token)
-              when "("
-                left = parse_parenthesized_call(left)
-                next
-              when "["
-                left = parse_index(left)
-                next
               when "."
                 left = parse_member_access(left)
                 next
@@ -515,17 +515,21 @@ module CrystalGPT5
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::String, token.span, literal: token.slice))
             advance
             id
+          when Token::Kind::Plus, Token::Kind::Minus
+            # Unary operators
+            op = token
+            advance
+            right = parse_expression(UNARY_PRECEDENCE)
+            return PREFIX_ERROR if right.invalid?
+            operand_span = node_span(right)
+            unary_span = op.span.cover(operand_span)
+            @arena.add(ExpressionNode.new(ExpressionNode::Kind::Unary, unary_span, operator: op.slice, right: right))
+          when Token::Kind::LParen
+            parse_grouping
           when Token::Kind::Operator
+            # Generic fallback for unhandled operators (e.g., macro operators)
             op_text = token_text(token)
-            if UNARY_OPERATORS.includes?(op_text)
-              op = token
-              advance
-              right = parse_expression(UNARY_PRECEDENCE)
-              return PREFIX_ERROR if right.invalid?
-              operand_span = node_span(right)
-              unary_span = op.span.cover(operand_span)
-              @arena.add(ExpressionNode.new(ExpressionNode::Kind::Unary, unary_span, operator: op.slice, right: right))
-            elsif op_text == "("
+            if op_text == "("
               parse_grouping
             else
               emit_unexpected(token)
@@ -546,7 +550,7 @@ module CrystalGPT5
           advance
           expr = parse_expression(0)
           return PREFIX_ERROR if expr.invalid?
-          expect_operator(")")
+          expect_operator(Token::Kind::RParen)
           closing_span = previous_token.try(&.span)
           grouping_span = cover_optional_spans(lparen.span, node_span(expr), closing_span)
           @arena.add(ExpressionNode.new(ExpressionNode::Kind::Grouping, grouping_span, left: expr))
@@ -557,17 +561,17 @@ module CrystalGPT5
           advance
           args = [] of ExprId
           skip_trivia
-          unless current_token.kind == Token::Kind::Operator && token_text(current_token) == ")"
+          unless current_token.kind == Token::Kind::RParen
             loop do
               arg = parse_expression(0)
               args << arg unless arg.invalid?
               skip_trivia
-              break unless current_token.kind == Token::Kind::Operator && token_text(current_token) == ","
+              break unless current_token.kind == Token::Kind::Comma
               advance
               skip_trivia
             end
           end
-          expect_operator(")")
+          expect_operator(Token::Kind::RParen)
           spans = [] of Span
           spans << lparen.span
           spans << node_span(callee)
@@ -584,17 +588,17 @@ module CrystalGPT5
           advance
           indexes = [] of ExprId
           skip_trivia
-          unless current_token.kind == Token::Kind::Operator && token_text(current_token) == "]"
+          unless current_token.kind == Token::Kind::RBracket
             loop do
               expr = parse_expression(0)
               indexes << expr unless expr.invalid?
               skip_trivia
-              break unless current_token.kind == Token::Kind::Operator && token_text(current_token) == ","
+              break unless current_token.kind == Token::Kind::Comma
               advance
               skip_trivia
             end
           end
-          expect_operator("]")
+          expect_operator(Token::Kind::RBracket)
           spans = [] of Span
           spans << lbracket.span
           spans << node_span(target)
@@ -633,6 +637,15 @@ module CrystalGPT5
           end
         end
 
+        private def expect_operator(kind : Token::Kind)
+          token = current_token
+          if token.kind == kind
+            advance
+          else
+            emit_unexpected(token)
+          end
+        end
+
         private def expect_operator(symbol : String)
           token = current_token
           if token.kind == Token::Kind::Operator && token_text(token) == symbol
@@ -655,11 +668,11 @@ module CrystalGPT5
         end
 
         private def infix?(token : Token)
-          token.kind == Token::Kind::Operator && BINARY_PRECEDENCE.has_key?(token_text(token))
+          BINARY_PRECEDENCE.has_key?(token.kind)
         end
 
         private def precedence_for(token : Token) : Int32
-          BINARY_PRECEDENCE[token_text(token)]? || 0
+          BINARY_PRECEDENCE[token.kind]? || 0
         end
 
         private def emit_unexpected(token : Token)
@@ -681,13 +694,22 @@ module CrystalGPT5
 
         private def consume_trim_marker?(marker : Char = '-')
           token = current_token
-          if token.kind == Token::Kind::Operator && token_text(token) == marker.to_s
+          # Check for trim marker: "-" can be either Minus or Operator
+          # "~" is always Operator (not tokenized as specific kind)
+          is_trim = case marker
+          when '-'
+            token.kind == Token::Kind::Minus ||
+              (token.kind == Token::Kind::Operator && token_text(token) == "-")
+          else
+            token.kind == Token::Kind::Operator && token_text(token) == marker.to_s
+          end
+
+          if is_trim
             advance
             true
           else
             false
           end
-
         end
 
         private def consume_macro_newline_escape?
@@ -739,7 +761,16 @@ module CrystalGPT5
           false
         end
 
+        private def operator_token?(token : Token, kind : Token::Kind)
+          token.kind == kind
+        end
+
         private def operator_token?(token : Token, value : String)
+          # Special case for "-": can be Minus or Operator
+          if value == "-"
+            return true if token.kind == Token::Kind::Minus
+          end
+          # Generic check for Operator tokens
           token.kind == Token::Kind::Operator && token_text(token) == value
         end
 
@@ -785,7 +816,7 @@ module CrystalGPT5
 
           skip_macro_whitespace
 
-          if operator_token?(current_token, ",")
+          if operator_token?(current_token, Token::Kind::Comma)
             advance
             skip_macro_whitespace
             if current_token.kind == Token::Kind::Identifier
@@ -935,21 +966,21 @@ module CrystalGPT5
         end
 
         BINARY_PRECEDENCE = {
-          "||" => 3,   # Logical OR (lowest)
-          "&&" => 4,   # Logical AND
-          "==" => 7,   # Equality
-          "!=" => 7,   # Inequality
-          "<"  => 7,   # Less than
-          ">"  => 7,   # Greater than
-          "<=" => 7,   # Less or equal
-          ">=" => 7,   # Greater or equal
-          "+" => 10,   # Addition
-          "-" => 10,   # Subtraction
-          "*" => 20,   # Multiplication (highest)
-          "/" => 20,   # Division
+          Token::Kind::OrOr      => 3,   # Logical OR (lowest)
+          Token::Kind::AndAnd    => 4,   # Logical AND
+          Token::Kind::EqEq      => 7,   # Equality
+          Token::Kind::NotEq     => 7,   # Inequality
+          Token::Kind::Less      => 7,   # Less than
+          Token::Kind::Greater   => 7,   # Greater than
+          Token::Kind::LessEq    => 7,   # Less or equal
+          Token::Kind::GreaterEq => 7,   # Greater or equal
+          Token::Kind::Plus      => 10,  # Addition
+          Token::Kind::Minus     => 10,  # Subtraction
+          Token::Kind::Star      => 20,  # Multiplication (highest)
+          Token::Kind::Slash     => 20,  # Division
         }
 
-        UNARY_OPERATORS = {"+", "-"}
+        UNARY_OPERATORS = [Token::Kind::Plus, Token::Kind::Minus]
       end
     end
   end

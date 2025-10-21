@@ -1,0 +1,50 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [    
+        {
+            "type": "lldb-dap",
+            "request": "launch",
+            "name": "Debug compiler",
+            "enableSyntheticChildDebugging": true,
+            "stopOnEntry": true,
+            "program": "${workspaceFolder}/.build/crystal",
+            "env": {
+                "LLDBDAP_LOG": "${workspaceFolder}/logs/lldb.dap.log",
+                "CRYSTAL_DEBUG_COMPILER": "1",
+                "CRYSTAL_PATH": "${workspaceFolder}/src/"
+            },
+            "args": [
+                "build",
+                "--debug",
+                "--threads",
+                "1",
+                "-s",
+                "-p",
+                "--prelude",
+                "../src/prelude.cr",
+                // "./crweb.cr"
+                "./test/debug_tests.cr"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug crweb",
+            "program": "${workspaceFolder}/test/crweb",
+            "args": [],
+            "cwd": "${workspaceFolder}/test"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug debug_tests",
+            "program": "${workspaceFolder}/test/debug_tests",
+            "args": [],
+            "cwd": "${workspaceFolder}/test"
+        }
+    ]
+}

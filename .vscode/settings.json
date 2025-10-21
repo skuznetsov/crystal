@@ -1,0 +1,6 @@
+{
+    "crystal-lang.compiler": "/Users/sergey/Projects/crystal/crystal/test-bin/crystal",
+    "crystal-lang.implementations": true,
+    "crystal-lang.mainFile": "${workspaceRoot}/src/compiler/crystal.cr",
+    "lldb-dap.executable-path": "/Users/sergey/Projects/llvm/llvm-project/build_lldb/bin/lldb-dap"
+}

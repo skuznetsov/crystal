@@ -1,0 +1,19 @@
+.....CrystalGPT5::Compiler::Frontend::MacroPiece(@kind=CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Expression, @text=nil, @expr=CrystalGPT5::Compiler::Frontend::ExprId(@index=2), @control_keyword=nil, @trim_left=true, @trim_right=false)
+F
+
+Failures:
+
+  1) CrystalGPT5::Compiler::Frontend::Parser trims whitespace around macro expressions
+     Failure/Error: expr_piece.trim_right.should be_true
+
+       Expected: true
+            got: false
+
+     # spec/parser_spec.cr:136
+
+Finished in 451 microseconds
+6 examples, 1 failures, 0 errors, 0 pending
+
+Failed examples:
+
+crystal spec spec/parser_spec.cr:110 # CrystalGPT5::Compiler::Frontend::Parser trims whitespace around macro expressions

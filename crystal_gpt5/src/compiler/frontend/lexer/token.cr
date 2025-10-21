@@ -16,10 +16,47 @@ module CrystalGPT5
         end
 
         enum Kind
+          # Literals
           Identifier
           Number
           String
-          Operator
+
+          # Arithmetic operators
+          Plus        # +
+          Minus       # -
+          Star        # *
+          Slash       # /
+
+          # Comparison operators
+          Less        # <
+          Greater     # >
+          LessEq      # <=
+          GreaterEq   # >=
+          EqEq        # ==
+          NotEq       # !=
+
+          # Logical operators
+          AndAnd      # &&
+          OrOr        # ||
+
+          # Grouping and delimiters
+          LParen      # (
+          RParen      # )
+          LBracket    # [
+          RBracket    # ]
+          LBrace      # {
+          RBrace      # }
+          Comma       # ,
+          Semicolon   # ;
+          Colon       # :
+
+          # Assignment (future)
+          Eq          # =
+
+          # Other operators (keep for now, will migrate gradually)
+          Operator    # Generic fallback for unhandled operators
+
+          # Trivia
           Newline
           Whitespace
           Comment

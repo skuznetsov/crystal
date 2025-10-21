@@ -366,7 +366,7 @@ bar")
 
     parser.diagnostics.size.should eq(1)
     diagnostic = parser.diagnostics.first
-    diagnostic.message.should eq("unexpected Operator")
+    diagnostic.message.should eq("unexpected RParen")  # More specific than "Operator"
     diagnostic.span.start_line.should eq(1)
     diagnostic.span.start_column.should eq(1)
     diagnostic.span.end_column.should eq(2)

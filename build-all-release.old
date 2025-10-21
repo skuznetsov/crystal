@@ -1,0 +1,8 @@
+#!/bin/bash
+
+make clean
+cp ./test-bin/Backup/* ./test-bin/
+CRYSTAL_ROOT=. CRYSTAL_HAS_WRAPPER=true LLVM_CONFIG=/usr/local/Cellar/llvm/12.0.1/bin/llvm-config  make -f Makefile.debug
+cp ./.build/* ./test-bin/
+make clean
+CRYSTAL_ROOT=. CRYSTAL_HAS_WRAPPER=true LLVM_CONFIG=/usr/local/Cellar/llvm/12.0.1/bin/llvm-config  make

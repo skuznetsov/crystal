@@ -155,39 +155,91 @@ module CrystalGPT5
           first = current_byte
           advance
 
-          # Check for multi-character operators
-          if @offset < @rope.size
-            second = current_byte
-            case first
-            when '<'.ord.to_u8  # < <=
-              if second == '='.ord.to_u8
-                advance  # Consume '='
-              end
-            when '>'.ord.to_u8  # > >=
-              if second == '='.ord.to_u8
-                advance  # Consume '='
-              end
-            when '='.ord.to_u8  # ==
-              if second == '='.ord.to_u8
-                advance  # Consume '='
-              end
-            when '!'.ord.to_u8  # !=
-              if second == '='.ord.to_u8
-                advance  # Consume '='
-              end
-            when '&'.ord.to_u8  # &&
-              if second == '&'.ord.to_u8
-                advance  # Consume '&'
-              end
-            when '|'.ord.to_u8  # ||
-              if second == '|'.ord.to_u8
-                advance  # Consume '|'
-              end
+          # Determine token kind based on operator
+          kind : Token::Kind = case first
+          when '+'.ord.to_u8
+            Token::Kind::Plus
+          when '-'.ord.to_u8
+            Token::Kind::Minus
+          when '*'.ord.to_u8
+            Token::Kind::Star
+          when '/'.ord.to_u8
+            Token::Kind::Slash
+          when '('.ord.to_u8
+            Token::Kind::LParen
+          when ')'.ord.to_u8
+            Token::Kind::RParen
+          when '['.ord.to_u8
+            Token::Kind::LBracket
+          when ']'.ord.to_u8
+            Token::Kind::RBracket
+          when ','.ord.to_u8
+            Token::Kind::Comma
+          when ';'.ord.to_u8
+            Token::Kind::Semicolon
+          when ':'.ord.to_u8
+            Token::Kind::Colon
+          when '{'.ord.to_u8, '}'.ord.to_u8
+            # Keep {} as generic Operator for macro parsing compatibility
+            Token::Kind::Operator
+          when '<'.ord.to_u8
+            # Check for <=
+            if @offset < @rope.size && current_byte == '='.ord.to_u8
+              advance
+              Token::Kind::LessEq
+            else
+              Token::Kind::Less
             end
+          when '>'.ord.to_u8
+            # Check for >=
+            if @offset < @rope.size && current_byte == '='.ord.to_u8
+              advance
+              Token::Kind::GreaterEq
+            else
+              Token::Kind::Greater
+            end
+          when '='.ord.to_u8
+            # Check for ==
+            if @offset < @rope.size && current_byte == '='.ord.to_u8
+              advance
+              Token::Kind::EqEq
+            else
+              Token::Kind::Eq
+            end
+          when '!'.ord.to_u8
+            # Check for !=
+            if @offset < @rope.size && current_byte == '='.ord.to_u8
+              advance
+              Token::Kind::NotEq
+            else
+              # Standalone ! - use generic Operator for now
+              Token::Kind::Operator
+            end
+          when '&'.ord.to_u8
+            # Check for &&
+            if @offset < @rope.size && current_byte == '&'.ord.to_u8
+              advance
+              Token::Kind::AndAnd
+            else
+              # Standalone & - use generic Operator for now
+              Token::Kind::Operator
+            end
+          when '|'.ord.to_u8
+            # Check for ||
+            if @offset < @rope.size && current_byte == '|'.ord.to_u8
+              advance
+              Token::Kind::OrOr
+            else
+              # Standalone | - use generic Operator for now
+              Token::Kind::Operator
+            end
+          else
+            # Unknown operator - use generic fallback
+            Token::Kind::Operator
           end
 
           Token.new(
-            Token::Kind::Operator,
+            kind,
             @rope.bytes[from...@offset],
             build_span(start_offset, start_line, start_column)
           )
