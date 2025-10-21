@@ -47,4 +47,19 @@ describe CrystalGPT5::Compiler::CLI do
     diagnostics.should contain("cannot redefine class 'Thing' as method")
     diagnostics.should contain("previous class defined here")
   end
+
+  it "emits E2003 error for class reopening with different superclass" do
+    file_path = File.join(__DIR__, "semantic/test_data/superclass_mismatch.cr")
+    out_io = IO::Memory.new
+    err_io = IO::Memory.new
+
+    cli = CrystalGPT5::Compiler::CLI.new([file_path, "--check"])
+    cli.run(out_io: out_io, err_io: err_io)
+
+    err_io.rewind
+    diagnostics = err_io.gets_to_end
+    diagnostics.should contain("error[E2003]")
+    diagnostics.should contain("class 'Foo' already defined with superclass 'Bar'")
+    diagnostics.should contain("previous superclass declared here")
+  end
 end

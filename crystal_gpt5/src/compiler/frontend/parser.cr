@@ -243,6 +243,20 @@ module CrystalGPT5
           end
           advance
 
+          # Parse optional superclass: < SuperClass
+          skip_trivia
+          super_name_token = nil
+          if current_token.kind == Token::Kind::Operator && token_text(current_token) == "<"
+            advance  # Skip <
+            skip_trivia
+            super_name_token = current_token
+            unless super_name_token.kind == Token::Kind::Identifier
+              emit_unexpected(super_name_token)
+              return PREFIX_ERROR
+            end
+            advance
+          end
+
           consume_newlines
 
           body_ids = [] of ExprId
@@ -284,6 +298,7 @@ module CrystalGPT5
               class_span,
               class_name: name_token.slice,
               class_body: body_ids,
+              class_super_name: super_name_token.try(&.slice),
             )
           )
         end
