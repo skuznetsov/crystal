@@ -52,6 +52,10 @@ module CrystalGPT5
             infer_number(node)
           when .string?
             infer_string(node)
+          when .bool?
+            infer_bool(node)
+          when .nil?
+            infer_nil(node)
           when .identifier?
             infer_identifier(node, expr_id)
           when .binary?
@@ -83,6 +87,14 @@ module CrystalGPT5
 
         private def infer_string(node) : Type
           @context.string_type
+        end
+
+        private def infer_bool(node) : Type
+          @context.bool_type
+        end
+
+        private def infer_nil(node) : Type
+          @context.nil_type
         end
 
         # ============================================================

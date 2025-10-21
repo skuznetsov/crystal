@@ -490,9 +490,23 @@ module CrystalGPT5
           token = current_token
           case token.kind
           when Token::Kind::Identifier
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Identifier, token.span, literal: token.slice))
-            advance
-            id
+            # Check for bool and nil literals
+            text = token_text(token)
+            case text
+            when "true", "false"
+              id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Bool, token.span, literal: token.slice))
+              advance
+              id
+            when "nil"
+              id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Nil, token.span, literal: token.slice))
+              advance
+              id
+            else
+              # Regular identifier
+              id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Identifier, token.span, literal: token.slice))
+              advance
+              id
+            end
           when Token::Kind::Number
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Number, token.span, literal: token.slice))
             advance
@@ -921,10 +935,18 @@ module CrystalGPT5
         end
 
         BINARY_PRECEDENCE = {
-          "+" => 10,
-          "-" => 10,
-          "*" => 20,
-          "/" => 20,
+          "||" => 3,   # Logical OR (lowest)
+          "&&" => 4,   # Logical AND
+          "==" => 7,   # Equality
+          "!=" => 7,   # Inequality
+          "<"  => 7,   # Less than
+          ">"  => 7,   # Greater than
+          "<=" => 7,   # Less or equal
+          ">=" => 7,   # Greater or equal
+          "+" => 10,   # Addition
+          "-" => 10,   # Subtraction
+          "*" => 20,   # Multiplication (highest)
+          "/" => 20,   # Division
         }
 
         UNARY_OPERATORS = {"+", "-"}

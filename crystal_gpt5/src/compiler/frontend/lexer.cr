@@ -150,7 +150,42 @@ module CrystalGPT5
         private def lex_operator
           start_offset, start_line, start_column = capture_position
           from = @offset
+
+          # Read first character
+          first = current_byte
           advance
+
+          # Check for multi-character operators
+          if @offset < @rope.size
+            second = current_byte
+            case first
+            when '<'.ord.to_u8  # < <=
+              if second == '='.ord.to_u8
+                advance  # Consume '='
+              end
+            when '>'.ord.to_u8  # > >=
+              if second == '='.ord.to_u8
+                advance  # Consume '='
+              end
+            when '='.ord.to_u8  # ==
+              if second == '='.ord.to_u8
+                advance  # Consume '='
+              end
+            when '!'.ord.to_u8  # !=
+              if second == '='.ord.to_u8
+                advance  # Consume '='
+              end
+            when '&'.ord.to_u8  # &&
+              if second == '&'.ord.to_u8
+                advance  # Consume '&'
+              end
+            when '|'.ord.to_u8  # ||
+              if second == '|'.ord.to_u8
+                advance  # Consume '|'
+              end
+            end
+          end
+
           Token.new(
             Token::Kind::Operator,
             @rope.bytes[from...@offset],

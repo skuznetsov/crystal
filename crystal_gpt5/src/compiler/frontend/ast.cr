@@ -19,6 +19,8 @@ module CrystalGPT5
           Identifier
           Number
           String
+          Bool
+          Nil
           Unary
           Binary
           Call
