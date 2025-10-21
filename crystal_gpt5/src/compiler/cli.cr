@@ -125,7 +125,7 @@ module CrystalGPT5
             {"macro", nil}
           when Semantic::MethodSymbol
             params = symbol.params
-            extra = params.empty? ? nil : "(params: #{params.join(", ")})"
+            extra = params.empty? ? nil : "(params: #{params.map(&.name).join(", ")})"
             {"method", extra}
           when Semantic::ClassSymbol
             super_name = symbol.superclass_name

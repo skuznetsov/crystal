@@ -2,6 +2,8 @@ require "spec"
 require "./ast_fixtures"
 
 require "../../src/compiler/frontend/ast"
+require "../../src/compiler/frontend/lexer"
+require "../../src/compiler/frontend/parser"
 require "../../src/compiler/semantic/context"
 require "../../src/compiler/semantic/collectors/symbol_collector"
 require "../../src/compiler/semantic/symbol"
@@ -56,8 +58,28 @@ describe Semantic::SymbolCollector do
 
     symbol = context.symbol_table.lookup("greet").should_not be_nil
     method_symbol = symbol.as(Semantic::MethodSymbol)
-    method_symbol.params.should eq(["name"])
+    method_symbol.params.map(&.name).should eq(["name"])
     method_symbol.scope.lookup("name").should be_a(Semantic::VariableSymbol)
+  end
+
+  it "collects method return type annotation" do
+    source = <<-CR
+      def get_number : Int32
+        42
+      end
+    CR
+
+    lexer = Frontend::Lexer.new(source)
+    parser = Frontend::Parser.new(lexer)
+    program = parser.parse_program
+
+    context = Semantic::Context.new(Semantic::SymbolTable.new)
+    collector = Semantic::SymbolCollector.new(program, context)
+    collector.collect
+
+    symbol = context.symbol_table.lookup("get_number").should_not be_nil
+    method_symbol = symbol.as(Semantic::MethodSymbol)
+    method_symbol.return_annotation.should eq("Int32")
   end
 
   it "collects class definitions and nested methods" do

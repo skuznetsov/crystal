@@ -23,11 +23,11 @@ module CrystalGPT5
       end
 
       class MethodSymbol < Symbol
-        getter params : Array(String)
+        getter params : Array(Frontend::Parameter)
         getter return_annotation : String?
         getter scope : SymbolTable
 
-        def initialize(name : String, node_id : ExprId, *, params : Array(String) = [] of String, return_annotation : String? = nil, scope : SymbolTable)
+        def initialize(name : String, node_id : ExprId, *, params : Array(Frontend::Parameter) = [] of Frontend::Parameter, return_annotation : String? = nil, scope : SymbolTable)
           super(name, node_id)
           @params = params
           @return_annotation = return_annotation

@@ -29,8 +29,8 @@ private def infer_types(source : String)
   analyzer.collect_symbols
   name_result = analyzer.resolve_names
 
-  # Run type inference
-  engine = TypeInferenceEngine.new(program, name_result.identifier_symbols)
+  # Run type inference with global symbol table for fallback lookup
+  engine = TypeInferenceEngine.new(program, name_result.identifier_symbols, analyzer.global_context.symbol_table)
   engine.infer_types
 
   {program, analyzer, engine}
@@ -324,8 +324,123 @@ describe TypeInferenceEngine do
     end
   end
 
-  # TODO: Phase 4 (Method Calls) - waiting for type inference foundation
-  # Will add method overload resolution after basic type inference works
+  describe "Phase 4A: Method Calls (Simple Name-Based Lookup)" do
+    it "infers return type from method with type annotation" do
+      source = <<-CRYSTAL
+        class Calculator
+          def add(x : Int32, y : Int32) : Int32
+            x
+          end
+        end
+
+        calc = Calculator
+        calc.add(1, 2)
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get the method call expression (last root)
+      call_id = program.roots[2]
+      type = engine.context.get_type(call_id)
+
+      # Should infer Int32 from return annotation
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers Nil for method without return type annotation" do
+      source = <<-CRYSTAL
+        class Printer
+          def print_msg(msg : String)
+            msg
+          end
+        end
+
+        p = Printer
+        p.print_msg("hello")
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get the method call expression (last root)
+      call_id = program.roots[2]
+      type = engine.context.get_type(call_id)
+
+      # Should return Nil when no return annotation
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Nil")
+    end
+
+    it "emits error when method not found on class" do
+      source = <<-CRYSTAL
+        class Empty
+        end
+
+        e = Empty
+        e.missing_method(42)
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Should have diagnostic for method not found
+      engine.diagnostics.size.should eq(1)
+      engine.diagnostics[0].message.should contain("Method 'missing_method' not found")
+    end
+
+    it "handles multiple methods in class" do
+      source = <<-CRYSTAL
+        class Math
+          def add(x : Int32) : Int32
+            x
+          end
+
+          def multiply(x : Int32) : Int64
+            x
+          end
+        end
+
+        m = Math
+        m.add(5)
+        m.multiply(3)
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Check add call returns Int32
+      add_call_id = program.roots[2]
+      add_type = engine.context.get_type(add_call_id)
+      add_type.should be_a(PrimitiveType)
+      add_type.as(PrimitiveType).name.should eq("Int32")
+
+      # Check multiply call returns Int64
+      mult_call_id = program.roots[3]
+      mult_type = engine.context.get_type(mult_call_id)
+      mult_type.should be_a(PrimitiveType)
+      mult_type.as(PrimitiveType).name.should eq("Int64")
+    end
+
+    it "handles method call on assigned variable" do
+      source = <<-CRYSTAL
+        class Counter
+          def increment : Int32
+            1
+          end
+        end
+
+        c = Counter
+        result = c.increment
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Assignment should have type of method call (Int32)
+      assign_id = program.roots[2]
+      type = engine.context.get_type(assign_id)
+
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+  end
 
   describe "Integration: Complex Expressions (Current Parser)" do
     it "infers nested binary expressions" do

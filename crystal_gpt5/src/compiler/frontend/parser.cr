@@ -212,6 +212,23 @@ module CrystalGPT5
 
           params = parse_method_params
 
+          # Parse optional return type annotation: : ReturnType
+          return_type = nil
+          skip_trivia
+          if operator_token?(current_token, Token::Kind::Colon)
+            advance  # consume ':'
+            skip_trivia
+
+            # Parse return type (simple identifier for Phase 4A)
+            type_token = current_token
+            if type_token.kind == Token::Kind::Identifier
+              return_type = type_token.slice
+              advance
+            else
+              emit_unexpected(type_token)
+            end
+          end
+
           consume_newlines
 
           body_ids = [] of ExprId
@@ -241,13 +258,14 @@ module CrystalGPT5
               def_span,
               def_name: name_token.slice,
               def_params: params,
+              def_return_type: return_type,
               def_body: body_ids,
             )
           )
         end
 
         private def parse_method_params
-          params = [] of String
+          params = [] of Parameter
           skip_trivia
           return params unless operator_token?(current_token, Token::Kind::LParen)
 
@@ -255,14 +273,35 @@ module CrystalGPT5
           skip_trivia
           unless operator_token?(current_token, Token::Kind::RParen)
             loop do
+              # Parse parameter name
               token = current_token
               unless token.kind == Token::Kind::Identifier
                 emit_unexpected(token)
                 break
               end
-              params << token_text(token)
+              param_name = token_text(token)
               advance
               skip_trivia
+
+              # Parse optional type annotation: : Type
+              type_annotation = nil
+              if operator_token?(current_token, Token::Kind::Colon)
+                advance  # consume ':'
+                skip_trivia
+
+                # Parse type name (simple identifier for Phase 4A)
+                type_token = current_token
+                if type_token.kind == Token::Kind::Identifier
+                  type_annotation = token_text(type_token)
+                  advance
+                  skip_trivia
+                else
+                  emit_unexpected(type_token)
+                end
+              end
+
+              params << Parameter.new(param_name, type_annotation)
+
               break unless operator_token?(current_token, Token::Kind::Comma)
               advance
               skip_trivia

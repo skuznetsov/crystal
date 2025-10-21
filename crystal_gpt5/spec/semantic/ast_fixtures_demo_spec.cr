@@ -17,7 +17,7 @@ describe "AstFixtures" do
     node = arena[def_id]
     node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
     String.new(node.def_name.not_nil!).should eq("greet")
-    node.def_params.should eq(["name"])
+    node.def_params.not_nil!.map(&.name).should eq(["name"])
     node.def_body.not_nil!.size.should eq(1)
   end
 

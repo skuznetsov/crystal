@@ -49,6 +49,23 @@ module CrystalGPT5
         end
       end
 
+      # Represents a method parameter with optional type annotation
+      #
+      # Phase 4A: Parameter types for method resolution
+      # - name: Parameter name (e.g., "x", "y")
+      # - type_annotation: Optional type (e.g., "Int32", "String", nil)
+      #
+      # Examples:
+      #   def foo(x)           → Parameter("x", nil)
+      #   def foo(x : Int32)   → Parameter("x", "Int32")
+      struct Parameter
+        getter name : String
+        getter type_annotation : String?
+
+        def initialize(@name : String, @type_annotation : String? = nil)
+        end
+      end
+
       struct ExpressionNode
         enum Kind
           Identifier
@@ -88,7 +105,8 @@ module CrystalGPT5
         getter trim_left : Bool?
         getter trim_right : Bool?
         getter def_name : Slice(UInt8)?
-        getter def_params : Array(String)?
+        getter def_params : Array(Parameter)?
+        getter def_return_type : Slice(UInt8)?
         getter def_body : Array(ExprId)?
         getter class_name : Slice(UInt8)?
         getter class_body : Array(ExprId)?
@@ -119,7 +137,8 @@ module CrystalGPT5
           @trim_left : Bool? = nil,
           @trim_right : Bool? = nil,
           @def_name : Slice(UInt8)? = nil,
-          @def_params : Array(String)? = nil,
+          @def_params : Array(Parameter)? = nil,
+          @def_return_type : Slice(UInt8)? = nil,
           @def_body : Array(ExprId)? = nil,
           @class_name : Slice(UInt8)? = nil,
           @class_body : Array(ExprId)? = nil,
@@ -141,6 +160,10 @@ module CrystalGPT5
 
         def operator_string
           operator.try { |slice| String.new(slice) }
+        end
+
+        def member_string
+          member.try { |slice| String.new(slice) }
         end
       end
 

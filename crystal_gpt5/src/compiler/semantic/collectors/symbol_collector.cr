@@ -80,10 +80,11 @@ module CrystalGPT5
           return unless name_slice
 
           name = String.new(name_slice)
-          params = node.def_params || [] of String
+          params = node.def_params || [] of Frontend::Parameter
+          return_annotation = node.def_return_type.try { |slice| String.new(slice) }
 
           method_scope = SymbolTable.new(current_table)
-          method_symbol = MethodSymbol.new(name, node_id, params: params, scope: method_scope)
+          method_symbol = MethodSymbol.new(name, node_id, params: params, return_annotation: return_annotation, scope: method_scope)
 
           table = current_table
           if existing = table.lookup_local(name)
@@ -94,16 +95,16 @@ module CrystalGPT5
 
           push_table(method_scope)
 
-          params.each do |param_name|
-            param_symbol = VariableSymbol.new(param_name, node_id)
+          params.each do |param|
+            param_symbol = VariableSymbol.new(param.name, node_id, declared_type: param.type_annotation)
 
-            if existing_param = method_scope.lookup_local(param_name)
-              emit_duplicate_variable(param_name, param_symbol, existing_param)
+            if existing_param = method_scope.lookup_local(param.name)
+              emit_duplicate_variable(param.name, param_symbol, existing_param)
             else
-              if shadowed = lookup_variable_in_ancestors(method_scope.parent, param_name)
-                emit_shadowing_warning(param_name, param_symbol, shadowed)
+              if shadowed = lookup_variable_in_ancestors(method_scope.parent, param.name)
+                emit_shadowing_warning(param.name, param_symbol, shadowed)
               end
-              method_scope.define(param_name, param_symbol)
+              method_scope.define(param.name, param_symbol)
             end
           end
 

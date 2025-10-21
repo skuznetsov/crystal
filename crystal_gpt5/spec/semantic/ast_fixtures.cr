@@ -16,11 +16,14 @@ module AstFixtures
   # Helper: Create a def node
   # Example: make_def(arena, "greet", params: ["name"], body: [body_id])
   def make_def(arena : AstArena, name : String, params : Array(String) = [] of String, body : Array(ExprId) = [] of ExprId) : ExprId
+    # Convert string parameter names to Parameter objects (no type annotations for simple fixtures)
+    param_objects = params.map { |param_name| Frontend::Parameter.new(param_name) }
+
     arena.add(ExpressionNode.new(
       ExpressionNode::Kind::Def,
       span,
       def_name: name.to_slice,
-      def_params: params,
+      def_params: param_objects,
       def_body: body
     ))
   end

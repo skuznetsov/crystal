@@ -30,6 +30,7 @@ module CrystalGPT5
         def initialize(
           @program : Frontend::Program,
           @identifier_symbols : Hash(ExprId, Symbol),
+          @global_table : SymbolTable? = nil,
           @context : TypeContext = TypeContext.new
         )
           @diagnostics = [] of Diagnostic
@@ -68,8 +69,10 @@ module CrystalGPT5
             # Class definitions don't have value types (they're statements)
             @context.nil_type
           when .call?
-            # TODO: Implement method call type inference (Phase 4)
-            @context.nil_type
+            infer_call(node, expr_id)
+          when .member_access?
+            # In Crystal, obj.method without parens is a zero-argument method call
+            infer_member_access(node, expr_id)
           when .if?
             infer_if(node)
           when .while?
@@ -125,8 +128,13 @@ module CrystalGPT5
             end
           end
 
-          # Fallback to symbol lookup from name resolution
+          # Try name resolution first
           symbol = @identifier_symbols[expr_id]?
+
+          # Fallback to global symbol table lookup if name resolution didn't resolve this identifier
+          if symbol.nil? && (identifier_name = node.literal_string)
+            symbol = @global_table.try(&.lookup(identifier_name))
+          end
 
           return @context.nil_type unless symbol
 
@@ -395,6 +403,93 @@ module CrystalGPT5
 
           # Assignments return the value type in Crystal
           value_type
+        end
+
+        # ============================================================
+        # PHASE 4: Method Calls
+        # ============================================================
+
+        private def infer_member_access(node, expr_id : ExprId) : Type
+          # MemberAccess without parens is a zero-argument method call in Crystal
+          # obj.method → obj.method()
+          receiver_id = node.left
+          return @context.nil_type unless receiver_id
+
+          receiver_type = infer_expression(receiver_id)
+          method_name = node.member_string
+          return @context.nil_type unless method_name
+
+          # Lookup method (same as infer_call)
+          if method = lookup_method(receiver_type, method_name)
+            if ann = method.return_annotation
+              return parse_type_name(ann)
+            end
+          else
+            emit_error("Method '#{method_name}' not found on #{receiver_type}", expr_id)
+          end
+
+          @context.nil_type
+        end
+
+        private def infer_call(node, expr_id : ExprId) : Type
+          # Extract receiver and method name from Call node
+          return @context.nil_type unless callee_id = node.callee
+
+          callee_node = @program.arena[callee_id]
+
+          # Determine receiver type and method name
+          receiver_type : Type?
+          method_name : String?
+
+          case callee_node.kind
+          when .member_access?
+            # foo.bar(x) → receiver=foo, method=bar
+            receiver_id = callee_node.left
+            return @context.nil_type unless receiver_id
+
+            receiver_type = infer_expression(receiver_id)
+            method_name = callee_node.member_string
+          when .identifier?
+            # bar(x) → implicit self (not supported yet in Phase 4A)
+            return @context.nil_type
+          else
+            return @context.nil_type
+          end
+
+          return @context.nil_type unless receiver_type && method_name
+
+          # Lookup method (Phase 4A: by name only, no overload resolution)
+          if method = lookup_method(receiver_type, method_name)
+            # Return declared return type
+            if ann = method.return_annotation
+              return parse_type_name(ann)
+            end
+          else
+            emit_error("Method '#{method_name}' not found on #{receiver_type}", expr_id)
+          end
+
+          @context.nil_type
+        end
+
+        # Phase 4A: Simple method lookup by name only
+        # Phase 4B: Will add overload resolution by parameter types
+        private def lookup_method(receiver_type : Type, method_name : String) : MethodSymbol?
+          case receiver_type
+          when ClassType
+            # Look in class scope
+            if symbol = receiver_type.symbol.scope.lookup(method_name)
+              return symbol if symbol.is_a?(MethodSymbol)
+            end
+            # Phase 4B: Add inheritance search, module includes
+          when PrimitiveType
+            # Phase 4B: Add built-in methods (Int32#+, String#size, etc.)
+            nil
+          when UnionType
+            # Phase 4B: Find common method in all union members
+            nil
+          else
+            nil
+          end
         end
 
         # ============================================================
