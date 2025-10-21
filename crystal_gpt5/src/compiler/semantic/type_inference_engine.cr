@@ -239,6 +239,32 @@ module CrystalGPT5
             @context.nil_type
           end
 
+          # Infer elsif branches
+          elsif_types = [] of Type
+          if elsifs = node.if_elsifs
+            elsifs.each do |elsif_branch|
+              # Infer elsif condition
+              elsif_condition_type = infer_expression(elsif_branch.condition)
+              unless bool_type?(elsif_condition_type)
+                emit_error("Elsif condition must be Bool, got #{elsif_condition_type}", elsif_branch.condition)
+              end
+
+              # Infer elsif body (type of last expression)
+              elsif_type = if elsif_branch.body.size > 0
+                result_type = @context.nil_type
+                elsif_branch.body.each do |expr_id|
+                  result_type = infer_expression(expr_id)
+                  @context.set_type(expr_id, result_type)
+                end
+                result_type
+              else
+                @context.nil_type
+              end
+
+              elsif_types << elsif_type
+            end
+          end
+
           # Infer else body (or Nil if no else)
           else_type = if else_body = node.if_else
             if else_body.size > 0
@@ -257,8 +283,9 @@ module CrystalGPT5
             @context.nil_type
           end
 
-          # Create union type of both branches
-          union_of([then_type, else_type])
+          # Create union type of all branches: then + elsifs + else
+          all_types = [then_type] + elsif_types + [else_type]
+          union_of(all_types)
         end
 
         private def infer_while(node) : Type

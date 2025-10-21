@@ -23,6 +23,7 @@ module CrystalGPT5
 
           # Keywords
           If
+          Elsif
           Else
           End
           While

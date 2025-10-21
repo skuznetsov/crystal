@@ -14,6 +14,21 @@ module CrystalGPT5
         end
       end
 
+      # Represents an elsif branch in an if expression
+      #
+      # For production compiler with IDE support, we track:
+      # - condition: The condition expression
+      # - body: The body expressions
+      # - span: Exact source location for diagnostics and IDE tools
+      struct ElsifBranch
+        getter condition : ExprId
+        getter body : Array(ExprId)
+        getter span : Span
+
+        def initialize(@condition : ExprId, @body : Array(ExprId), @span : Span)
+        end
+      end
+
       struct ExpressionNode
         enum Kind
           Identifier
@@ -58,6 +73,7 @@ module CrystalGPT5
         getter class_super_name : Slice(UInt8)?
         getter if_condition : ExprId?
         getter if_then : Array(ExprId)?
+        getter if_elsifs : Array(ElsifBranch)?
         getter if_else : Array(ExprId)?
         getter while_condition : ExprId?
         getter while_body : Array(ExprId)?
@@ -85,6 +101,7 @@ module CrystalGPT5
           @class_super_name : Slice(UInt8)? = nil,
           @if_condition : ExprId? = nil,
           @if_then : Array(ExprId)? = nil,
+          @if_elsifs : Array(ElsifBranch)? = nil,
           @if_else : Array(ExprId)? = nil,
           @while_condition : ExprId? = nil,
           @while_body : Array(ExprId)? = nil,

@@ -215,6 +215,72 @@ describe TypeInferenceEngine do
       engine.diagnostics.size.should eq(1)
       engine.diagnostics[0].message.should contain("While condition must be Bool")
     end
+
+    it "infers union type for if with single elsif" do
+      source = <<-CRYSTAL
+        if true
+          42
+        elsif false
+          "hello"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(UnionType)
+      union = type.as(UnionType)
+
+      # Then (Int32) + elsif ("String") + implicit else (Nil) = 3 types
+      union.types.size.should eq(3)
+      type_names = union.types.map(&.to_s).sort
+      type_names.should eq(["Int32", "Nil", "String"])
+    end
+
+    it "infers union type for if with multiple elsif branches" do
+      source = <<-CRYSTAL
+        if true
+          1
+        elsif false
+          "two"
+        elsif true
+          3
+        else
+          "four"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      root_id = program.roots[0]
+      type = engine.context.get_type(root_id)
+
+      type.should be_a(UnionType)
+      union = type.as(UnionType)
+
+      # Then (Int32) + elsif1 (String) + elsif2 (Int32) + else (String)
+      # After normalization: Int32 | String (duplicates removed)
+      union.types.size.should eq(2)
+      type_names = union.types.map(&.to_s).sort
+      type_names.should eq(["Int32", "String"])
+    end
+
+    it "emits error for non-Bool elsif condition" do
+      source = <<-CRYSTAL
+        if true
+          1
+        elsif 42
+          2
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      engine.diagnostics.size.should eq(1)
+      engine.diagnostics[0].message.should contain("Elsif condition must be Bool")
+    end
   end
 
   # TODO: Phase 4 (Method Calls) - waiting for type inference foundation

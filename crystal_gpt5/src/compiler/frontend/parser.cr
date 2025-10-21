@@ -252,12 +252,60 @@ module CrystalGPT5
           loop do
             skip_trivia
             token = current_token
-            break if token.kind == Token::Kind::Else || token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::Elsif || token.kind == Token::Kind::Else || token.kind == Token::Kind::End
             break if token.kind == Token::Kind::EOF
 
             expr = parse_expression(0)
             then_body << expr unless expr.invalid?
             consume_newlines
+          end
+
+          # Parse optional elsif branches
+          elsifs = [] of ElsifBranch
+          loop do
+            skip_trivia
+            token = current_token
+            break unless token.kind == Token::Kind::Elsif
+
+            # Save elsif token for span
+            elsif_token = token
+            advance
+            skip_trivia
+
+            # Parse elsif condition
+            elsif_condition = parse_expression(0)
+            return PREFIX_ERROR if elsif_condition.invalid?
+
+            skip_trivia
+            # Optional "then" keyword
+            token = current_token
+            if token.kind == Token::Kind::Then
+              advance
+            end
+            consume_newlines
+
+            # Parse elsif body
+            elsif_body = [] of ExprId
+            loop do
+              skip_trivia
+              token = current_token
+              break if token.kind == Token::Kind::Elsif || token.kind == Token::Kind::Else || token.kind == Token::Kind::End
+              break if token.kind == Token::Kind::EOF
+
+              expr = parse_expression(0)
+              elsif_body << expr unless expr.invalid?
+              consume_newlines
+            end
+
+            # Capture elsif span (from elsif keyword to last expression)
+            elsif_span = if elsif_body.size > 0
+              last_expr = @arena[elsif_body.last]
+              elsif_token.span.cover(last_expr.span)
+            else
+              elsif_token.span
+            end
+
+            elsifs << ElsifBranch.new(elsif_condition, elsif_body, elsif_span)
           end
 
           # Parse optional else body
@@ -290,12 +338,16 @@ module CrystalGPT5
             if_token.span
           end
 
+          # Set elsifs to nil if array is empty (cleaner AST)
+          elsifs_field = elsifs.size > 0 ? elsifs : nil
+
           @arena.add(
             ExpressionNode.new(
               ExpressionNode::Kind::If,
               if_span,
               if_condition: condition,
               if_then: then_body,
+              if_elsifs: elsifs_field,
               if_else: else_body,
             )
           )
@@ -1041,6 +1093,7 @@ module CrystalGPT5
           # Check if expected is a keyword that has its own token kind
           expected_kind = case expected
           when "if"    then Token::Kind::If
+          when "elsif" then Token::Kind::Elsif
           when "else"  then Token::Kind::Else
           when "end"   then Token::Kind::End
           when "while" then Token::Kind::While
