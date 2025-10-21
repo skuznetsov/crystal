@@ -13,8 +13,9 @@ module CrystalGPT5
       def initialize(@args : Array(String))
       end
 
-      def run(*, out_io : IO = STDOUT, err_io : IO = STDERR)
+      def run(*, out_io : IO = STDOUT, err_io : IO = STDERR) : Int32
         options = Options.new
+        show_version = false
 
         parser = OptionParser.new do |p|
           p.banner = "Usage: crystal-gpt5 [options] <source>"
@@ -23,23 +24,27 @@ module CrystalGPT5
           p.on("--emit-stages", "Print pipeline stages") { options.emit_stages = true }
           p.on("--dump-symbols", "Collect and print global symbols") { options.dump_symbols = true }
           p.on("--check", "Run semantic analysis and report diagnostics") { options.check_semantics = true }
-          p.on("--version", "Show version") do
-            out_io.puts VERSION
-            exit
-          end
+          p.on("--version", "Show version") { show_version = true }
         end
 
         parser.parse(@args)
 
+        if show_version
+          out_io.puts VERSION
+          return 0
+        end
+
         unless options.emit_stages?
           out_io.puts "crystal_gpt5 compiler bootstrap"
           if source_path = @args.first?
-            compile_file(source_path, options, out_io, err_io)
+            return compile_file(source_path, options, out_io, err_io)
           else
             out_io.puts "no input specified"
+            return 0
           end
         else
           Pipeline.describe.each { |stage| out_io.puts stage }
+          return 0
         end
       end
 
@@ -64,7 +69,7 @@ module CrystalGPT5
         end
       end
 
-      private def compile_file(path, options, out_io, err_io)
+      private def compile_file(path, options, out_io, err_io) : Int32
         source = File.read(path)
         lexer = Frontend::Lexer.new(source)
         parser = Frontend::Parser.new(lexer)
@@ -77,20 +82,39 @@ module CrystalGPT5
             result = analyzer.resolve_names
             report_collector_diagnostics(analyzer.semantic_diagnostics, source, err_io)
             report_resolution_diagnostics(result.diagnostics, source, err_io)
+
+            # Return error code if semantic analysis found errors
+            if analyzer.semantic_errors?
+              err_io.puts "\nerror: compilation failed due to semantic errors"
+              return 1
+            end
+
+            # Check for name resolution errors (undefined variables/methods)
+            if result.diagnostics.any?
+              err_io.puts "\nerror: compilation failed due to name resolution errors"
+              return 1
+            end
           end
 
           out_io.puts "Parsed #{program.roots.size} top-level expressions"
           if options.dump_symbols
             dump_symbols(program, analyzer.global_context.symbol_table, out_io)
           end
+          return 0
         else
           parser.diagnostics.each do |diag|
             err_io.puts Frontend::DiagnosticFormatter.format(source, diag)
           end
+          # Return error code if parsing failed and --check is enabled
+          if options.check_semantics
+            err_io.puts "\nerror: compilation failed due to parser errors"
+            return 1
+          end
+          return 0
         end
       rescue File::NotFoundError
         err_io.puts "error: file not found #{path}"
-        exit 1
+        return 1
       end
 
       private def dump_symbols(program, table, out_io, indent = 0)
@@ -155,6 +179,3 @@ module CrystalGPT5
     end
   end
 end
-
-# Entry point
-CrystalGPT5::Compiler::CLI.new(ARGV).run

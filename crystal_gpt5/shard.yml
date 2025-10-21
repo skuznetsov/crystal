@@ -9,7 +9,7 @@ description: |
 
 targets:
   crystal_gpt5:
-    main: src/main.cr
+    main: src/crystal_gpt5.cr
 
 dependencies:
   # Dependencies will be added iteratively as subsystems come online.
