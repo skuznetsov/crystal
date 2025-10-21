@@ -324,6 +324,98 @@ describe TypeInferenceEngine do
     end
   end
 
+  describe "Phase 4B: Method Overload Resolution" do
+    it "selects correct overload by parameter count" do
+      source = <<-CRYSTAL
+        class Calc
+          def add(x : Int32) : Int32
+            x
+          end
+
+          def add(x : Int32, y : Int32) : Int64
+            x
+          end
+        end
+
+        c = Calc
+        c.add(5)
+        c.add(3, 4)
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # First call: add(5) → Int32 (one parameter)
+      call1_id = program.roots[2]
+      type1 = engine.context.get_type(call1_id)
+      type1.should be_a(PrimitiveType)
+      type1.as(PrimitiveType).name.should eq("Int32")
+
+      # Second call: add(3, 4) → Int64 (two parameters)
+      call2_id = program.roots[3]
+      type2 = engine.context.get_type(call2_id)
+      type2.should be_a(PrimitiveType)
+      type2.as(PrimitiveType).name.should eq("Int64")
+    end
+
+    it "matches untyped parameter to any argument" do
+      source = <<-CRYSTAL
+        class Box
+          def store(item) : String
+            "stored"
+          end
+        end
+
+        b = Box
+        b.store(42)
+        b.store("hello")
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Both calls should match (untyped param accepts any type)
+      call1_id = program.roots[2]
+      type1 = engine.context.get_type(call1_id)
+      type1.should be_a(PrimitiveType)
+      type1.as(PrimitiveType).name.should eq("String")
+
+      call2_id = program.roots[3]
+      type2 = engine.context.get_type(call2_id)
+      type2.should be_a(PrimitiveType)
+      type2.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "requires exact type match for typed parameters" do
+      source = <<-CRYSTAL
+        class Printer
+          def print(x : Int32) : String
+            "int"
+          end
+
+          def print(x : String) : String
+            "string"
+          end
+        end
+
+        p = Printer
+        p.print(42)
+        p.print("hello")
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Both calls should resolve correctly
+      call1_id = program.roots[2]
+      type1 = engine.context.get_type(call1_id)
+      type1.should be_a(PrimitiveType)
+      type1.as(PrimitiveType).name.should eq("String")
+
+      call2_id = program.roots[3]
+      type2 = engine.context.get_type(call2_id)
+      type2.should be_a(PrimitiveType)
+      type2.as(PrimitiveType).name.should eq("String")
+    end
+  end
+
   describe "Phase 4A: Method Calls (Simple Name-Based Lookup)" do
     it "infers return type from method with type annotation" do
       source = <<-CRYSTAL

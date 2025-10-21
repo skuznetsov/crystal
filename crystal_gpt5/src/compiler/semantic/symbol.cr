@@ -55,6 +55,22 @@ module CrystalGPT5
         end
       end
 
+      # Overload set for methods with same name but different signatures
+      #
+      # Phase 4B: When multiple methods have same name, we collect them in OverloadSet
+      # for overload resolution at call site
+      class OverloadSetSymbol < Symbol
+        getter overloads : Array(MethodSymbol)
+
+        def initialize(name : String, node_id : ExprId, @overloads : Array(MethodSymbol) = [] of MethodSymbol)
+          super(name, node_id)
+        end
+
+        def add_overload(method : MethodSymbol)
+          @overloads << method
+        end
+      end
+
       # Test-only placeholder symbol for SymbolTable specs
       class DummySymbol < Symbol
         getter metadata : String

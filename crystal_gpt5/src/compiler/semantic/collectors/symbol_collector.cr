@@ -153,7 +153,12 @@ module CrystalGPT5
         private def handle_method_redefinition(name : String, new_symbol : MethodSymbol, existing : Symbol, table : SymbolTable)
           case existing
           when MethodSymbol
-            table.redefine(name, new_symbol)
+            # Phase 4B: Create OverloadSet for multiple methods with same name
+            overload_set = OverloadSetSymbol.new(name, existing.node_id, [existing, new_symbol])
+            table.redefine(name, overload_set)
+          when OverloadSetSymbol
+            # Phase 4B: Add to existing overload set
+            existing.add_overload(new_symbol)
           when ClassSymbol, MacroSymbol, VariableSymbol
             emit_incompatible_redefinition(name, new_symbol, existing)
           else

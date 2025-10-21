@@ -419,8 +419,11 @@ module CrystalGPT5
           method_name = node.member_string
           return @context.nil_type unless method_name
 
-          # Lookup method (same as infer_call)
-          if method = lookup_method(receiver_type, method_name)
+          # Phase 4B: Zero-argument method call
+          arg_types = [] of Type
+
+          # Lookup method with overload resolution
+          if method = lookup_method(receiver_type, method_name, arg_types)
             if ann = method.return_annotation
               return parse_type_name(ann)
             end
@@ -458,8 +461,17 @@ module CrystalGPT5
 
           return @context.nil_type unless receiver_type && method_name
 
-          # Lookup method (Phase 4A: by name only, no overload resolution)
-          if method = lookup_method(receiver_type, method_name)
+          # Phase 4B: Infer argument types for overload resolution
+          arg_types = [] of Type
+          if args = node.args
+            args.each do |arg_id|
+              arg_type = infer_expression(arg_id)
+              arg_types << arg_type
+            end
+          end
+
+          # Lookup method with overload resolution (Phase 4B)
+          if method = lookup_method(receiver_type, method_name, arg_types)
             # Return declared return type
             if ann = method.return_annotation
               return parse_type_name(ann)
@@ -471,25 +483,78 @@ module CrystalGPT5
           @context.nil_type
         end
 
-        # Phase 4A: Simple method lookup by name only
-        # Phase 4B: Will add overload resolution by parameter types
-        private def lookup_method(receiver_type : Type, method_name : String) : MethodSymbol?
+        # Phase 4B: Method lookup with overload resolution
+        #
+        # Algorithm:
+        # 1. Find all methods with given name (may be multiple overloads)
+        # 2. Filter by parameter count
+        # 3. Filter by parameter types (if annotated)
+        # 4. Return best match
+        private def lookup_method(receiver_type : Type, method_name : String, arg_types : Array(Type)) : MethodSymbol?
+          candidates = find_all_methods(receiver_type, method_name)
+          return nil if candidates.empty?
+
+          # Filter by parameter count
+          matching_count = candidates.select { |m| m.params.size == arg_types.size }
+          return nil if matching_count.empty?
+
+          # Filter by parameter types (for typed parameters)
+          matches = matching_count.select do |method|
+            parameters_match?(method, arg_types)
+          end
+
+          # Return best match (for now: first match)
+          # TODO: Add specificity ranking (prefer more specific types)
+          matches.first?
+        end
+
+        # Find all methods with given name on receiver type
+        private def find_all_methods(receiver_type : Type, method_name : String) : Array(MethodSymbol)
+          methods = [] of MethodSymbol
+
           case receiver_type
           when ClassType
             # Look in class scope
             if symbol = receiver_type.symbol.scope.lookup(method_name)
-              return symbol if symbol.is_a?(MethodSymbol)
+              case symbol
+              when MethodSymbol
+                # Single method
+                methods << symbol
+              when OverloadSetSymbol
+                # Phase 4B: Multiple overloads
+                methods.concat(symbol.overloads)
+              end
             end
-            # Phase 4B: Add inheritance search, module includes
+            # Phase 4B.2: TODO - Add inheritance search
           when PrimitiveType
-            # Phase 4B: Add built-in methods (Int32#+, String#size, etc.)
-            nil
+            # Phase 4B.3: TODO - Add built-in methods (Int32#+, String#size, etc.)
           when UnionType
-            # Phase 4B: Find common method in all union members
-            nil
-          else
-            nil
+            # Phase 4B.4: TODO - Find common method in all union members
           end
+
+          methods
+        end
+
+        # Check if method parameters match argument types
+        private def parameters_match?(method : MethodSymbol, arg_types : Array(Type)) : Bool
+          method.params.zip(arg_types).all? do |param, arg_type|
+            # If parameter has no type annotation, it matches any argument type
+            type_ann = param.type_annotation
+            return true unless type_ann
+
+            # If parameter has type annotation, check if argument type matches
+            param_type = parse_type_name(type_ann)
+            type_matches?(arg_type, param_type)
+          end
+        end
+
+        # Check if actual_type is compatible with expected_type
+        #
+        # Phase 4B: Simple exact match for now
+        # TODO: Add subtyping, union types, nilable types
+        private def type_matches?(actual : Type, expected : Type) : Bool
+          # Exact type match
+          actual.to_s == expected.to_s
         end
 
         # ============================================================
