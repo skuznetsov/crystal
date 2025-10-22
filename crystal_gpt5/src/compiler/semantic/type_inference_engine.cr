@@ -2,6 +2,7 @@ require "./types/type_context"
 require "./types/type"
 require "./types/primitive_type"
 require "./types/class_type"
+require "./types/instance_type"
 require "./types/union_type"
 require "./analyzer"
 require "../frontend/ast"
@@ -148,6 +149,7 @@ module CrystalGPT5
             end
           when ClassSymbol
             # Reference to class → ClassType
+            # Class itself is a value (for calling class methods like Dog.new)
             ClassType.new(symbol)
           when MethodSymbol
             # Reference to method → Nil for now
@@ -419,6 +421,11 @@ module CrystalGPT5
           method_name = node.member_string
           return @context.nil_type unless method_name
 
+          # Phase 4B.5: Special case for constructor - ClassName.new → InstanceType
+          if method_name == "new" && receiver_type.is_a?(ClassType)
+            return InstanceType.new(receiver_type.symbol)
+          end
+
           # Phase 4B: Zero-argument method call
           arg_types = [] of Type
 
@@ -460,6 +467,12 @@ module CrystalGPT5
           end
 
           return @context.nil_type unless receiver_type && method_name
+
+          # Phase 4B.5: Special case for constructor - ClassName.new(...) → InstanceType
+          # TODO: Validate constructor arguments against initialize method
+          if method_name == "new" && receiver_type.is_a?(ClassType)
+            return InstanceType.new(receiver_type.symbol)
+          end
 
           # Phase 4B: Infer argument types for overload resolution
           arg_types = [] of Type
@@ -521,15 +534,64 @@ module CrystalGPT5
                 # Single method
                 methods << symbol
               when OverloadSetSymbol
-                # Phase 4B: Multiple overloads
+                # Phase 4B.2: Multiple overloads
                 methods.concat(symbol.overloads)
               end
             end
-            # Phase 4B.2: TODO - Add inheritance search
+
+            # Phase 4B.2: Inheritance search - look in superclass
+            if methods.empty?
+              methods.concat(find_in_superclass(receiver_type.symbol, method_name))
+            end
+          when InstanceType
+            # Phase 4B.2: Look for instance methods in class scope
+            if symbol = receiver_type.class_symbol.scope.lookup(method_name)
+              case symbol
+              when MethodSymbol
+                methods << symbol
+              when OverloadSetSymbol
+                methods.concat(symbol.overloads)
+              end
+            end
+
+            # Phase 4B.2: Inheritance search - look in superclass
+            if methods.empty?
+              methods.concat(find_in_superclass(receiver_type.class_symbol, method_name))
+            end
           when PrimitiveType
             # Phase 4B.3: TODO - Add built-in methods (Int32#+, String#size, etc.)
           when UnionType
             # Phase 4B.4: TODO - Find common method in all union members
+          end
+
+          methods
+        end
+
+        # Phase 4B.2: Recursively search for method in superclass chain
+        private def find_in_superclass(class_symbol : ClassSymbol, method_name : String) : Array(MethodSymbol)
+          methods = [] of MethodSymbol
+
+          # Get superclass name
+          superclass_name = class_symbol.superclass_name
+          return methods unless superclass_name
+
+          # Lookup superclass in global symbol table
+          superclass_symbol = @global_table.try(&.lookup(superclass_name))
+          return methods unless superclass_symbol.is_a?(ClassSymbol)
+
+          # Look for method in superclass scope
+          if symbol = superclass_symbol.scope.lookup(method_name)
+            case symbol
+            when MethodSymbol
+              methods << symbol
+            when OverloadSetSymbol
+              methods.concat(symbol.overloads)
+            end
+          end
+
+          # Recursively search in superclass's superclass
+          if methods.empty?
+            methods.concat(find_in_superclass(superclass_symbol, method_name))
           end
 
           methods

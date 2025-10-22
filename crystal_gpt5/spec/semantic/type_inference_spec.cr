@@ -324,6 +324,92 @@ describe TypeInferenceEngine do
     end
   end
 
+  describe "Phase 4B.2: Inheritance Method Search" do
+    it "finds method in superclass" do
+      source = <<-CRYSTAL
+        class Animal
+          def speak : String
+            "sound"
+          end
+        end
+
+        class Dog < Animal
+        end
+
+        d = Dog.new
+        d.speak()
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Method call should find speak in Animal (superclass)
+      # roots[0]=Animal, roots[1]=Dog, roots[2]=assignment, roots[3]=call
+      call_id = program.roots[3]
+      type = engine.context.get_type(call_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "prefers method in subclass over superclass" do
+      source = <<-CRYSTAL
+        class Animal
+          def speak : String
+            "sound"
+          end
+        end
+
+        class Dog < Animal
+          def speak : String
+            "bark"
+          end
+        end
+
+        d = Dog.new
+        d.speak()
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Should use Dog's speak, not Animal's
+      # roots[0]=Animal, roots[1]=Dog, roots[2]=assignment, roots[3]=call
+      call_id = program.roots[3]
+      type = engine.context.get_type(call_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("String")
+
+      # No diagnostics (both methods return String)
+      engine.diagnostics.size.should eq(0)
+    end
+
+    it "searches through multiple inheritance levels" do
+      source = <<-CRYSTAL
+        class Animal
+          def eat : String
+            "eating"
+          end
+        end
+
+        class Mammal < Animal
+        end
+
+        class Dog < Mammal
+        end
+
+        d = Dog.new
+        d.eat()
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Should find eat in Animal (grandparent)
+      # roots[0]=Animal, roots[1]=Mammal, roots[2]=Dog, roots[3]=assignment, roots[4]=call
+      call_id = program.roots[4]
+      type = engine.context.get_type(call_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("String")
+    end
+  end
+
   describe "Phase 4B: Method Overload Resolution" do
     it "selects correct overload by parameter count" do
       source = <<-CRYSTAL
@@ -337,7 +423,7 @@ describe TypeInferenceEngine do
           end
         end
 
-        c = Calc
+        c = Calc.new
         c.add(5)
         c.add(3, 4)
       CRYSTAL
@@ -365,7 +451,7 @@ describe TypeInferenceEngine do
           end
         end
 
-        b = Box
+        b = Box.new
         b.store(42)
         b.store("hello")
       CRYSTAL
@@ -396,7 +482,7 @@ describe TypeInferenceEngine do
           end
         end
 
-        p = Printer
+        p = Printer.new
         p.print(42)
         p.print("hello")
       CRYSTAL
@@ -425,7 +511,7 @@ describe TypeInferenceEngine do
           end
         end
 
-        calc = Calculator
+        calc = Calculator.new
         calc.add(1, 2)
       CRYSTAL
 
@@ -448,7 +534,7 @@ describe TypeInferenceEngine do
           end
         end
 
-        p = Printer
+        p = Printer.new
         p.print_msg("hello")
       CRYSTAL
 
@@ -468,7 +554,7 @@ describe TypeInferenceEngine do
         class Empty
         end
 
-        e = Empty
+        e = Empty.new
         e.missing_method(42)
       CRYSTAL
 
@@ -491,7 +577,7 @@ describe TypeInferenceEngine do
           end
         end
 
-        m = Math
+        m = Math.new
         m.add(5)
         m.multiply(3)
       CRYSTAL
@@ -519,7 +605,7 @@ describe TypeInferenceEngine do
           end
         end
 
-        c = Counter
+        c = Counter.new
         result = c.increment
       CRYSTAL
 
