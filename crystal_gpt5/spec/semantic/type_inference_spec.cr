@@ -944,4 +944,161 @@ describe TypeInferenceEngine do
       type.as(PrimitiveType).name.should eq("Bool")
     end
   end
+
+  describe "Phase 4B.4: Union Type Method Lookup" do
+    it "finds method common to all union types" do
+      source = <<-CRYSTAL
+        x = if true
+          42
+        else
+          "hello"
+        end
+        result = x == x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # x : Int32 | String
+      # Both Int32 and String have == method → should work
+      # result type should be Bool
+      result_id = program.roots[1]
+      type = engine.context.get_type(result_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Bool")
+
+      # Should have no errors
+      engine.diagnostics.size.should eq(0)
+    end
+
+    it "emits error when method not in all union types" do
+      source = <<-CRYSTAL
+        x = if true
+          42
+        else
+          "hello"
+        end
+        result = x.size
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # x : Int32 | String
+      # String has size, but Int32 doesn't → error
+      engine.diagnostics.size.should eq(1)
+      engine.diagnostics[0].message.should contain("not found")
+    end
+
+    it "works with union of three types" do
+      source = <<-CRYSTAL
+        x = if true
+          1
+        elsif false
+          2
+        else
+          3
+        end
+        result = x == 5
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # x : Int32 (normalized from Int32 | Int32 | Int32)
+      # Should work because all are Int32
+      result_id = program.roots[1]
+      type = engine.context.get_type(result_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "finds method in union with primitives" do
+      source = <<-CRYSTAL
+        x = if true
+          5
+        else
+          10
+        end
+        result = x + 3
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # x : Int32 | Int32 → Int32 (normalized)
+      # Int32 has + method
+      result_id = program.roots[1]
+      type = engine.context.get_type(result_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "computes union return type for methods with different return types" do
+      source = <<-CRYSTAL
+        class A
+          def foo : Int32
+            42
+          end
+        end
+
+        class B
+          def foo : String
+            "hello"
+          end
+        end
+
+        x = if true
+          A.new
+        else
+          B.new
+        end
+        result = x.foo
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # x : A | B (InstanceType(A) | InstanceType(B))
+      # A.foo : Int32, B.foo : String
+      # result : Int32 | String
+      result_id = program.roots[3]
+      type = engine.context.get_type(result_id)
+      type.should be_a(UnionType)
+
+      union = type.as(UnionType)
+      union.types.size.should eq(2)
+
+      type_names = union.types.map(&.to_s).sort
+      type_names.should eq(["Int32", "String"])
+    end
+
+    it "handles union return type when all return same type" do
+      source = <<-CRYSTAL
+        class A
+          def foo : String
+            "a"
+          end
+        end
+
+        class B
+          def foo : String
+            "b"
+          end
+        end
+
+        x = if true
+          A.new
+        else
+          B.new
+        end
+        result = x.foo
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # x : A | B
+      # Both return String
+      # result : String | String → String (normalized)
+      result_id = program.roots[3]
+      type = engine.context.get_type(result_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("String")
+    end
+  end
 end
