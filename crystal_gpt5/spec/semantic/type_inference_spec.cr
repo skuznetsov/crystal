@@ -166,7 +166,7 @@ describe TypeInferenceEngine do
       program, analyzer, engine = infer_types(source)
 
       engine.diagnostics.size.should eq(1)
-      engine.diagnostics[0].message.should contain("requires numeric types")
+      engine.diagnostics[0].message.should contain("not defined for")
     end
   end
 
@@ -826,7 +826,7 @@ describe TypeInferenceEngine do
       engine.diagnostics.size.should eq(1)
 
       diagnostic = engine.diagnostics[0]
-      diagnostic.message.should contain("requires numeric types")
+      diagnostic.message.should contain("not defined for")
 
       # Verify span points to actual error location (line 2)
       diagnostic.primary_span.start_line.should eq(2)
@@ -851,6 +851,97 @@ describe TypeInferenceEngine do
       # Error should point to condition location
       diagnostic.primary_span.start_line.should eq(1)
       diagnostic.primary_span.start_line.should_not eq(0)
+    end
+  end
+
+  describe "Phase 4B.3: Built-in Methods for Primitive Types" do
+    it "resolves Int32#+ as built-in method" do
+      source = <<-CRYSTAL
+        x = 5
+        y = 10
+        z = x + y
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # z = x + y should use Int32#+(Int32) : Int32
+      assign_id = program.roots[2]
+      type = engine.context.get_type(assign_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "resolves Int32#< as built-in method" do
+      source = <<-CRYSTAL
+        result = 5 < 10
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # 5 < 10 should use Int32#<(Int32) : Bool
+      assign_id = program.roots[0]
+      type = engine.context.get_type(assign_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "resolves String#size as built-in method" do
+      source = <<-CRYSTAL
+        s = "hello"
+        len = s.size
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # s.size should use String#size : Int32
+      assign_id = program.roots[1]
+      type = engine.context.get_type(assign_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "resolves String#+ as built-in method" do
+      source = <<-CRYSTAL
+        result = "hello" + " world"
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # "hello" + " world" should use String#+(String) : String
+      assign_id = program.roots[0]
+      type = engine.context.get_type(assign_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "resolves Bool#== as built-in method" do
+      source = <<-CRYSTAL
+        result = true == false
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # true == false should use Bool#==(Bool) : Bool
+      assign_id = program.roots[0]
+      type = engine.context.get_type(assign_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "works with method calls on variables" do
+      source = <<-CRYSTAL
+        x = 42
+        y = 10
+        greater = x > y
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # x > y should use Int32#>(Int32) : Bool
+      assign_id = program.roots[2]
+      type = engine.context.get_type(assign_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Bool")
     end
   end
 end

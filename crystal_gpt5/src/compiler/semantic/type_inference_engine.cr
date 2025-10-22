@@ -197,17 +197,31 @@ module CrystalGPT5
 
           case op
           when "+", "-", "*", "/"
-            # Numeric operators
-            unless numeric_type?(left_type) && numeric_type?(right_type)
-              emit_error("Operator '#{op}' requires numeric types, got #{left_type} and #{right_type}", expr_id)
-              return @context.nil_type
+            # Phase 4B.3/4B.5: Try method lookup first for built-in methods
+            if method = lookup_method(left_type, op, [right_type])
+              if ann = method.return_annotation
+                return parse_type_name(ann)
+              end
             end
-            # Production-ready fallback: widest type wins (safe, no precision loss)
-            # TODO Phase 4: Check method overload first, then fallback to this
-            promote_numeric_types(left_type, right_type)
+
+            # Fallback: numeric promotion for untyped numeric operators
+            if numeric_type?(left_type) && numeric_type?(right_type)
+              return promote_numeric_types(left_type, right_type)
+            end
+
+            # No method found and not numeric types
+            emit_error("Operator '#{op}' not defined for #{left_type} and #{right_type}", expr_id)
+            @context.nil_type
 
           when "==", "!=", "<", ">", "<=", ">="
-            # Comparison operators → Bool
+            # Phase 4B.3/4B.5: Try method lookup first for built-in methods
+            if method = lookup_method(left_type, op, [right_type])
+              if ann = method.return_annotation
+                return parse_type_name(ann)
+              end
+            end
+
+            # Fallback: comparison operators → Bool for compatible types
             @context.bool_type
 
           when "&&", "||"
@@ -559,7 +573,8 @@ module CrystalGPT5
               methods.concat(find_in_superclass(receiver_type.class_symbol, method_name))
             end
           when PrimitiveType
-            # Phase 4B.3: TODO - Add built-in methods (Int32#+, String#size, etc.)
+            # Phase 4B.3: Built-in methods for primitive types
+            methods.concat(get_builtin_methods(receiver_type.name, method_name))
           when UnionType
             # Phase 4B.4: TODO - Find common method in all union members
           end
@@ -634,6 +649,98 @@ module CrystalGPT5
           else
             UnionType.new(types)
           end
+        end
+
+        # ============================================================
+        # Phase 4B.3: Built-in Methods for Primitive Types
+        # ============================================================
+
+        # Get built-in methods for a primitive type
+        #
+        # Returns an array of MethodSymbol representing built-in methods
+        # like Int32#+, String#size, etc.
+        private def get_builtin_methods(type_name : String, method_name : String) : Array(MethodSymbol)
+          methods = [] of MethodSymbol
+
+          # Dummy values for built-in methods (no AST node)
+          dummy_node_id = ExprId.new(0)
+          dummy_scope = SymbolTable.new(nil)
+
+          case type_name
+          when "Int32", "Int64", "Float64"
+            # Arithmetic operators
+            case method_name
+            when "+", "-", "*", "/"
+              # Binary arithmetic: Int32#+(Int32) : Int32
+              param = Frontend::Parameter.new(name: "other", type_annotation: type_name)
+              methods << MethodSymbol.new(
+                method_name,
+                dummy_node_id,
+                params: [param],
+                return_annotation: type_name,
+                scope: dummy_scope
+              )
+            when "<", ">", "<=", ">=", "==", "!="
+              # Comparison operators: Int32#<(Int32) : Bool
+              param = Frontend::Parameter.new(name: "other", type_annotation: type_name)
+              methods << MethodSymbol.new(
+                method_name,
+                dummy_node_id,
+                params: [param],
+                return_annotation: "Bool",
+                scope: dummy_scope
+              )
+            end
+
+          when "String"
+            case method_name
+            when "size"
+              # String#size : Int32
+              methods << MethodSymbol.new(
+                method_name,
+                dummy_node_id,
+                params: [] of Frontend::Parameter,
+                return_annotation: "Int32",
+                scope: dummy_scope
+              )
+            when "+"
+              # String#+(String) : String
+              param = Frontend::Parameter.new(name: "other", type_annotation: "String")
+              methods << MethodSymbol.new(
+                method_name,
+                dummy_node_id,
+                params: [param],
+                return_annotation: "String",
+                scope: dummy_scope
+              )
+            when "==", "!="
+              # String#==(String) : Bool
+              param = Frontend::Parameter.new(name: "other", type_annotation: "String")
+              methods << MethodSymbol.new(
+                method_name,
+                dummy_node_id,
+                params: [param],
+                return_annotation: "Bool",
+                scope: dummy_scope
+              )
+            end
+
+          when "Bool"
+            case method_name
+            when "==", "!="
+              # Bool#==(Bool) : Bool
+              param = Frontend::Parameter.new(name: "other", type_annotation: "Bool")
+              methods << MethodSymbol.new(
+                method_name,
+                dummy_node_id,
+                params: [param],
+                return_annotation: "Bool",
+                scope: dummy_scope
+              )
+            end
+          end
+
+          methods
         end
 
         # ============================================================
