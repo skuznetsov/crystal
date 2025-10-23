@@ -2090,4 +2090,131 @@ describe TypeInferenceEngine do
       block_type.as(PrimitiveType).name.should eq("Nil")
     end
   end
+
+  describe "Phase 11: Case/When" do
+    it "infers String type for simple case" do
+      source = <<-CRYSTAL
+        x = 2
+        result = case x
+        when 1
+          "one"
+        when 2
+          "two"
+        else
+          "other"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # result is the second root (second assignment)
+      result_id = program.roots[1]
+      result_type = engine.context.get_type(result_id)
+
+      # All branches return String
+      result_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "infers union type for mixed case branches" do
+      source = <<-CRYSTAL
+        x = 2
+        result = case x
+        when 1
+          42
+        when 2
+          "hello"
+        else
+          true
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      result_id = program.roots[1]
+      result_type = engine.context.get_type(result_id)
+
+      # Branches return Int32, String, Bool → union
+      result_type.should be_a(UnionType)
+      union = result_type.as(UnionType)
+      union.types.size.should eq(3)
+    end
+
+    it "infers union with Nil for case without else" do
+      source = <<-CRYSTAL
+        x = 2
+        result = case x
+        when 1
+          "one"
+        when 2
+          "two"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      result_id = program.roots[1]
+      result_type = engine.context.get_type(result_id)
+
+      # No else clause means Nil is possible
+      result_type.should be_a(UnionType)
+      union = result_type.as(UnionType)
+      union.types.map(&.to_s).should contain("Nil")
+      union.types.map(&.to_s).should contain("String")
+    end
+
+    it "handles multiple values in when clause" do
+      source = <<-CRYSTAL
+        x = 2
+        result = case x
+        when 1, 2, 3
+          "small"
+        when 4, 5
+          "medium"
+        else
+          "large"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      result_id = program.roots[1]
+      result_type = engine.context.get_type(result_id)
+
+      result_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "handles case with then keyword" do
+      source = <<-CRYSTAL
+        x = 1
+        result = case x
+        when 1 then "one"
+        when 2 then "two"
+        else "other"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      result_id = program.roots[1]
+      result_type = engine.context.get_type(result_id)
+
+      result_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "infers Nil for empty case branch" do
+      source = <<-CRYSTAL
+        x = 1
+        result = case x
+        when 1
+        else
+          "other"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      result_id = program.roots[1]
+      result_type = engine.context.get_type(result_id)
+
+      # Empty when body returns Nil
+      result_type.should be_a(UnionType)
+      union = result_type.as(UnionType)
+      union.types.map(&.to_s).should contain("Nil")
+      union.types.map(&.to_s).should contain("String")
+    end
+  end
 end

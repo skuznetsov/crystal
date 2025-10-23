@@ -104,6 +104,9 @@ module CrystalGPT5
           when .yield?
             # Phase 10: Yield expressions
             infer_yield(node, expr_id)
+          when .case?
+            # Phase 11: Case/when pattern matching
+            infer_case(node, expr_id)
           else
             # Unknown expression kind
             @context.nil_type
@@ -1161,6 +1164,62 @@ module CrystalGPT5
           # TODO: In full implementation, yield should return the block's return type
           @context.set_type(expr_id, @context.nil_type)
           @context.nil_type
+        end
+
+        # ============================================================
+        # PHASE 11: Case/When
+        # ============================================================
+
+        private def infer_case(node, expr_id : ExprId) : Type
+          # Infer type of case value
+          if value_id = node.case_value
+            infer_expression(value_id)
+          end
+
+          # Collect types from all branches
+          branch_types = [] of Type
+
+          # Infer types from when branches
+          if branches = node.when_branches
+            branches.each do |branch|
+              # Infer types of conditions
+              branch.conditions.each { |cond_id| infer_expression(cond_id) }
+
+              # Type of branch is the type of its last expression
+              branch_type = if branch.body.empty?
+                @context.nil_type
+              else
+                branch.body.each { |stmt_id| infer_expression(stmt_id) }
+                infer_expression(branch.body.last)
+              end
+
+              branch_types << branch_type
+            end
+          end
+
+          # Infer type from else clause
+          if else_body = node.case_else
+            else_type = if else_body.empty?
+              @context.nil_type
+            else
+              else_body.each { |stmt_id| infer_expression(stmt_id) }
+              infer_expression(else_body.last)
+            end
+            branch_types << else_type
+          else
+            # No else clause means case can return nil if no when matches
+            branch_types << @context.nil_type
+          end
+
+          # Case type is union of all branch types
+          case_type = if branch_types.size == 1
+            branch_types[0]
+          else
+            @context.union_of(branch_types)
+          end
+
+          @context.set_type(expr_id, case_type)
+          case_type
         end
 
         # ============================================================

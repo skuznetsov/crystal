@@ -449,6 +449,121 @@ module CrystalGPT5
           )
         end
 
+        # Phase 11: Parse case/when expression
+        # Grammar: case <value>
+        #          when <cond1>, <cond2> [then]
+        #            <body>
+        #          [else
+        #            <body>]
+        #          end
+        private def parse_case : ExprId
+          case_token = current_token
+          advance
+          skip_trivia
+
+          # Parse case value
+          value = parse_expression(0)
+          return PREFIX_ERROR if value.invalid?
+
+          consume_newlines
+
+          # Parse when branches
+          when_branches = [] of WhenBranch
+          loop do
+            skip_trivia
+            token = current_token
+            break unless token.kind == Token::Kind::When
+
+            when_token = token
+            advance
+            skip_trivia
+
+            # Parse when conditions (comma-separated)
+            conditions = [] of ExprId
+            loop do
+              cond = parse_expression(0)
+              return PREFIX_ERROR if cond.invalid?
+              conditions << cond
+
+              skip_trivia
+              break unless current_token.kind == Token::Kind::Comma
+              advance  # consume comma
+              skip_trivia
+            end
+
+            skip_trivia
+
+            # Optional "then" keyword
+            if current_token.kind == Token::Kind::Then
+              advance
+            end
+
+            consume_newlines
+
+            # Parse when body
+            when_body = [] of ExprId
+            loop do
+              skip_trivia
+              token = current_token
+              break if token.kind.in?(Token::Kind::When, Token::Kind::Else, Token::Kind::End, Token::Kind::EOF)
+
+              stmt = parse_statement
+              when_body << stmt unless stmt.invalid?
+              consume_newlines
+            end
+
+            # Capture when span
+            when_span = if when_body.size > 0
+              last_expr = @arena[when_body.last]
+              when_token.span.cover(last_expr.span)
+            else
+              when_token.span
+            end
+
+            when_branches << WhenBranch.new(conditions, when_body, when_span)
+          end
+
+          # Parse optional else body
+          else_body = nil
+          token = current_token
+          if token.kind == Token::Kind::Else
+            advance
+            consume_newlines
+
+            else_body = [] of ExprId
+            loop do
+              skip_trivia
+              token = current_token
+              break if token.kind == Token::Kind::End
+              break if token.kind == Token::Kind::EOF
+
+              expr = parse_statement
+              else_body << expr unless expr.invalid?
+              consume_newlines
+            end
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          case_span = if end_token
+            case_token.span.cover(end_token.span)
+          else
+            case_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Case,
+              case_span,
+              case_value: value,
+              when_branches: when_branches,
+              case_else: else_body,
+            )
+          )
+        end
+
         private def parse_while : ExprId
           while_token = current_token
           advance
@@ -1071,6 +1186,9 @@ module CrystalGPT5
             id
           when Token::Kind::If
             parse_if
+          when Token::Kind::Case
+            # Phase 11: case/when pattern matching
+            parse_case
           when Token::Kind::While
             parse_while
           when Token::Kind::Identifier
@@ -1336,6 +1454,17 @@ module CrystalGPT5
             } : nil
           }
 
+          # Remap when branches
+          remap_when_branches = ->(branches : Array(WhenBranch)?) {
+            branches ? branches.map { |branch|
+              WhenBranch.new(
+                remap_array.call(branch.conditions).not_nil!,
+                remap_array.call(branch.body).not_nil!,
+                branch.span
+              )
+            } : nil
+          }
+
           @arena.add(ExpressionNode.new(
             node.kind,
             node.span,
@@ -1375,7 +1504,10 @@ module CrystalGPT5
             block_params: node.block_params,
             block_body: remap_array.call(node.block_body),
             call_block: remap.call(node.call_block),
-            yield_args: remap_array.call(node.yield_args)
+            yield_args: remap_array.call(node.yield_args),
+            case_value: remap.call(node.case_value),
+            when_branches: remap_when_branches.call(node.when_branches),
+            case_else: remap_array.call(node.case_else)
           ))
         end
 

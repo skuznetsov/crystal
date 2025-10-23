@@ -121,6 +121,8 @@ module CrystalGPT5
           when "return" then Token::Kind::Return
           when "self"   then Token::Kind::Self
           when "yield"  then Token::Kind::Yield
+          when "case"   then Token::Kind::Case
+          when "when"   then Token::Kind::When
           else
             Token::Kind::Identifier
           end

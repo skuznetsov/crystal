@@ -49,6 +49,21 @@ module CrystalGPT5
         end
       end
 
+      # Represents a when branch in a case expression
+      #
+      # Phase 11: Case/when pattern matching
+      # - conditions: Multiple values to match (e.g., when 1, 2, 3)
+      # - body: The body expressions for this branch
+      # - span: Exact source location
+      struct WhenBranch
+        getter conditions : Array(ExprId)
+        getter body : Array(ExprId)
+        getter span : Span
+
+        def initialize(@conditions : Array(ExprId), @body : Array(ExprId), @span : Span)
+        end
+      end
+
       # Represents a method parameter with optional type annotation
       #
       # Phase 4A: Parameter types for method resolution
@@ -95,6 +110,7 @@ module CrystalGPT5
           ArrayLiteral  # Phase 9: array literals [1, 2, 3]
           Block  # Phase 10: block {|x| ... } or do |x| ... end
           Yield  # Phase 10: yield keyword
+          Case  # Phase 11: case/when pattern matching
         end
 
         getter kind : Kind
@@ -136,6 +152,9 @@ module CrystalGPT5
         getter block_body : Array(ExprId)?  # Phase 10: block body
         getter call_block : ExprId?  # Phase 10: block attached to call
         getter yield_args : Array(ExprId)?  # Phase 10: yield arguments
+        getter case_value : ExprId?  # Phase 11: value to match against
+        getter when_branches : Array(WhenBranch)?  # Phase 11: when branches
+        getter case_else : Array(ExprId)?  # Phase 11: else clause
 
         def initialize(
           @kind : Kind,
@@ -177,6 +196,9 @@ module CrystalGPT5
           @block_body : Array(ExprId)? = nil,
           @call_block : ExprId? = nil,
           @yield_args : Array(ExprId)? = nil,
+          @case_value : ExprId? = nil,
+          @when_branches : Array(WhenBranch)? = nil,
+          @case_else : Array(ExprId)? = nil,
         )
         end
 
