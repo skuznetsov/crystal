@@ -238,7 +238,8 @@ module CrystalGPT5
             break if token.kind == Token::Kind::End
             break if token.kind == Token::Kind::EOF
 
-            expr = parse_expression(0)
+            # Phase 5B: Use parse_statement to handle assignments in method bodies
+            expr = parse_statement
             body_ids << expr unless expr.invalid?
             consume_newlines
           end
@@ -528,10 +529,12 @@ module CrystalGPT5
                 when Token::Kind::Class
                   parse_class
                 else
-                  parse_expression(0)
+                  # Phase 5B: Use parse_statement for assignments
+                  parse_statement
                 end
             else
-              expr = parse_expression(0)
+              # Phase 5B: Use parse_statement for assignments
+              expr = parse_statement
             end
             body_ids << expr unless expr.invalid?
             consume_newlines

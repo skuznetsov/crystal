@@ -137,7 +137,11 @@ module CrystalGPT5
           push_table(class_scope)
 
           # Phase 5A: Collect instance variable declarations
-          collect_instance_vars(class_symbol, node.class_body || [] of Frontend::ExprId)
+          # Get the final class symbol from table (may have been redefined)
+          final_class_symbol = table.lookup_local(name)
+          if final_class_symbol.is_a?(ClassSymbol)
+            collect_instance_vars(final_class_symbol, node.class_body || [] of Frontend::ExprId)
+          end
 
           (node.class_body || [] of Frontend::ExprId).each do |expr_id|
             visit(expr_id)

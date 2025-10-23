@@ -10,6 +10,8 @@ require "../frontend/ast"
 module CrystalGPT5
   module Compiler
     module Semantic
+      alias NumberKind = Frontend::NumberKind
+
       # Type Inference Engine for Stage 3
       #
       # Implements simple bottom-up type inference:

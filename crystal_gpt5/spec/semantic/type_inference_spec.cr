@@ -1172,4 +1172,126 @@ describe TypeInferenceEngine do
       type.as(PrimitiveType).name.should eq("Nil")
     end
   end
+
+  describe "Phase 5B: Instance Variables in Method Bodies" do
+    it "infers instance variable type from initialize method" do
+      source = <<-CRYSTAL
+        class Counter
+          def initialize
+            @count = 0
+          end
+
+          def get_count : Int32
+            @count
+          end
+        end
+
+        c = Counter.new
+        result = c.get_count
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # result : Int32 (from method return annotation)
+      # @count should be Int32 (from initialize assignment)
+      result_id = program.roots[2]
+      type = engine.context.get_type(result_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles instance variable assigned and read in same method" do
+      source = <<-CRYSTAL
+        class Foo
+          def test : Int32
+            @x = 42
+            @x
+          end
+        end
+
+        foo = Foo.new
+        result = foo.test
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # @x : Int32 (assigned in test method)
+      # result : Int32
+      result_id = program.roots[2]
+      type = engine.context.get_type(result_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles multiple classes with same instance variable names" do
+      source = <<-CRYSTAL
+        class Foo
+          def initialize
+            @x = 42
+          end
+
+          def get_x : Int32
+            @x
+          end
+        end
+
+        class Bar
+          def initialize
+            @x = "hello"
+          end
+
+          def get_x : String
+            @x
+          end
+        end
+
+        foo = Foo.new
+        bar = Bar.new
+        result_foo = foo.get_x
+        result_bar = bar.get_x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # result_foo : Int32 (from Foo.get_x)
+      result_foo_id = program.roots[4]
+      type_foo = engine.context.get_type(result_foo_id)
+      type_foo.should be_a(PrimitiveType)
+      type_foo.as(PrimitiveType).name.should eq("Int32")
+
+      # result_bar : String (from Bar.get_x)
+      result_bar_id = program.roots[5]
+      type_bar = engine.context.get_type(result_bar_id)
+      type_bar.should be_a(PrimitiveType)
+      type_bar.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "handles instance variable modification" do
+      source = <<-CRYSTAL
+        class Counter
+          def initialize
+            @count = 0
+          end
+
+          def increment : Int32
+            @count = @count + 1
+            @count
+          end
+        end
+
+        c = Counter.new
+        result = c.increment
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # @count : Int32 (from initialize)
+      # @count + 1 : Int32
+      # result : Int32
+      result_id = program.roots[2]
+      type = engine.context.get_type(result_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+  end
 end
