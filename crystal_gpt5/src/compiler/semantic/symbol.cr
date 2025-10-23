@@ -38,11 +38,22 @@ module CrystalGPT5
       class ClassSymbol < Symbol
         getter scope : SymbolTable
         getter superclass_name : String?
+        getter instance_vars : Hash(String, String?)  # name → type annotation
 
         def initialize(name : String, node_id : ExprId, *, scope : SymbolTable, superclass_name : String? = nil)
           super(name, node_id)
           @scope = scope
           @superclass_name = superclass_name
+          @instance_vars = {} of String => String?
+        end
+
+        # Phase 5A: Track instance variable declarations
+        def add_instance_var(name : String, type_annotation : String? = nil)
+          @instance_vars[name] = type_annotation
+        end
+
+        def get_instance_var_type(name : String) : String?
+          @instance_vars[name]?
         end
       end
 

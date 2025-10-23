@@ -135,10 +135,65 @@ module CrystalGPT5
           end
 
           push_table(class_scope)
+
+          # Phase 5A: Collect instance variable declarations
+          collect_instance_vars(class_symbol, node.class_body || [] of Frontend::ExprId)
+
           (node.class_body || [] of Frontend::ExprId).each do |expr_id|
             visit(expr_id)
           end
           pop_table
+        end
+
+        # Phase 5A: Scan class body for instance variable assignments
+        private def collect_instance_vars(class_symbol : ClassSymbol, body : Array(Frontend::ExprId))
+          body.each do |expr_id|
+            scan_for_instance_vars(class_symbol, expr_id)
+          end
+        end
+
+        private def scan_for_instance_vars(class_symbol : ClassSymbol, expr_id : Frontend::ExprId)
+          return if expr_id.invalid?
+          node = @arena[expr_id]
+
+          case node.kind
+          when ExpressionNode::Kind::Assign
+            # Check if assignment target is instance variable
+            target_id = node.assign_target
+            if target_id && !target_id.invalid?
+              target_node = @arena[target_id]
+              if target_node.kind == ExpressionNode::Kind::InstanceVar
+                if name_slice = target_node.literal
+                  var_name = String.new(name_slice)
+                  # Remove @ prefix
+                  var_name = var_name[1..-1] if var_name.starts_with?("@")
+                  class_symbol.add_instance_var(var_name)
+                end
+              end
+            end
+          when ExpressionNode::Kind::Def
+            # Scan method body for instance variable assignments
+            def_body = node.def_body || [] of Frontend::ExprId
+            def_body.each do |body_expr_id|
+              scan_for_instance_vars(class_symbol, body_expr_id)
+            end
+          when ExpressionNode::Kind::If
+            # Scan if branches
+            if_then = node.if_then || [] of Frontend::ExprId
+            if_then.each { |e| scan_for_instance_vars(class_symbol, e) }
+
+            if_elsifs = node.if_elsifs || [] of Frontend::ElsifBranch
+            if_elsifs.each do |elsif_branch|
+              elsif_branch.body.each { |e| scan_for_instance_vars(class_symbol, e) }
+            end
+
+            if_else = node.if_else || [] of Frontend::ExprId
+            if_else.each { |e| scan_for_instance_vars(class_symbol, e) }
+          when ExpressionNode::Kind::While
+            # Scan while body
+            while_body = node.while_body || [] of Frontend::ExprId
+            while_body.each { |e| scan_for_instance_vars(class_symbol, e) }
+          end
         end
 
         private def handle_macro_redefinition(name : String, new_symbol : MacroSymbol, existing : Symbol, table : SymbolTable)

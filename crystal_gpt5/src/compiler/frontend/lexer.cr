@@ -29,6 +29,8 @@ module CrystalGPT5
             lex_whitespace
           when byte == NEWLINE
             lex_newline
+          when byte == AT_SIGN
+            lex_instance_var
           when identifier_start?(byte)
             lex_identifier
           when ascii_number?(byte)
@@ -123,6 +125,40 @@ module CrystalGPT5
           Token.new(
             kind,
             slice,
+            build_span(start_offset, start_line, start_column)
+          )
+        end
+
+        private def lex_instance_var
+          start_offset, start_line, start_column = capture_position
+          from = @offset
+
+          # Consume @
+          advance
+
+          # Instance variable must start with identifier character
+          if @offset >= @rope.size || !identifier_start?(current_byte)
+            # Invalid instance variable - just @, return as operator
+            return Token.new(
+              Token::Kind::Operator,
+              @rope.bytes[from...@offset],
+              build_span(start_offset, start_line, start_column)
+            )
+          end
+
+          # Read identifier part
+          while @offset < @rope.size && identifier_char?(current_byte)
+            advance
+          end
+
+          # Instance variables can have suffix (?, !)
+          if @offset < @rope.size && identifier_suffix?(current_byte)
+            advance
+          end
+
+          Token.new(
+            Token::Kind::InstanceVar,
+            @rope.bytes[from...@offset],
             build_span(start_offset, start_line, start_column)
           )
         end
@@ -346,6 +382,7 @@ module CrystalGPT5
         UNDERSCORE   = '_'.ord.to_u8
         QUESTION     = '?'.ord.to_u8
         EXCLAMATION  = '!'.ord.to_u8
+        AT_SIGN      = '@'.ord.to_u8
 
         private def build_span(start_offset, start_line, start_column)
           Span.new(

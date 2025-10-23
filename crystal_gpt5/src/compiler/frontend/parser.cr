@@ -68,10 +68,10 @@ module CrystalGPT5
 
           # Check for assignment: identifier = value
           if token.kind == Token::Kind::Eq
-            # Verify left side is an identifier
+            # Verify left side is an identifier or instance variable
             left_node = @arena[left]
-            unless left_node.kind == ExpressionNode::Kind::Identifier
-              @diagnostics << Diagnostic.new("Assignment target must be an identifier", token.span)
+            unless left_node.kind == ExpressionNode::Kind::Identifier || left_node.kind == ExpressionNode::Kind::InstanceVar
+              @diagnostics << Diagnostic.new("Assignment target must be an identifier or instance variable", token.span)
               return PREFIX_ERROR
             end
 
@@ -758,6 +758,11 @@ module CrystalGPT5
           when Token::Kind::Identifier
             # Regular identifier
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Identifier, token.span, literal: token.slice))
+            advance
+            id
+          when Token::Kind::InstanceVar
+            # Instance variable (@var)
+            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::InstanceVar, token.span, literal: token.slice))
             advance
             id
           when Token::Kind::Number

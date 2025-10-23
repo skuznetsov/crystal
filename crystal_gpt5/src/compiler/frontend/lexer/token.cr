@@ -20,6 +20,7 @@ module CrystalGPT5
         enum Kind
           # Literals
           Identifier
+          InstanceVar  # @var
           Number
           String
 

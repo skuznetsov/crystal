@@ -69,6 +69,7 @@ module CrystalGPT5
       struct ExpressionNode
         enum Kind
           Identifier
+          InstanceVar  # @var
           Number
           String
           Bool

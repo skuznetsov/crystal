@@ -36,6 +36,7 @@ module CrystalGPT5
         )
           @diagnostics = [] of Diagnostic
           @assignments = {} of String => Type  # Track variable assignments: name → type
+          @instance_var_types = {} of String => Type  # Phase 5A: Track instance variable types
         end
 
         # Main entry point: Infer types for all root expressions
@@ -61,6 +62,8 @@ module CrystalGPT5
             infer_nil(node)
           when .identifier?
             infer_identifier(node, expr_id)
+          when .instance_var?
+            infer_instance_var(node, expr_id)
           when .binary?
             infer_binary(node, expr_id)
           when .def?
@@ -158,6 +161,26 @@ module CrystalGPT5
           else
             @context.nil_type
           end
+        end
+
+        # ============================================================
+        # PHASE 5A: Instance Variables
+        # ============================================================
+
+        private def infer_instance_var(node, expr_id : ExprId) : Type
+          return @context.nil_type unless var_name = node.literal_string
+
+          # Remove @ prefix
+          clean_name = var_name.starts_with?("@") ? var_name[1..-1] : var_name
+
+          # Check if we have inferred type from assignment
+          if inferred_type = @instance_var_types[clean_name]?
+            return inferred_type
+          end
+
+          # TODO Phase 5B: Look up in ClassSymbol for explicit type annotations
+          # For now, return Nil if not found
+          @context.nil_type
         end
 
         # Parse simple type name (e.g., "Int32", "String")
@@ -412,8 +435,16 @@ module CrystalGPT5
 
           # Get target identifier name
           target_node = @program.arena[target_id]
-          if target_name = target_node.literal_string
-            # Track this assignment: identifier name → type
+
+          # Phase 5A: Check if target is instance variable
+          if target_node.kind.instance_var?
+            if target_name = target_node.literal_string
+              # Remove @ prefix for storage
+              clean_name = target_name.starts_with?("@") ? target_name[1..-1] : target_name
+              @instance_var_types[clean_name] = value_type
+            end
+          elsif target_name = target_node.literal_string
+            # Regular variable assignment
             @assignments[target_name] = value_type
           end
 

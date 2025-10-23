@@ -1101,4 +1101,75 @@ describe TypeInferenceEngine do
       type.as(PrimitiveType).name.should eq("String")
     end
   end
+
+  describe "Phase 5A: Instance Variables" do
+    it "infers type from instance variable assignment" do
+      source = <<-CRYSTAL
+        @x = 42
+        result = @x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # @x : Int32 (inferred from assignment)
+      # result : Int32
+      result_id = program.roots[1]
+      type = engine.context.get_type(result_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers type from string instance variable" do
+      source = <<-CRYSTAL
+        @name = "hello"
+        result = @name
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # @name : String
+      # result : String
+      result_id = program.roots[1]
+      type = engine.context.get_type(result_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "handles multiple instance variables" do
+      source = <<-CRYSTAL
+        @x = 42
+        @name = "test"
+        result_x = @x
+        result_name = @name
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # result_x : Int32
+      result_x_id = program.roots[2]
+      type_x = engine.context.get_type(result_x_id)
+      type_x.should be_a(PrimitiveType)
+      type_x.as(PrimitiveType).name.should eq("Int32")
+
+      # result_name : String
+      result_name_id = program.roots[3]
+      type_name = engine.context.get_type(result_name_id)
+      type_name.should be_a(PrimitiveType)
+      type_name.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "returns Nil for uninitialized instance variable" do
+      source = <<-CRYSTAL
+        result = @uninitialized
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # @uninitialized not assigned → Nil
+      result_id = program.roots[0]
+      type = engine.context.get_type(result_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Nil")
+    end
+  end
 end
