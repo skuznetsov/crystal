@@ -43,6 +43,8 @@ module CrystalGPT5
           Yield   # Phase 10
           Case    # Phase 11
           When    # Phase 11
+          Break   # Phase 12
+          Next    # Phase 12
 
           # Arithmetic operators
           Plus        # +

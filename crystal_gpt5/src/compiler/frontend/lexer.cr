@@ -123,6 +123,8 @@ module CrystalGPT5
           when "yield"  then Token::Kind::Yield
           when "case"   then Token::Kind::Case
           when "when"   then Token::Kind::When
+          when "break"  then Token::Kind::Break
+          when "next"   then Token::Kind::Next
           else
             Token::Kind::Identifier
           end

@@ -71,6 +71,18 @@ module CrystalGPT5
             return parse_postfix_if_modifier(stmt)
           end
 
+          # Phase 12: break statements
+          if current_token.kind == Token::Kind::Break
+            stmt = parse_break
+            return parse_postfix_if_modifier(stmt)
+          end
+
+          # Phase 12: next statements
+          if current_token.kind == Token::Kind::Next
+            stmt = parse_next
+            return parse_postfix_if_modifier(stmt)
+          end
+
           # Parse left side (could be identifier or expression)
           left = parse_expression(0)
           return PREFIX_ERROR if left.invalid?
@@ -649,6 +661,58 @@ module CrystalGPT5
               )
             )
           end
+        end
+
+        # Phase 12: Parse break expression
+        # Grammar: break [value]
+        private def parse_break : ExprId
+          break_token = current_token
+          advance
+          skip_trivia
+
+          # Check if there's a break value
+          # break without value if: newline, EOF, end, else, elsif, if (for postfix)
+          token = current_token
+          if token.kind.in?(Token::Kind::Newline, Token::Kind::EOF, Token::Kind::End, Token::Kind::Else, Token::Kind::Elsif, Token::Kind::If)
+            # Break without value (returns nil from loop)
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Break,
+                break_token.span,
+                break_value: nil
+              )
+            )
+          else
+            # Break with value
+            value = parse_expression(0)
+            return PREFIX_ERROR if value.invalid?
+
+            value_span = node_span(value)
+            break_span = break_token.span.cover(value_span)
+
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Break,
+                break_span,
+                break_value: value
+              )
+            )
+          end
+        end
+
+        # Phase 12: Parse next expression
+        # Grammar: next
+        private def parse_next : ExprId
+          next_token = current_token
+          advance
+
+          # Next has no value in Crystal
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Next,
+              next_token.span
+            )
+          )
         end
 
         # Phase 10: Parse yield expression
@@ -1507,7 +1571,8 @@ module CrystalGPT5
             yield_args: remap_array.call(node.yield_args),
             case_value: remap.call(node.case_value),
             when_branches: remap_when_branches.call(node.when_branches),
-            case_else: remap_array.call(node.case_else)
+            case_else: remap_array.call(node.case_else),
+            break_value: remap.call(node.break_value)
           ))
         end
 

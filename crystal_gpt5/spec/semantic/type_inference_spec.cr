@@ -2217,4 +2217,120 @@ describe TypeInferenceEngine do
       union.types.map(&.to_s).should contain("String")
     end
   end
+
+  describe "Phase 12: Break/Next" do
+    it "infers Nil for break without value" do
+      source = <<-CRYSTAL
+        i = 0
+        while i < 10
+          i += 1
+          if i == 5
+            break
+          end
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the break statement
+      while_node = program.arena[program.roots[1]]
+      body = while_node.while_body.not_nil!
+      if_node = program.arena[body[1]]
+      then_branch = if_node.if_then.not_nil!
+      break_id = then_branch[0]
+      break_type = engine.context.get_type(break_id)
+
+      break_type.as(PrimitiveType).name.should eq("Nil")
+    end
+
+    it "infers type from break value" do
+      source = <<-CRYSTAL
+        result = while true
+          break 42
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the break statement
+      assign_node = program.arena[program.roots[0]]
+      while_id = assign_node.assign_value.not_nil!
+      while_node = program.arena[while_id]
+      body = while_node.while_body.not_nil!
+      break_id = body[0]
+      break_type = engine.context.get_type(break_id)
+
+      # Break with value 42 → Int32
+      break_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers Nil for next" do
+      source = <<-CRYSTAL
+        i = 0
+        while i < 10
+          i += 1
+          if i == 5
+            next
+          end
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the next statement
+      while_node = program.arena[program.roots[1]]
+      body = while_node.while_body.not_nil!
+      if_node = program.arena[body[1]]
+      then_branch = if_node.if_then.not_nil!
+      next_id = then_branch[0]
+      next_type = engine.context.get_type(next_id)
+
+      # Next always returns Nil
+      next_type.as(PrimitiveType).name.should eq("Nil")
+    end
+
+    it "handles break with postfix if" do
+      source = <<-CRYSTAL
+        i = 0
+        while i < 10
+          i += 1
+          break if i == 5
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Should parse without errors
+      program.roots.size.should eq(2)
+    end
+
+    it "handles next with postfix if" do
+      source = <<-CRYSTAL
+        i = 0
+        while i < 10
+          i += 1
+          next if i == 5
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Should parse without errors
+      program.roots.size.should eq(2)
+    end
+
+    it "handles break with String value" do
+      source = <<-CRYSTAL
+        result = while true
+          break "done"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      assign_node = program.arena[program.roots[0]]
+      while_id = assign_node.assign_value.not_nil!
+      while_node = program.arena[while_id]
+      body = while_node.while_body.not_nil!
+      break_id = body[0]
+      break_type = engine.context.get_type(break_id)
+
+      # Break with "done" → String
+      break_type.as(PrimitiveType).name.should eq("String")
+    end
+  end
 end

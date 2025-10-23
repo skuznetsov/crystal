@@ -107,6 +107,12 @@ module CrystalGPT5
           when .case?
             # Phase 11: Case/when pattern matching
             infer_case(node, expr_id)
+          when .break?
+            # Phase 12: Break expressions
+            infer_break(node, expr_id)
+          when .next?
+            # Phase 12: Next expressions
+            infer_next(node, expr_id)
           else
             # Unknown expression kind
             @context.nil_type
@@ -1220,6 +1226,28 @@ module CrystalGPT5
 
           @context.set_type(expr_id, case_type)
           case_type
+        end
+
+        # ============================================================
+        # PHASE 12: Break/Next
+        # ============================================================
+
+        private def infer_break(node, expr_id : ExprId) : Type
+          # Break can have an optional value
+          break_type = if value_id = node.break_value
+            infer_expression(value_id)
+          else
+            @context.nil_type
+          end
+
+          @context.set_type(expr_id, break_type)
+          break_type
+        end
+
+        private def infer_next(node, expr_id : ExprId) : Type
+          # Next has no value in Crystal, always returns Nil
+          @context.set_type(expr_id, @context.nil_type)
+          @context.nil_type
         end
 
         # ============================================================

@@ -111,6 +111,8 @@ module CrystalGPT5
           Block  # Phase 10: block {|x| ... } or do |x| ... end
           Yield  # Phase 10: yield keyword
           Case  # Phase 11: case/when pattern matching
+          Break  # Phase 12: break [value]
+          Next   # Phase 12: next
         end
 
         getter kind : Kind
@@ -155,6 +157,8 @@ module CrystalGPT5
         getter case_value : ExprId?  # Phase 11: value to match against
         getter when_branches : Array(WhenBranch)?  # Phase 11: when branches
         getter case_else : Array(ExprId)?  # Phase 11: else clause
+        getter break_value : ExprId?  # Phase 12: optional break value
+        # Note: next has no value in Crystal
 
         def initialize(
           @kind : Kind,
@@ -199,6 +203,7 @@ module CrystalGPT5
           @case_value : ExprId? = nil,
           @when_branches : Array(WhenBranch)? = nil,
           @case_else : Array(ExprId)? = nil,
+          @break_value : ExprId? = nil,
         )
         end
 
