@@ -2562,4 +2562,97 @@ describe TypeInferenceEngine do
       ht.value_type.as(PrimitiveType).name.should eq("Int32")
     end
   end
+
+  describe "Phase 14B: Hash Indexing" do
+    it "infers type from hash indexing" do
+      source = <<-CRYSTAL
+        h = {"name" => "Alice"}
+        x = h["name"]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find x assignment (second statement)
+      assign_node = program.arena[program.roots[1]]
+      index_id = assign_node.assign_value.not_nil!
+      index_type = engine.context.get_type(index_id)
+
+      # Hash is Hash(String, String), so index returns String
+      index_type.should be_a(PrimitiveType)
+      index_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "infers union type from heterogeneous hash indexing" do
+      source = <<-CRYSTAL
+        h = {"name" => "Alice", "age" => 30}
+        y = h["name"]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find y assignment
+      assign_node = program.arena[program.roots[1]]
+      index_id = assign_node.assign_value.not_nil!
+      index_type = engine.context.get_type(index_id)
+
+      # Hash is Hash(String, String | Int32), so index returns String | Int32
+      index_type.should be_a(UnionType)
+      union = index_type.as(UnionType)
+      union.types.size.should eq(2)
+
+      type_names = union.types.map { |t| t.as(PrimitiveType).name }.sort
+      type_names.should eq(["Int32", "String"])
+    end
+
+    it "supports hash assignment via indexing" do
+      source = <<-CRYSTAL
+        h = {"key" => 42}
+        h["key"] = 100
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find assignment (second statement)
+      assign_node = program.arena[program.roots[1]]
+
+      # Should be Assign node with Index target
+      assign_node.kind.should eq(ExpressionNode::Kind::Assign)
+
+      target_node = program.arena[assign_node.assign_target.not_nil!]
+      target_node.kind.should eq(ExpressionNode::Kind::Index)
+
+      # Assignment returns the value type (Int32)
+      value_id = assign_node.assign_value.not_nil!
+      value_type = engine.context.get_type(value_id)
+      value_type.should be_a(PrimitiveType)
+      value_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "supports hash indexing with different key types" do
+      source = <<-CRYSTAL
+        h = {1 => "one", 2 => "two"}
+        s = h[1]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find s assignment
+      assign_node = program.arena[program.roots[1]]
+      index_id = assign_node.assign_value.not_nil!
+      index_type = engine.context.get_type(index_id)
+
+      # Hash is Hash(Int32, String), so index returns String
+      index_type.should be_a(PrimitiveType)
+      index_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "emits error when indexing non-hash non-array type" do
+      source = <<-CRYSTAL
+        x = 42
+        y = x[0]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Should have diagnostic about indexing Int32
+      engine.diagnostics.size.should be > 0
+      engine.diagnostics.first.message.should contain("Cannot index")
+    end
+  end
 end

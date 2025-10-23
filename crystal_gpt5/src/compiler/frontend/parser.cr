@@ -92,10 +92,12 @@ module CrystalGPT5
 
           # Check for assignment: identifier = value
           if token.kind == Token::Kind::Eq
-            # Verify left side is an identifier or instance variable
+            # Verify left side is an identifier, instance variable, or index (Phase 14B: hash/array assignment)
             left_node = @arena[left]
-            unless left_node.kind == ExpressionNode::Kind::Identifier || left_node.kind == ExpressionNode::Kind::InstanceVar
-              @diagnostics << Diagnostic.new("Assignment target must be an identifier or instance variable", token.span)
+            unless left_node.kind == ExpressionNode::Kind::Identifier ||
+                   left_node.kind == ExpressionNode::Kind::InstanceVar ||
+                   left_node.kind == ExpressionNode::Kind::Index
+              @diagnostics << Diagnostic.new("Assignment target must be an identifier, instance variable, or index expression", token.span)
               return PREFIX_ERROR
             end
 

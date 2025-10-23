@@ -59,7 +59,7 @@ module CrystalGPT5
         private def infer_expression(expr_id : ExprId) : Type
           node = @program.arena[expr_id]
 
-          case node.kind
+          result_type = case node.kind
           when .number?
             infer_number(node)
           when .string?
@@ -95,7 +95,7 @@ module CrystalGPT5
           when .while?
             infer_while(node)
           when .assign?
-            infer_assign(node)
+            infer_assign(node, expr_id)
           when .return?
             infer_return(node, expr_id)
           when .self?
@@ -129,6 +129,11 @@ module CrystalGPT5
             # Unknown expression kind
             @context.nil_type
           end
+
+          # Always set type for this expression (some infer_* methods already do this,
+          # but this ensures ALL expressions have types set, even for nested calls)
+          @context.set_type(expr_id, result_type)
+          result_type
         end
 
         # ============================================================
@@ -533,7 +538,7 @@ module CrystalGPT5
         # PHASE 2: Assignments
         # ============================================================
 
-        private def infer_assign(node) : Type
+        private def infer_assign(node, expr_id : ExprId) : Type
           # Get target and value expression IDs
           target_id = node.assign_target
           value_id = node.assign_value
@@ -557,8 +562,11 @@ module CrystalGPT5
             # Regular variable assignment
             @assignments[target_name] = value_type
           end
+          # Phase 14B: Index assignment (h["key"] = value) - no tracking needed,
+          # just return value type
 
           # Assignments return the value type in Crystal
+          @context.set_type(expr_id, value_type)
           value_type
         end
 
@@ -653,7 +661,7 @@ module CrystalGPT5
         end
 
         private def infer_index(node, expr_id : ExprId) : Type
-          # Get target (array) and index types
+          # Get target (array/hash) and index types
           target_id = node.left
           index_id = node.args.try(&.first)
 
@@ -662,14 +670,19 @@ module CrystalGPT5
           target_type = infer_expression(target_id)
           _index_type = infer_expression(index_id)
 
-          # Check if target is an array
+          # Phase 9: Array indexing
           if target_type.is_a?(ArrayType)
             element_type = target_type.element_type
             @context.set_type(expr_id, element_type)
             element_type
+          # Phase 14B: Hash indexing
+          elsif target_type.is_a?(HashType)
+            value_type = target_type.value_type
+            @context.set_type(expr_id, value_type)
+            value_type
           else
-            # Not an array - emit error
-            emit_error("Cannot index non-array type #{target_type}", expr_id)
+            # Not an array or hash - emit error
+            emit_error("Cannot index type #{target_type}", expr_id)
             @context.nil_type
           end
         end
