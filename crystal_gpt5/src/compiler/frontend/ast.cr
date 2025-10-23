@@ -93,6 +93,8 @@ module CrystalGPT5
           Self    # Phase 7: self keyword
           StringInterpolation  # Phase 8: string interpolation
           ArrayLiteral  # Phase 9: array literals [1, 2, 3]
+          Block  # Phase 10: block {|x| ... } or do |x| ... end
+          Yield  # Phase 10: yield keyword
         end
 
         getter kind : Kind
@@ -130,6 +132,10 @@ module CrystalGPT5
         getter string_pieces : Array(StringPiece)?  # Phase 8: string interpolation
         getter array_elements : Array(ExprId)?  # Phase 9: array literal elements
         getter array_of_type : Slice(UInt8)?  # Phase 9: explicit type for [] of Type
+        getter block_params : Array(Parameter)?  # Phase 10: block parameters
+        getter block_body : Array(ExprId)?  # Phase 10: block body
+        getter call_block : ExprId?  # Phase 10: block attached to call
+        getter yield_args : Array(ExprId)?  # Phase 10: yield arguments
 
         def initialize(
           @kind : Kind,
@@ -167,6 +173,10 @@ module CrystalGPT5
           @string_pieces : Array(StringPiece)? = nil,
           @array_elements : Array(ExprId)? = nil,
           @array_of_type : Slice(UInt8)? = nil,
+          @block_params : Array(Parameter)? = nil,
+          @block_body : Array(ExprId)? = nil,
+          @call_block : ExprId? = nil,
+          @yield_args : Array(ExprId)? = nil,
         )
         end
 

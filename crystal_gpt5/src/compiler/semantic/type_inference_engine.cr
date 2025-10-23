@@ -98,6 +98,12 @@ module CrystalGPT5
             infer_return(node, expr_id)
           when .self?
             infer_self(node, expr_id)
+          when .block?
+            # Phase 10: Block literals
+            infer_block(node, expr_id)
+          when .yield?
+            # Phase 10: Yield expressions
+            infer_yield(node, expr_id)
           else
             # Unknown expression kind
             @context.nil_type
@@ -669,6 +675,11 @@ module CrystalGPT5
           # Phase 4B: Zero-argument method call
           arg_types = [] of Type
 
+          # Phase 10: Infer block type if present
+          if block_id = node.call_block
+            infer_expression(block_id)
+          end
+
           # Phase 4B.4: Special case for union types - compute union return type
           if receiver_type.is_a?(UnionType)
             if return_type = compute_union_method_return_type(receiver_type, method_name, arg_types)
@@ -696,6 +707,11 @@ module CrystalGPT5
         end
 
         private def infer_call(node, expr_id : ExprId) : Type
+          # Phase 10: Infer block type if present (do this FIRST, even for unsupported calls)
+          if block_id = node.call_block
+            infer_expression(block_id)
+          end
+
           # Extract receiver and method name from Call node
           return @context.nil_type unless callee_id = node.callee
 
@@ -715,6 +731,7 @@ module CrystalGPT5
             method_name = callee_node.member_string
           when .identifier?
             # bar(x) → implicit self (not supported yet in Phase 4A)
+            # But we still inferred the block above, so return nil_type for the call itself
             return @context.nil_type
           else
             return @context.nil_type
@@ -1112,6 +1129,38 @@ module CrystalGPT5
           end
 
           methods
+        end
+
+        # ============================================================
+        # PHASE 10: Blocks and Yield
+        # ============================================================
+
+        private def infer_block(node, expr_id : ExprId) : Type
+          # Infer types of block body expressions
+          body = node.block_body || [] of ExprId
+
+          # Type of block is the type of its last expression
+          block_type = if body.empty?
+            @context.nil_type
+          else
+            body.each { |stmt_id| infer_expression(stmt_id) }
+            infer_expression(body.last)
+          end
+
+          @context.set_type(expr_id, block_type)
+          block_type
+        end
+
+        private def infer_yield(node, expr_id : ExprId) : Type
+          # Infer types of yield arguments
+          if args = node.yield_args
+            args.each { |arg_id| infer_expression(arg_id) }
+          end
+
+          # For now, yield returns Nil
+          # TODO: In full implementation, yield should return the block's return type
+          @context.set_type(expr_id, @context.nil_type)
+          @context.nil_type
         end
 
         # ============================================================

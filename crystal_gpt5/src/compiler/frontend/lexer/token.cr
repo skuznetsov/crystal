@@ -40,6 +40,7 @@ module CrystalGPT5
           Nil
           Return  # Phase 6
           Self    # Phase 7
+          Yield   # Phase 10
 
           # Arithmetic operators
           Plus        # +

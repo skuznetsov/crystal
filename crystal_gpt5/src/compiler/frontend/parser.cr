@@ -65,6 +65,12 @@ module CrystalGPT5
             return parse_postfix_if_modifier(stmt)
           end
 
+          # Phase 10: yield statements
+          if current_token.kind == Token::Kind::Yield
+            stmt = parse_yield
+            return parse_postfix_if_modifier(stmt)
+          end
+
           # Parse left side (could be identifier or expression)
           left = parse_expression(0)
           return PREFIX_ERROR if left.invalid?
@@ -530,6 +536,180 @@ module CrystalGPT5
           end
         end
 
+        # Phase 10: Parse yield expression
+        # Grammar: yield [arg1, arg2, ...]
+        private def parse_yield : ExprId
+          yield_token = current_token
+          advance
+          skip_trivia
+
+          # Check if there are yield arguments
+          # yield without args if: newline, EOF, end, else, elsif, if (for postfix), do, }
+          token = current_token
+          if token.kind.in?(Token::Kind::Newline, Token::Kind::EOF, Token::Kind::End, Token::Kind::Else, Token::Kind::Elsif, Token::Kind::If, Token::Kind::Do) ||
+             (token.kind == Token::Kind::Operator && token_text(token) == "}")
+            # Yield without args
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Yield,
+                yield_token.span,
+                yield_args: [] of ExprId
+              )
+            )
+          else
+            # Yield with args - parse comma-separated expressions
+            args = [] of ExprId
+            loop do
+              arg = parse_expression(0)
+              return PREFIX_ERROR if arg.invalid?
+              args << arg
+
+              skip_trivia
+              break if current_token.kind != Token::Kind::Comma
+
+              advance  # consume comma
+              skip_trivia
+            end
+
+            last_arg_span = node_span(args.last)
+            yield_span = yield_token.span.cover(last_arg_span)
+
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Yield,
+                yield_span,
+                yield_args: args
+              )
+            )
+          end
+        end
+
+        # Phase 10: Parse block
+        # Grammar: { |params| body } or do |params| body end
+        private def parse_block : ExprId
+          is_brace_form = current_token.kind == Token::Kind::Operator && token_text(current_token) == "{"
+          start_token = current_token
+          advance  # consume { or do
+          skip_trivia
+
+          # Parse optional block parameters: |x, y|
+          params = [] of Parameter
+          if current_token.kind == Token::Kind::Operator && token_text(current_token) == "|"
+            advance  # consume opening |
+            skip_trivia
+
+            # Parse parameter list
+            loop do
+              unless current_token.kind == Token::Kind::Identifier
+                emit_unexpected(current_token)
+                return PREFIX_ERROR
+              end
+
+              param_name = token_text(current_token)
+              advance
+              skip_trivia
+
+              # TODO: Support type annotations in block params
+              params << Parameter.new(param_name)
+
+              # Check for comma or closing |
+              if current_token.kind == Token::Kind::Comma
+                advance
+                skip_trivia
+              elsif current_token.kind == Token::Kind::Operator && token_text(current_token) == "|"
+                break
+              else
+                emit_unexpected(current_token)
+                return PREFIX_ERROR
+              end
+            end
+
+            advance  # consume closing |
+            skip_trivia
+          end
+
+          # Parse block body
+          body = [] of ExprId
+          loop do
+            skip_trivia
+
+            # Skip newlines in block body
+            while current_token.kind == Token::Kind::Newline
+              advance
+              skip_trivia
+            end
+
+            # Check for block terminator
+            if is_brace_form
+              break if current_token.kind == Token::Kind::Operator && token_text(current_token) == "}"
+            else
+              break if current_token.kind == Token::Kind::End
+            end
+
+            break if current_token.kind == Token::Kind::EOF
+
+            stmt = parse_statement
+            return PREFIX_ERROR if stmt.invalid?
+            body << stmt
+          end
+
+          # Consume closing delimiter
+          end_token = current_token
+          unless (is_brace_form && current_token.kind == Token::Kind::Operator && token_text(current_token) == "}") ||
+                 (!is_brace_form && current_token.kind == Token::Kind::End)
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance
+
+          block_span = start_token.span.cover(end_token.span)
+          @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::Block,
+            block_span,
+            block_params: params,
+            block_body: body
+          ))
+        end
+
+        # Phase 10: Attach block to method call
+        private def attach_block_to_call(call_expr : ExprId) : ExprId
+          # Parse the block
+          block_id = parse_block
+          return PREFIX_ERROR if block_id.invalid?
+
+          # Get the call node
+          call_node = @arena[call_expr]
+          block_span = node_span(block_id)
+          call_span = call_node.span.cover(block_span)
+
+          # If it's an identifier, convert it to a call (e.g., "three_times do |n| ... end")
+          if call_node.kind == ExpressionNode::Kind::Identifier
+            return @arena.add(ExpressionNode.new(
+              ExpressionNode::Kind::Call,
+              call_span,
+              callee: call_expr,
+              args: [] of ExprId,
+              call_block: block_id
+            ))
+          end
+
+          # Verify it's a Call or MemberAccess
+          unless call_node.kind.in?(ExpressionNode::Kind::Call, ExpressionNode::Kind::MemberAccess)
+            @diagnostics << Diagnostic.new("Block can only be attached to method call or identifier", call_node.span)
+            return PREFIX_ERROR
+          end
+
+          # Create new Call node with block attached
+          @arena.add(ExpressionNode.new(
+            call_node.kind,
+            call_span,
+            callee: call_node.callee,
+            member: call_node.member,
+            args: call_node.args,
+            call_block: block_id
+          ))
+        end
+
         # Phase 6: Handle postfix if modifier
         # Grammar: <statement> if <condition>
         private def parse_postfix_if_modifier(stmt : ExprId) : ExprId
@@ -846,7 +1026,15 @@ module CrystalGPT5
               when "."
                 left = parse_member_access(left)
                 next
+              when "{"
+                # Phase 10: Block with {} syntax
+                left = attach_block_to_call(left)
+                next
               end
+            when Token::Kind::Do
+              # Phase 10: Block with do/end syntax
+              left = attach_block_to_call(left)
+              next
             end
 
             break unless infix?(token)
@@ -1183,7 +1371,11 @@ module CrystalGPT5
             return_value: remap.call(node.return_value),
             string_pieces: remap_pieces.call(node.string_pieces),
             array_elements: remap_array.call(node.array_elements),
-            array_of_type: node.array_of_type
+            array_of_type: node.array_of_type,
+            block_params: node.block_params,
+            block_body: remap_array.call(node.block_body),
+            call_block: remap.call(node.call_block),
+            yield_args: remap_array.call(node.yield_args)
           ))
         end
 

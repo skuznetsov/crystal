@@ -2000,4 +2000,94 @@ describe TypeInferenceEngine do
       push_type.as(ArrayType).element_type.as(PrimitiveType).name.should eq("Int32")
     end
   end
+
+  describe "Phase 10: Blocks and Yield" do
+    it "handles yield expressions" do
+      source = <<-CRYSTAL
+        def twice
+          yield 1
+          yield 2
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Method should exist and parse correctly
+      program.roots.size.should eq(1)
+
+      # Check that yields have Nil type
+      def_node = program.arena[program.roots[0]]
+      body = def_node.def_body.not_nil!
+      yield1 = engine.context.get_type(body[0])
+      yield1.as(PrimitiveType).name.should eq("Nil")
+    end
+
+    it "handles do/end block syntax" do
+      source = <<-CRYSTAL
+        def run
+          yield 42
+        end
+
+        run do |n|
+          n * 2
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Should parse without errors
+      program.roots.size.should eq(2)
+    end
+
+    it "handles brace block syntax" do
+      source = <<-CRYSTAL
+        def run
+          yield 5
+        end
+
+        run { |x| x + 1 }
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Should parse without errors
+      program.roots.size.should eq(2)
+    end
+
+    it "infers block return type from last expression" do
+      source = <<-CRYSTAL
+        def transform
+          yield 10
+        end
+
+        transform { 42 }
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Get the call with block
+      call_node = program.arena[program.roots[1]]
+      block_id = call_node.call_block.not_nil!
+      block_type = engine.context.get_type(block_id)
+
+      # Block should return Int32 (from literal 42)
+      block_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles empty block" do
+      source = <<-CRYSTAL
+        def run
+          yield
+        end
+
+        run { }
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Should parse without errors
+      program.roots.size.should eq(2)
+
+      # Empty block returns Nil
+      call_node = program.arena[program.roots[1]]
+      block_id = call_node.call_block.not_nil!
+      block_type = engine.context.get_type(block_id)
+      block_type.as(PrimitiveType).name.should eq("Nil")
+    end
+  end
 end

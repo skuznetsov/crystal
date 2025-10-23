@@ -120,6 +120,7 @@ module CrystalGPT5
           when "nil"    then Token::Kind::Nil
           when "return" then Token::Kind::Return
           when "self"   then Token::Kind::Self
+          when "yield"  then Token::Kind::Yield
           else
             Token::Kind::Identifier
           end
