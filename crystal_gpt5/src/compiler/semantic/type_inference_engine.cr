@@ -72,8 +72,7 @@ module CrystalGPT5
           when .binary?
             infer_binary(node, expr_id)
           when .def?
-            # Method definitions don't have value types (they're statements)
-            @context.nil_type
+            infer_def(node, expr_id)
           when .class?
             infer_class(node, expr_id)
           when .call?
@@ -87,6 +86,8 @@ module CrystalGPT5
             infer_while(node)
           when .assign?
             infer_assign(node)
+          when .return?
+            infer_return(node, expr_id)
           else
             # Unknown expression kind
             @context.nil_type
@@ -168,8 +169,19 @@ module CrystalGPT5
         end
 
         # ============================================================
-        # PHASE 5: Classes and Instance Variables
+        # PHASE 5: Classes, Methods, and Instance Variables
         # ============================================================
+
+        # Phase 6: Process method definitions and their bodies
+        private def infer_def(node, expr_id : ExprId) : Type
+          # Process method body
+          (node.def_body || [] of ExprId).each do |body_expr_id|
+            infer_expression(body_expr_id)
+          end
+
+          # Method definitions don't have value types (they're statements)
+          @context.nil_type
+        end
 
         # Phase 5C: Process class bodies and track current class context
         private def infer_class(node, expr_id : ExprId) : Type
@@ -485,6 +497,23 @@ module CrystalGPT5
 
           # Assignments return the value type in Crystal
           value_type
+        end
+
+        # ============================================================
+        # PHASE 6: Return Statements
+        # ============================================================
+
+        private def infer_return(node, expr_id : ExprId) : Type
+          # If return has a value, infer its type
+          if value_id = node.return_value
+            value_type = infer_expression(value_id)
+            @context.set_type(expr_id, value_type)
+            value_type
+          else
+            # Return without value returns nil
+            @context.set_type(expr_id, @context.nil_type)
+            @context.nil_type
+          end
         end
 
         # ============================================================

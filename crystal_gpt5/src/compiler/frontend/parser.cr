@@ -59,6 +59,12 @@ module CrystalGPT5
 
         # Parse a statement (assignment or expression)
         private def parse_statement : ExprId
+          # Phase 6: Check for return statement
+          if current_token.kind == Token::Kind::Return
+            stmt = parse_return
+            return parse_postfix_if_modifier(stmt)
+          end
+
           # Parse left side (could be identifier or expression)
           left = parse_expression(0)
           return PREFIX_ERROR if left.invalid?
@@ -88,16 +94,17 @@ module CrystalGPT5
             value_span = node_span(value)
             assign_span = left_node.span.cover(value_span)
 
-            return @arena.add(ExpressionNode.new(
+            stmt = @arena.add(ExpressionNode.new(
               ExpressionNode::Kind::Assign,
               assign_span,
               assign_target: left,
               assign_value: value
             ))
+            return parse_postfix_if_modifier(stmt)
           end
 
-          # Not an assignment, return expression as-is
-          left
+          # Not an assignment, check for postfix if
+          parse_postfix_if_modifier(left)
         end
 
         def arena
@@ -338,7 +345,7 @@ module CrystalGPT5
             break if token.kind == Token::Kind::Elsif || token.kind == Token::Kind::Else || token.kind == Token::Kind::End
             break if token.kind == Token::Kind::EOF
 
-            expr = parse_expression(0)
+            expr = parse_statement
             then_body << expr unless expr.invalid?
             consume_newlines
           end
@@ -375,7 +382,7 @@ module CrystalGPT5
               break if token.kind == Token::Kind::Elsif || token.kind == Token::Kind::Else || token.kind == Token::Kind::End
               break if token.kind == Token::Kind::EOF
 
-              expr = parse_expression(0)
+              expr = parse_statement
               elsif_body << expr unless expr.invalid?
               consume_newlines
             end
@@ -405,7 +412,7 @@ module CrystalGPT5
               break if token.kind == Token::Kind::End
               break if token.kind == Token::Kind::EOF
 
-              expr = parse_expression(0)
+              expr = parse_statement
               else_body << expr unless expr.invalid?
               consume_newlines
             end
@@ -461,7 +468,7 @@ module CrystalGPT5
             break if token.kind == Token::Kind::End
             break if token.kind == Token::Kind::EOF
 
-            expr = parse_expression(0)
+            expr = parse_statement
             body_ids << expr unless expr.invalid?
             consume_newlines
           end
@@ -484,6 +491,78 @@ module CrystalGPT5
               while_body: body_ids,
             )
           )
+        end
+
+        # Phase 6: Parse return statement
+        # Grammar: return | return <expression>
+        private def parse_return : ExprId
+          return_token = current_token
+          advance
+          skip_trivia
+
+          # Check if there's a return value
+          # return without value if: newline, EOF, end, else, elsif, if (for postfix)
+          token = current_token
+          if token.kind.in?(Token::Kind::Newline, Token::Kind::EOF, Token::Kind::End, Token::Kind::Else, Token::Kind::Elsif, Token::Kind::If)
+            # Return without value (implicit nil)
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Return,
+                return_token.span,
+                return_value: nil
+              )
+            )
+          else
+            # Return with value
+            value = parse_expression(0)
+            return PREFIX_ERROR if value.invalid?
+
+            value_span = node_span(value)
+            return_span = return_token.span.cover(value_span)
+
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Return,
+                return_span,
+                return_value: value
+              )
+            )
+          end
+        end
+
+        # Phase 6: Handle postfix if modifier
+        # Grammar: <statement> if <condition>
+        private def parse_postfix_if_modifier(stmt : ExprId) : ExprId
+          skip_trivia
+          token = current_token
+
+          # Check for postfix if
+          if token.kind == Token::Kind::If
+            advance  # consume 'if'
+            skip_trivia
+
+            # Parse condition
+            condition = parse_expression(0)
+            return PREFIX_ERROR if condition.invalid?
+
+            # Wrap statement in an if node
+            stmt_span = node_span(stmt)
+            condition_span = node_span(condition)
+            if_span = stmt_span.cover(condition_span)
+
+            return @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::If,
+                if_span,
+                if_condition: condition,
+                if_then: [stmt],
+                if_else: [] of ExprId
+              )
+            )
+          end
+
+          # No postfix if, return statement as-is
+          stmt
         end
 
         private def parse_class : ExprId

@@ -89,6 +89,7 @@ module CrystalGPT5
           MacroDef
           Def
           Class
+          Return  # Phase 6: return statements
         end
 
         getter kind : Kind
@@ -122,6 +123,7 @@ module CrystalGPT5
         getter assign_target : ExprId?
         getter assign_value : ExprId?
         getter ivar_decl_type : Slice(UInt8)?  # Phase 5C: @var : Type
+        getter return_value : ExprId?  # Phase 6: return statements
 
         def initialize(
           @kind : Kind,
@@ -155,6 +157,7 @@ module CrystalGPT5
           @assign_target : ExprId? = nil,
           @assign_value : ExprId? = nil,
           @ivar_decl_type : Slice(UInt8)? = nil,
+          @return_value : ExprId? = nil,
         )
         end
 

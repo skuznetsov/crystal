@@ -106,18 +106,19 @@ module CrystalGPT5
 
           # Check if this is a keyword
           kind = case String.new(slice)
-          when "if"    then Token::Kind::If
-          when "elsif" then Token::Kind::Elsif
-          when "else"  then Token::Kind::Else
-          when "end"   then Token::Kind::End
-          when "while" then Token::Kind::While
-          when "do"    then Token::Kind::Do
-          when "then"  then Token::Kind::Then
-          when "def"   then Token::Kind::Def
-          when "class" then Token::Kind::Class
-          when "true"  then Token::Kind::True
-          when "false" then Token::Kind::False
-          when "nil"   then Token::Kind::Nil
+          when "if"     then Token::Kind::If
+          when "elsif"  then Token::Kind::Elsif
+          when "else"   then Token::Kind::Else
+          when "end"    then Token::Kind::End
+          when "while"  then Token::Kind::While
+          when "do"     then Token::Kind::Do
+          when "then"   then Token::Kind::Then
+          when "def"    then Token::Kind::Def
+          when "class"  then Token::Kind::Class
+          when "true"   then Token::Kind::True
+          when "false"  then Token::Kind::False
+          when "nil"    then Token::Kind::Nil
+          when "return" then Token::Kind::Return
           else
             Token::Kind::Identifier
           end

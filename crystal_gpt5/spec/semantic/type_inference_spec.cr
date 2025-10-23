@@ -1403,4 +1403,151 @@ describe TypeInferenceEngine do
       type.as(PrimitiveType).name.should eq("Int32")
     end
   end
+
+  describe "Phase 6: Return Statements" do
+    it "infers type for return with value" do
+      source = <<-CRYSTAL
+        def test : Int32
+          return 42
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get return statement from method body
+      def_node = program.arena[program.roots[0]]
+      body = def_node.def_body
+      body.should_not be_nil
+      return_expr_id = body.not_nil![0]
+
+      # Return statement should have Int32 type
+      return_type = engine.context.get_type(return_expr_id)
+      return_type.should be_a(PrimitiveType)
+      return_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers Nil for return without value" do
+      source = <<-CRYSTAL
+        def test : Nil
+          return
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get return statement from method body
+      def_node = program.arena[program.roots[0]]
+      body = def_node.def_body
+      body.should_not be_nil
+      return_expr_id = body.not_nil![0]
+
+      # Return statement should have Nil type
+      return_type = engine.context.get_type(return_expr_id)
+      return_type.should be_a(PrimitiveType)
+      return_type.as(PrimitiveType).name.should eq("Nil")
+    end
+
+    it "handles early return in conditional (postfix if)" do
+      source = <<-CRYSTAL
+        def test(x : Int32) : String
+          return "negative" if x < 0
+          "positive"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get if statement from method body
+      def_node = program.arena[program.roots[0]]
+      body = def_node.def_body
+      body.should_not be_nil
+      if_expr_id = body.not_nil![0]
+      if_node = program.arena[if_expr_id]
+
+      # Check that then branch is a return statement
+      then_branch = if_node.if_then
+      then_branch.should_not be_nil
+      return_expr_id = then_branch.not_nil![0]
+      return_node = program.arena[return_expr_id]
+      return_node.kind.should eq(ExpressionNode::Kind::Return)
+
+      # Return statement should have String type
+      return_type = engine.context.get_type(return_expr_id)
+      return_type.should be_a(PrimitiveType)
+      return_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "handles return in while loop (postfix if)" do
+      source = <<-CRYSTAL
+        def test : Int32
+          x = 0
+          while x < 10
+            x = x + 1
+            return x if x == 5
+          end
+          x
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get while statement from method body
+      def_node = program.arena[program.roots[0]]
+      body = def_node.def_body
+      body.should_not be_nil
+      while_expr_id = body.not_nil![1]  # Second statement (after x = 0)
+      while_node = program.arena[while_expr_id]
+
+      # Check that while body contains an if with return
+      while_body = while_node.while_body
+      while_body.should_not be_nil
+
+      # Find the if statement in the while body
+      if_expr_id = while_body.not_nil![1]  # Second statement in while (after x = x + 1)
+      if_node = program.arena[if_expr_id]
+
+      # Check return in if then branch
+      then_branch = if_node.if_then
+      then_branch.should_not be_nil
+      return_expr_id = then_branch.not_nil![0]
+      return_node = program.arena[return_expr_id]
+      return_node.kind.should eq(ExpressionNode::Kind::Return)
+
+      # Return statement should have Int32 type
+      return_type = engine.context.get_type(return_expr_id)
+      return_type.should be_a(PrimitiveType)
+      return_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles multiple return statements (postfix if)" do
+      source = <<-CRYSTAL
+        def test(x : Int32) : String
+          return "zero" if x == 0
+          return "one" if x == 1
+          "other"
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get method body
+      def_node = program.arena[program.roots[0]]
+      body = def_node.def_body
+      body.should_not be_nil
+
+      # First if with return
+      if1_node = program.arena[body.not_nil![0]]
+      return1_id = if1_node.if_then.not_nil![0]
+      return1_type = engine.context.get_type(return1_id)
+      return1_type.should be_a(PrimitiveType)
+      return1_type.as(PrimitiveType).name.should eq("String")
+
+      # Second if with return
+      if2_node = program.arena[body.not_nil![1]]
+      return2_id = if2_node.if_then.not_nil![0]
+      return2_type = engine.context.get_type(return2_id)
+      return2_type.should be_a(PrimitiveType)
+      return2_type.as(PrimitiveType).name.should eq("String")
+    end
+  end
 end

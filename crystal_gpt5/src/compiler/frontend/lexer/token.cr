@@ -37,6 +37,7 @@ module CrystalGPT5
           True
           False
           Nil
+          Return  # Phase 6
 
           # Arithmetic operators
           Plus        # +
