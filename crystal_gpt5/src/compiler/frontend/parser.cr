@@ -521,8 +521,11 @@ module CrystalGPT5
             break if token.kind == Token::Kind::End
             break if token.kind == Token::Kind::EOF
 
-            # Check for definitions inside class body
-            if definition_start?
+            # Phase 5C: Instance variable declaration (@var : Type)
+            # At class body level, @var can only be a type declaration
+            if token.kind == Token::Kind::InstanceVar
+              expr = parse_instance_var_decl
+            elsif definition_start?
               expr = case current_token.kind
                 when Token::Kind::Def
                   parse_def
@@ -556,6 +559,46 @@ module CrystalGPT5
               class_name: name_token.slice,
               class_body: body_ids,
               class_super_name: super_name_token.try(&.slice),
+            )
+          )
+        end
+
+        # Phase 5C: Parse instance variable declaration: @var : Type
+        private def parse_instance_var_decl : ExprId
+          ivar_token = current_token
+          unless ivar_token.kind == Token::Kind::InstanceVar
+            emit_unexpected(ivar_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume @var
+
+          skip_trivia
+
+          # Expect colon
+          unless current_token.kind == Token::Kind::Colon
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume :
+
+          skip_trivia
+
+          # Expect type identifier
+          type_token = current_token
+          unless type_token.kind == Token::Kind::Identifier
+            emit_unexpected(type_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume type
+
+          decl_span = ivar_token.span.cover(type_token.span)
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::InstanceVarDecl,
+              decl_span,
+              literal: ivar_token.slice,       # @var
+              ivar_decl_type: type_token.slice  # Type
             )
           )
         end

@@ -30,6 +30,8 @@ module CrystalGPT5
         getter context : TypeContext
         getter diagnostics : Array(Diagnostic)
 
+        @current_class : ClassSymbol?  # Phase 5C: Track current class for instance var types
+
         def initialize(
           @program : Frontend::Program,
           @identifier_symbols : Hash(ExprId, Symbol),
@@ -39,6 +41,7 @@ module CrystalGPT5
           @diagnostics = [] of Diagnostic
           @assignments = {} of String => Type  # Track variable assignments: name → type
           @instance_var_types = {} of String => Type  # Phase 5A: Track instance variable types
+          @current_class = nil
         end
 
         # Main entry point: Infer types for all root expressions
@@ -72,8 +75,7 @@ module CrystalGPT5
             # Method definitions don't have value types (they're statements)
             @context.nil_type
           when .class?
-            # Class definitions don't have value types (they're statements)
-            @context.nil_type
+            infer_class(node, expr_id)
           when .call?
             infer_call(node, expr_id)
           when .member_access?
@@ -166,8 +168,33 @@ module CrystalGPT5
         end
 
         # ============================================================
-        # PHASE 5A: Instance Variables
+        # PHASE 5: Classes and Instance Variables
         # ============================================================
+
+        # Phase 5C: Process class bodies and track current class context
+        private def infer_class(node, expr_id : ExprId) : Type
+          # Look up the ClassSymbol from the symbol table
+          class_name = node.class_name.try { |slice| String.new(slice) }
+          return @context.nil_type unless class_name
+
+          class_symbol = @global_table.try(&.lookup(class_name))
+          return @context.nil_type unless class_symbol.is_a?(ClassSymbol)
+
+          # Save previous class context and set current class
+          previous_class = @current_class
+          @current_class = class_symbol
+
+          # Process class body (method definitions, etc.)
+          (node.class_body || [] of ExprId).each do |body_expr_id|
+            infer_expression(body_expr_id)
+          end
+
+          # Restore previous class context
+          @current_class = previous_class
+
+          # Class definitions don't have value types
+          @context.nil_type
+        end
 
         private def infer_instance_var(node, expr_id : ExprId) : Type
           return @context.nil_type unless var_name = node.literal_string
@@ -175,13 +202,19 @@ module CrystalGPT5
           # Remove @ prefix
           clean_name = var_name.starts_with?("@") ? var_name[1..-1] : var_name
 
+          # Phase 5C: Check explicit type annotation from ClassSymbol first
+          if current_class = @current_class
+            if type_annotation = current_class.get_instance_var_type(clean_name)
+              return parse_type_name(type_annotation)
+            end
+          end
+
           # Check if we have inferred type from assignment
           if inferred_type = @instance_var_types[clean_name]?
             return inferred_type
           end
 
-          # TODO Phase 5B: Look up in ClassSymbol for explicit type annotations
-          # For now, return Nil if not found
+          # Not found - return Nil
           @context.nil_type
         end
 

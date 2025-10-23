@@ -161,6 +161,16 @@ module CrystalGPT5
           node = @arena[expr_id]
 
           case node.kind
+          when ExpressionNode::Kind::InstanceVarDecl
+            # Phase 5C: Handle explicit type annotations (@var : Type)
+            if name_slice = node.literal
+              var_name = String.new(name_slice)
+              # Remove @ prefix
+              var_name = var_name[1..-1] if var_name.starts_with?("@")
+
+              type_annotation = node.ivar_decl_type.try { |slice| String.new(slice) }
+              class_symbol.add_instance_var(var_name, type_annotation)
+            end
           when ExpressionNode::Kind::Assign
             # Check if assignment target is instance variable
             target_id = node.assign_target
@@ -171,7 +181,11 @@ module CrystalGPT5
                   var_name = String.new(name_slice)
                   # Remove @ prefix
                   var_name = var_name[1..-1] if var_name.starts_with?("@")
-                  class_symbol.add_instance_var(var_name)
+
+                  # Phase 5C: Only add if not already declared with explicit type
+                  unless class_symbol.get_instance_var_type(var_name)
+                    class_symbol.add_instance_var(var_name)
+                  end
                 end
               end
             end

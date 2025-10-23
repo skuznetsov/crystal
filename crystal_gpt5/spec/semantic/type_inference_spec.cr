@@ -1294,4 +1294,113 @@ describe TypeInferenceEngine do
       type.as(PrimitiveType).name.should eq("Int32")
     end
   end
+
+  describe "Phase 5C: Explicit Type Annotations for Instance Variables" do
+    it "uses explicit type annotation without assignment" do
+      source = <<-CRYSTAL
+        class Foo
+          @x : Int32
+
+          def get_x : Int32
+            @x
+          end
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Verify ClassSymbol has type annotation
+      foo_symbol = analyzer.global_context.symbol_table.lookup("Foo")
+      foo_symbol.should be_a(ClassSymbol)
+      foo_symbol.as(ClassSymbol).get_instance_var_type("x").should eq("Int32")
+    end
+
+    it "uses explicit type annotation with assignment" do
+      source = <<-CRYSTAL
+        class Foo
+          @x : Int32
+          @name : String
+
+          def initialize
+            @x = 42
+            @name = "test"
+          end
+
+          def get_x : Int32
+            @x
+          end
+
+          def get_name : String
+            @name
+          end
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Verify both annotations are preserved
+      foo_symbol = analyzer.global_context.symbol_table.lookup("Foo")
+      foo_symbol.should be_a(ClassSymbol)
+      foo_symbol.as(ClassSymbol).get_instance_var_type("x").should eq("Int32")
+      foo_symbol.as(ClassSymbol).get_instance_var_type("name").should eq("String")
+    end
+
+    it "handles multiple classes with explicit annotations" do
+      source = <<-CRYSTAL
+        class Foo
+          @value : Int32
+
+          def get_value : Int32
+            @value
+          end
+        end
+
+        class Bar
+          @value : String
+
+          def get_value : String
+            @value
+          end
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Verify each class has its own type annotation
+      foo_symbol = analyzer.global_context.symbol_table.lookup("Foo")
+      foo_symbol.should be_a(ClassSymbol)
+      foo_symbol.as(ClassSymbol).get_instance_var_type("value").should eq("Int32")
+
+      bar_symbol = analyzer.global_context.symbol_table.lookup("Bar")
+      bar_symbol.should be_a(ClassSymbol)
+      bar_symbol.as(ClassSymbol).get_instance_var_type("value").should eq("String")
+    end
+
+    it "prioritizes explicit annotation over inferred assignment" do
+      source = <<-CRYSTAL
+        class Foo
+          @x : Int32
+
+          def initialize
+            @x = 42
+          end
+
+          def get_x : Int32
+            @x
+          end
+        end
+
+        foo = Foo.new
+        result = foo.get_x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # result : Int32 (from method return annotation, which matches @x annotation)
+      result_id = program.roots[2]
+      type = engine.context.get_type(result_id)
+      type.should be_a(PrimitiveType)
+      type.as(PrimitiveType).name.should eq("Int32")
+    end
+  end
 end

@@ -70,6 +70,7 @@ module CrystalGPT5
         enum Kind
           Identifier
           InstanceVar  # @var
+          InstanceVarDecl  # @var : Type (Phase 5C)
           Number
           String
           Bool
@@ -120,6 +121,7 @@ module CrystalGPT5
         getter while_body : Array(ExprId)?
         getter assign_target : ExprId?
         getter assign_value : ExprId?
+        getter ivar_decl_type : Slice(UInt8)?  # Phase 5C: @var : Type
 
         def initialize(
           @kind : Kind,
@@ -152,6 +154,7 @@ module CrystalGPT5
           @while_body : Array(ExprId)? = nil,
           @assign_target : ExprId? = nil,
           @assign_value : ExprId? = nil,
+          @ivar_decl_type : Slice(UInt8)? = nil,
         )
         end
 
