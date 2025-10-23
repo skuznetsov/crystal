@@ -364,6 +364,21 @@ module CrystalGPT5
               # Standalone | - use generic Operator for now
               Token::Kind::Operator
             end
+          when '.'.ord.to_u8
+            # Check for .. and ...
+            if @offset < @rope.size && current_byte == '.'.ord.to_u8
+              advance  # consume second '.'
+              # Check for third '.'
+              if @offset < @rope.size && current_byte == '.'.ord.to_u8
+                advance  # consume third '.'
+                Token::Kind::DotDotDot  # ...
+              else
+                Token::Kind::DotDot  # ..
+              end
+            else
+              # Standalone . - use generic Operator for now (member access)
+              Token::Kind::Operator
+            end
           else
             # Unknown operator - use generic fallback
             Token::Kind::Operator

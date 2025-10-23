@@ -5,6 +5,7 @@ require "./types/class_type"
 require "./types/instance_type"
 require "./types/union_type"
 require "./types/array_type"
+require "./types/range_type"
 require "./analyzer"
 require "../frontend/ast"
 
@@ -113,6 +114,13 @@ module CrystalGPT5
           when .next?
             # Phase 12: Next expressions
             infer_next(node, expr_id)
+          when .range?
+            # Phase 13: Range expressions
+            infer_range(node, expr_id)
+          when .grouping?
+            # Grouping expressions: (expr)
+            # Type is the type of the wrapped expression
+            infer_expression(node.left.not_nil!)
           else
             # Unknown expression kind
             @context.nil_type
@@ -1248,6 +1256,24 @@ module CrystalGPT5
           # Next has no value in Crystal, always returns Nil
           @context.set_type(expr_id, @context.nil_type)
           @context.nil_type
+        end
+
+        # ============================================================
+        # PHASE 13: Range Expressions
+        # ============================================================
+
+        private def infer_range(node, expr_id : ExprId) : Type
+          # Infer types of begin and end expressions
+          begin_id = node.range_begin.not_nil!
+          end_id = node.range_end.not_nil!
+
+          begin_type = infer_expression(begin_id)
+          end_type = infer_expression(end_id)
+
+          # Create Range(B, E) type
+          range_type = RangeType.new(begin_type, end_type)
+          @context.set_type(expr_id, range_type)
+          range_type
         end
 
         # ============================================================

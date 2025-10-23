@@ -2333,4 +2333,118 @@ describe TypeInferenceEngine do
       break_type.as(PrimitiveType).name.should eq("String")
     end
   end
+
+  describe "Phase 13: Ranges" do
+    it "infers Range(Int32, Int32) for inclusive range" do
+      source = <<-CRYSTAL
+        r = 1..10
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the assignment
+      assign_node = program.arena[program.roots[0]]
+      range_id = assign_node.assign_value.not_nil!
+      range_type = engine.context.get_type(range_id)
+
+      range_type.should be_a(RangeType)
+      rt = range_type.as(RangeType)
+      rt.begin_type.as(PrimitiveType).name.should eq("Int32")
+      rt.end_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers Range(Int32, Int32) for exclusive range" do
+      source = <<-CRYSTAL
+        r = 1...10
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the assignment
+      assign_node = program.arena[program.roots[0]]
+      range_id = assign_node.assign_value.not_nil!
+      range_type = engine.context.get_type(range_id)
+
+      range_type.should be_a(RangeType)
+      rt = range_type.as(RangeType)
+      rt.begin_type.as(PrimitiveType).name.should eq("Int32")
+      rt.end_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers Range from variable expressions" do
+      source = <<-CRYSTAL
+        a = 5
+        b = 20
+        r = a..b
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the range assignment (third statement)
+      assign_node = program.arena[program.roots[2]]
+      range_id = assign_node.assign_value.not_nil!
+      range_type = engine.context.get_type(range_id)
+
+      range_type.should be_a(RangeType)
+      rt = range_type.as(RangeType)
+      rt.begin_type.as(PrimitiveType).name.should eq("Int32")
+      rt.end_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers Range from arithmetic expressions" do
+      source = <<-CRYSTAL
+        r = (1 + 2)..(10 - 3)
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the assignment
+      assign_node = program.arena[program.roots[0]]
+      range_id = assign_node.assign_value.not_nil!
+      range_type = engine.context.get_type(range_id)
+
+      range_type.should be_a(RangeType)
+      rt = range_type.as(RangeType)
+      rt.begin_type.as(PrimitiveType).name.should eq("Int32")
+      rt.end_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles range precedence correctly" do
+      source = <<-CRYSTAL
+        r = 1 + 2..5 + 3
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the assignment
+      assign_node = program.arena[program.roots[0]]
+      range_id = assign_node.assign_value.not_nil!
+
+      # Should be Range node, not Binary
+      range_node = program.arena[range_id]
+      range_node.kind.should eq(ExpressionNode::Kind::Range)
+
+      # Begin should be Binary (1 + 2)
+      begin_id = range_node.range_begin.not_nil!
+      begin_node = program.arena[begin_id]
+      begin_node.kind.should eq(ExpressionNode::Kind::Binary)
+
+      # End should be Binary (5 + 3)
+      end_id = range_node.range_end.not_nil!
+      end_node = program.arena[end_id]
+      end_node.kind.should eq(ExpressionNode::Kind::Binary)
+    end
+
+    it "infers Range with mixed types" do
+      source = <<-CRYSTAL
+        r = 1..10.5
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the assignment
+      assign_node = program.arena[program.roots[0]]
+      range_id = assign_node.assign_value.not_nil!
+      range_type = engine.context.get_type(range_id)
+
+      range_type.should be_a(RangeType)
+      rt = range_type.as(RangeType)
+      rt.begin_type.as(PrimitiveType).name.should eq("Int32")
+      rt.end_type.as(PrimitiveType).name.should eq("Float64")
+    end
+  end
 end

@@ -63,6 +63,10 @@ module CrystalGPT5
           # Shift/append operators
           LShift      # << (Phase 9: array push)
 
+          # Range operators
+          DotDot      # .. (Phase 13: inclusive range)
+          DotDotDot   # ... (Phase 13: exclusive range)
+
           # Logical operators
           AndAnd      # &&
           OrOr        # ||

@@ -1226,7 +1226,22 @@ module CrystalGPT5
               left = PREFIX_ERROR
               break
             end
-            left = build_binary(left, token, right)
+
+            # Phase 13: Handle range operators specially
+            if token.kind == Token::Kind::DotDot || token.kind == Token::Kind::DotDotDot
+              exclusive = token.kind == Token::Kind::DotDotDot
+              left = @arena.add(
+                ExpressionNode.new(
+                  ExpressionNode::Kind::Range,
+                  cover_optional_spans(node_span(left), token.span, node_span(right)),
+                  range_begin: left,
+                  range_end: right,
+                  range_exclusive: exclusive,
+                )
+              )
+            else
+              left = build_binary(left, token, right)
+            end
           end
 
           left
@@ -1572,7 +1587,10 @@ module CrystalGPT5
             case_value: remap.call(node.case_value),
             when_branches: remap_when_branches.call(node.when_branches),
             case_else: remap_array.call(node.case_else),
-            break_value: remap.call(node.break_value)
+            break_value: remap.call(node.break_value),
+            range_begin: remap.call(node.range_begin),
+            range_end: remap.call(node.range_end),
+            range_exclusive: node.range_exclusive
           ))
         end
 
@@ -2014,6 +2032,8 @@ module CrystalGPT5
         BINARY_PRECEDENCE = {
           Token::Kind::OrOr      => 3,   # Logical OR (lowest)
           Token::Kind::AndAnd    => 4,   # Logical AND
+          Token::Kind::DotDot    => 5,   # Inclusive range (Phase 13)
+          Token::Kind::DotDotDot => 5,   # Exclusive range (Phase 13)
           Token::Kind::EqEq      => 7,   # Equality
           Token::Kind::NotEq     => 7,   # Inequality
           Token::Kind::Less      => 7,   # Less than

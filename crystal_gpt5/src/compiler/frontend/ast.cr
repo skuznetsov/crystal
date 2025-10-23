@@ -113,6 +113,7 @@ module CrystalGPT5
           Case  # Phase 11: case/when pattern matching
           Break  # Phase 12: break [value]
           Next   # Phase 12: next
+          Range  # Phase 13: range literals (1..10, 1...10)
         end
 
         getter kind : Kind
@@ -159,6 +160,9 @@ module CrystalGPT5
         getter case_else : Array(ExprId)?  # Phase 11: else clause
         getter break_value : ExprId?  # Phase 12: optional break value
         # Note: next has no value in Crystal
+        getter range_begin : ExprId?  # Phase 13: range start (1..10)
+        getter range_end : ExprId?  # Phase 13: range end (1..10)
+        getter range_exclusive : Bool?  # Phase 13: true for ..., false for ..
 
         def initialize(
           @kind : Kind,
@@ -204,6 +208,9 @@ module CrystalGPT5
           @when_branches : Array(WhenBranch)? = nil,
           @case_else : Array(ExprId)? = nil,
           @break_value : ExprId? = nil,
+          @range_begin : ExprId? = nil,
+          @range_end : ExprId? = nil,
+          @range_exclusive : Bool? = nil,
         )
         end
 
