@@ -64,6 +64,24 @@ module CrystalGPT5
         end
       end
 
+      # Represents a key-value pair in a hash literal
+      #
+      # Phase 14: Hash literals
+      # For production compiler with IDE support, we track:
+      # - key: The key expression
+      # - value: The value expression
+      # - span: Exact source location for entire entry (key => value)
+      # - arrow_span: Location of => operator for precise diagnostics/hover
+      struct HashEntry
+        getter key : ExprId
+        getter value : ExprId
+        getter span : Span
+        getter arrow_span : Span
+
+        def initialize(@key : ExprId, @value : ExprId, @span : Span, @arrow_span : Span)
+        end
+      end
+
       # Represents a method parameter with optional type annotation
       #
       # Phase 4A: Parameter types for method resolution
@@ -114,6 +132,7 @@ module CrystalGPT5
           Break  # Phase 12: break [value]
           Next   # Phase 12: next
           Range  # Phase 13: range literals (1..10, 1...10)
+          HashLiteral  # Phase 14: hash literals {"k"=>v}
         end
 
         getter kind : Kind
@@ -163,6 +182,9 @@ module CrystalGPT5
         getter range_begin : ExprId?  # Phase 13: range start (1..10)
         getter range_end : ExprId?  # Phase 13: range end (1..10)
         getter range_exclusive : Bool?  # Phase 13: true for ..., false for ..
+        getter hash_entries : Array(HashEntry)?  # Phase 14: hash key-value pairs
+        getter hash_of_key_type : Slice(UInt8)?  # Phase 14: explicit key type for {} of K => V
+        getter hash_of_value_type : Slice(UInt8)?  # Phase 14: explicit value type for {} of K => V
 
         def initialize(
           @kind : Kind,
@@ -211,6 +233,9 @@ module CrystalGPT5
           @range_begin : ExprId? = nil,
           @range_end : ExprId? = nil,
           @range_exclusive : Bool? = nil,
+          @hash_entries : Array(HashEntry)? = nil,
+          @hash_of_key_type : Slice(UInt8)? = nil,
+          @hash_of_value_type : Slice(UInt8)? = nil,
         )
         end
 

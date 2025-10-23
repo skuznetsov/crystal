@@ -67,6 +67,9 @@ module CrystalGPT5
           DotDot      # .. (Phase 13: inclusive range)
           DotDotDot   # ... (Phase 13: exclusive range)
 
+          # Hash operators
+          Arrow       # => (Phase 14: hash arrow)
+
           # Logical operators
           AndAnd      # &&
           OrOr        # ||

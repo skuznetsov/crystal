@@ -2447,4 +2447,119 @@ describe TypeInferenceEngine do
       rt.end_type.as(PrimitiveType).name.should eq("Float64")
     end
   end
+
+  describe "Phase 14: Hashes" do
+    it "infers Hash(String, Int32) for homogeneous hash" do
+      source = <<-CRYSTAL
+        h = {"name" => 42, "age" => 30}
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the assignment
+      assign_node = program.arena[program.roots[0]]
+      hash_id = assign_node.assign_value.not_nil!
+      hash_type = engine.context.get_type(hash_id)
+
+      hash_type.should be_a(HashType)
+      ht = hash_type.as(HashType)
+      ht.key_type.as(PrimitiveType).name.should eq("String")
+      ht.value_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers Hash(String, String | Int32) for heterogeneous values" do
+      source = <<-CRYSTAL
+        h = {"name" => "Alice", "age" => 30}
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the assignment
+      assign_node = program.arena[program.roots[0]]
+      hash_id = assign_node.assign_value.not_nil!
+      hash_type = engine.context.get_type(hash_id)
+
+      hash_type.should be_a(HashType)
+      ht = hash_type.as(HashType)
+      ht.key_type.as(PrimitiveType).name.should eq("String")
+
+      # Value type should be union
+      ht.value_type.should be_a(UnionType)
+      value_union = ht.value_type.as(UnionType)
+      value_union.types.size.should eq(2)
+    end
+
+    it "infers Hash(Int32, String) for integer keys" do
+      source = <<-CRYSTAL
+        h = {1 => "one", 2 => "two", 3 => "three"}
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the assignment
+      assign_node = program.arena[program.roots[0]]
+      hash_id = assign_node.assign_value.not_nil!
+      hash_type = engine.context.get_type(hash_id)
+
+      hash_type.should be_a(HashType)
+      ht = hash_type.as(HashType)
+      ht.key_type.as(PrimitiveType).name.should eq("Int32")
+      ht.value_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "infers empty hash with type annotation" do
+      source = <<-CRYSTAL
+        h = {} of String => Int32
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the assignment
+      assign_node = program.arena[program.roots[0]]
+      hash_id = assign_node.assign_value.not_nil!
+      hash_type = engine.context.get_type(hash_id)
+
+      hash_type.should be_a(HashType)
+      ht = hash_type.as(HashType)
+      ht.key_type.as(PrimitiveType).name.should eq("String")
+      ht.value_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers nested hash Hash(String, Hash(String, Int32))" do
+      source = <<-CRYSTAL
+        h = {"outer" => {"inner" => 42}}
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the assignment
+      assign_node = program.arena[program.roots[0]]
+      hash_id = assign_node.assign_value.not_nil!
+      hash_type = engine.context.get_type(hash_id)
+
+      hash_type.should be_a(HashType)
+      ht = hash_type.as(HashType)
+      ht.key_type.as(PrimitiveType).name.should eq("String")
+
+      # Value should be another Hash
+      ht.value_type.should be_a(HashType)
+      inner_hash = ht.value_type.as(HashType)
+      inner_hash.key_type.as(PrimitiveType).name.should eq("String")
+      inner_hash.value_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers hash with variable keys and values" do
+      source = <<-CRYSTAL
+        k = "key"
+        v = 100
+        h = {k => v}
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Find the hash assignment (third statement)
+      assign_node = program.arena[program.roots[2]]
+      hash_id = assign_node.assign_value.not_nil!
+      hash_type = engine.context.get_type(hash_id)
+
+      hash_type.should be_a(HashType)
+      ht = hash_type.as(HashType)
+      ht.key_type.as(PrimitiveType).name.should eq("String")
+      ht.value_type.as(PrimitiveType).name.should eq("Int32")
+    end
+  end
 end

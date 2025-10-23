@@ -6,6 +6,7 @@ require "./types/instance_type"
 require "./types/union_type"
 require "./types/array_type"
 require "./types/range_type"
+require "./types/hash_type"
 require "./analyzer"
 require "../frontend/ast"
 
@@ -117,6 +118,9 @@ module CrystalGPT5
           when .range?
             # Phase 13: Range expressions
             infer_range(node, expr_id)
+          when .hash_literal?
+            # Phase 14: Hash literals
+            infer_hash_literal(node, expr_id)
           when .grouping?
             # Grouping expressions: (expr)
             # Type is the type of the wrapped expression
@@ -1274,6 +1278,93 @@ module CrystalGPT5
           range_type = RangeType.new(begin_type, end_type)
           @context.set_type(expr_id, range_type)
           range_type
+        end
+
+        # ============================================================
+        # PHASE 14: Hash Literals
+        # ============================================================
+
+        private def infer_hash_literal(node, expr_id : ExprId) : Type
+          entries = node.hash_entries
+
+          # Empty hash with explicit type annotation
+          if entries.nil? || entries.empty?
+            if key_type_slice = node.hash_of_key_type
+              value_type_slice = node.hash_of_value_type.not_nil!
+
+              # Parse type names and lookup types
+              key_type_name = String.new(key_type_slice)
+              value_type_name = String.new(value_type_slice)
+
+              key_type = lookup_type_by_name(key_type_name)
+              value_type = lookup_type_by_name(value_type_name)
+
+              hash_type = HashType.new(key_type, value_type)
+              @context.set_type(expr_id, hash_type)
+              return hash_type
+            else
+              # Empty hash without type annotation - error
+              # For now, default to Hash(Nil, Nil) as placeholder
+              hash_type = HashType.new(@context.nil_type, @context.nil_type)
+              @context.set_type(expr_id, hash_type)
+              return hash_type
+            end
+          end
+
+          # Infer types from entries
+          key_types = [] of Type
+          value_types = [] of Type
+
+          entries.each do |entry|
+            key_type = infer_expression(entry.key)
+            value_type = infer_expression(entry.value)
+            key_types << key_type
+            value_types << value_type
+          end
+
+          # Create union types for keys and values
+          final_key_type = if key_types.size == 1
+            key_types[0]
+          else
+            # All keys should be same type, but if mixed, create union
+            @context.union_of(key_types)
+          end
+
+          final_value_type = if value_types.size == 1
+            value_types[0]
+          else
+            @context.union_of(value_types)
+          end
+
+          hash_type = HashType.new(final_key_type, final_value_type)
+          @context.set_type(expr_id, hash_type)
+          hash_type
+        end
+
+        # ============================================================
+        # Helper Methods
+        # ============================================================
+
+        private def lookup_type_by_name(name : String) : Type
+          case name
+          when "Int32"
+            @context.int32_type
+          when "Int64"
+            @context.int64_type
+          when "Float64"
+            @context.float64_type
+          when "String"
+            @context.string_type
+          when "Bool"
+            @context.bool_type
+          when "Nil"
+            @context.nil_type
+          when "Char"
+            @context.char_type
+          else
+            # Unknown type, default to Nil
+            @context.nil_type
+          end
         end
 
         # ============================================================

@@ -1315,6 +1315,9 @@ module CrystalGPT5
             op_text = token_text(token)
             if op_text == "("
               parse_grouping
+            elsif op_text == "{"
+              # Phase 14: Hash literal
+              parse_hash_literal
             else
               emit_unexpected(token)
               advance
@@ -1413,6 +1416,129 @@ module CrystalGPT5
             array_span,
             array_elements: elements,
             array_of_type: of_type
+          ))
+        end
+
+        # Phase 14: Parse hash literal {"key" => value} or {} of K => V
+        private def parse_hash_literal : ExprId
+          lbrace = current_token
+          advance  # consume {
+          skip_trivia
+
+          entries = [] of HashEntry
+          of_key_type : Slice(UInt8)? = nil
+          of_value_type : Slice(UInt8)? = nil
+
+          # Check for closing brace (empty hash)
+          if current_token.kind == Token::Kind::Operator && token_text(current_token) == "}"
+            advance  # consume }
+            skip_trivia
+
+            # Check for "of K => V" syntax
+            if current_token.kind == Token::Kind::Identifier && token_text(current_token) == "of"
+              advance
+              skip_trivia
+
+              # Parse key type
+              key_type_token = current_token
+              if key_type_token.kind == Token::Kind::Identifier
+                of_key_type = key_type_token.slice
+                advance
+                skip_trivia
+
+                # Expect =>
+                unless current_token.kind == Token::Kind::Arrow
+                  emit_unexpected(current_token)
+                  return PREFIX_ERROR
+                end
+                advance  # consume =>
+                skip_trivia
+
+                # Parse value type
+                value_type_token = current_token
+                if value_type_token.kind == Token::Kind::Identifier
+                  of_value_type = value_type_token.slice
+                  advance
+                else
+                  emit_unexpected(value_type_token)
+                  return PREFIX_ERROR
+                end
+              else
+                emit_unexpected(key_type_token)
+                return PREFIX_ERROR
+              end
+            end
+
+            closing_span = previous_token.try(&.span) || lbrace.span
+            hash_span = lbrace.span.cover(closing_span)
+            return @arena.add(ExpressionNode.new(
+              ExpressionNode::Kind::HashLiteral,
+              hash_span,
+              hash_entries: entries,
+              hash_of_key_type: of_key_type,
+              hash_of_value_type: of_value_type
+            ))
+          end
+
+          # Parse hash entries: key => value, key => value, ...
+          loop do
+            # Parse key
+            key = parse_expression(0)
+            if key.invalid?
+              return PREFIX_ERROR
+            end
+            key_span = node_span(key)
+
+            skip_trivia
+
+            # Expect =>
+            unless current_token.kind == Token::Kind::Arrow
+              emit_unexpected(current_token)
+              return PREFIX_ERROR
+            end
+            arrow_token = current_token
+            advance  # consume =>
+            skip_trivia
+
+            # Parse value
+            value = parse_expression(0)
+            if value.invalid?
+              return PREFIX_ERROR
+            end
+            value_span = node_span(value)
+
+            # Create entry with precise spans for LSP/diagnostics
+            entry_span = key_span.cover(value_span)
+            entries << HashEntry.new(key, value, entry_span, arrow_token.span)
+
+            skip_trivia
+            break if !(current_token.kind == Token::Kind::Comma)
+
+            advance  # consume comma
+            skip_trivia
+
+            # Allow trailing comma
+            if current_token.kind == Token::Kind::Operator && token_text(current_token) == "}"
+              break
+            end
+          end
+
+          # Expect closing brace
+          unless current_token.kind == Token::Kind::Operator && token_text(current_token) == "}"
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+
+          closing_brace = current_token
+          advance
+
+          hash_span = lbrace.span.cover(closing_brace.span)
+          @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::HashLiteral,
+            hash_span,
+            hash_entries: entries,
+            hash_of_key_type: of_key_type,
+            hash_of_value_type: of_value_type
           ))
         end
 
@@ -1544,6 +1670,18 @@ module CrystalGPT5
             } : nil
           }
 
+          # Remap hash entries (key/value need remapping, spans stay same)
+          remap_hash_entries = ->(entries : Array(HashEntry)?) {
+            entries ? entries.map { |entry|
+              HashEntry.new(
+                remap.call(entry.key).not_nil!,
+                remap.call(entry.value).not_nil!,
+                entry.span,
+                entry.arrow_span
+              )
+            } : nil
+          }
+
           @arena.add(ExpressionNode.new(
             node.kind,
             node.span,
@@ -1590,7 +1728,10 @@ module CrystalGPT5
             break_value: remap.call(node.break_value),
             range_begin: remap.call(node.range_begin),
             range_end: remap.call(node.range_end),
-            range_exclusive: node.range_exclusive
+            range_exclusive: node.range_exclusive,
+            hash_entries: remap_hash_entries.call(node.hash_entries),
+            hash_of_key_type: node.hash_of_key_type,
+            hash_of_value_type: node.hash_of_value_type
           ))
         end
 
