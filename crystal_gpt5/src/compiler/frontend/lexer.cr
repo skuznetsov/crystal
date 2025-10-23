@@ -230,12 +230,23 @@ module CrystalGPT5
           start_offset, start_line, start_column = capture_position
           advance # opening quote
           from = @offset
+          has_interpolation = false
+
+          # Scan string content, detecting interpolation
           while @offset < @rope.size && current_byte != DOUBLE_QUOTE
+            # Check for interpolation marker #{
+            if current_byte == HASH && @offset + 1 < @rope.size && @rope.bytes[@offset + 1] == LEFT_BRACE
+              has_interpolation = true
+            end
             advance
           end
+
           advance if @offset < @rope.size # closing quote
+
+          # Return appropriate token kind
+          kind = has_interpolation ? Token::Kind::StringInterpolation : Token::Kind::String
           Token.new(
-            Token::Kind::String,
+            kind,
             @rope.bytes[from...@offset - 1],
             build_span(start_offset, start_line, start_column)
           )
@@ -385,6 +396,7 @@ module CrystalGPT5
         QUESTION     = '?'.ord.to_u8
         EXCLAMATION  = '!'.ord.to_u8
         AT_SIGN      = '@'.ord.to_u8
+        LEFT_BRACE   = '{'.ord.to_u8  # Phase 8: for interpolation detection
 
         private def build_span(start_offset, start_line, start_column)
           Span.new(

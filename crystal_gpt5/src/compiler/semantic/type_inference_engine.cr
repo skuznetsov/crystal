@@ -61,6 +61,8 @@ module CrystalGPT5
             infer_number(node)
           when .string?
             infer_string(node)
+          when .string_interpolation?
+            infer_string_interpolation(node, expr_id)
           when .bool?
             infer_bool(node)
           when .nil?
@@ -267,47 +269,53 @@ module CrystalGPT5
           # Get operator text
           op = node.operator_string || ""
 
-          case op
+          result_type = case op
           when "+", "-", "*", "/"
             # Phase 4B.3/4B.5: Try method lookup first for built-in methods
             if method = lookup_method(left_type, op, [right_type])
               if ann = method.return_annotation
-                return parse_type_name(ann)
+                parse_type_name(ann)
+              else
+                @context.nil_type
               end
-            end
-
             # Fallback: numeric promotion for untyped numeric operators
-            if numeric_type?(left_type) && numeric_type?(right_type)
-              return promote_numeric_types(left_type, right_type)
+            elsif numeric_type?(left_type) && numeric_type?(right_type)
+              promote_numeric_types(left_type, right_type)
+            else
+              # No method found and not numeric types
+              emit_error("Operator '#{op}' not defined for #{left_type} and #{right_type}", expr_id)
+              @context.nil_type
             end
-
-            # No method found and not numeric types
-            emit_error("Operator '#{op}' not defined for #{left_type} and #{right_type}", expr_id)
-            @context.nil_type
 
           when "==", "!=", "<", ">", "<=", ">="
             # Phase 4B.3/4B.5: Try method lookup first for built-in methods
             if method = lookup_method(left_type, op, [right_type])
               if ann = method.return_annotation
-                return parse_type_name(ann)
+                parse_type_name(ann)
+              else
+                @context.bool_type
               end
+            else
+              # Fallback: comparison operators → Bool for compatible types
+              @context.bool_type
             end
-
-            # Fallback: comparison operators → Bool for compatible types
-            @context.bool_type
 
           when "&&", "||"
             # Logical operators
             unless bool_type?(left_type) && bool_type?(right_type)
               emit_error("Operator '#{op}' requires bool types, got #{left_type} and #{right_type}", expr_id)
-              return @context.nil_type
+              @context.nil_type
+            else
+              @context.bool_type
             end
-            @context.bool_type
 
           else
             emit_error("Unknown operator '#{op}'", expr_id)
             @context.nil_type
           end
+
+          @context.set_type(expr_id, result_type)
+          result_type
         end
 
         private def numeric_type?(type : Type) : Bool
@@ -532,6 +540,27 @@ module CrystalGPT5
             # self outside class context (shouldn't happen in valid code)
             @context.nil_type
           end
+        end
+
+        # ============================================================
+        # PHASE 8: String Interpolation
+        # ============================================================
+
+        private def infer_string_interpolation(node, expr_id : ExprId) : Type
+          # String interpolation always evaluates to String type
+          # Infer types for all interpolated expressions
+          if pieces = node.string_pieces
+            pieces.each do |piece|
+              if piece.kind == Frontend::StringPiece::Kind::Expression
+                if expr = piece.expr
+                  infer_expression(expr)
+                end
+              end
+            end
+          end
+
+          @context.set_type(expr_id, @context.string_type)
+          @context.string_type
         end
 
         # ============================================================

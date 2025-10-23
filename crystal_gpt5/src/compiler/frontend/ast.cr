@@ -91,6 +91,7 @@ module CrystalGPT5
           Class
           Return  # Phase 6: return statements
           Self    # Phase 7: self keyword
+          StringInterpolation  # Phase 8: string interpolation
         end
 
         getter kind : Kind
@@ -125,6 +126,7 @@ module CrystalGPT5
         getter assign_value : ExprId?
         getter ivar_decl_type : Slice(UInt8)?  # Phase 5C: @var : Type
         getter return_value : ExprId?  # Phase 6: return statements
+        getter string_pieces : Array(StringPiece)?  # Phase 8: string interpolation
 
         def initialize(
           @kind : Kind,
@@ -159,6 +161,7 @@ module CrystalGPT5
           @assign_value : ExprId? = nil,
           @ivar_decl_type : Slice(UInt8)? = nil,
           @return_value : ExprId? = nil,
+          @string_pieces : Array(StringPiece)? = nil,
         )
         end
 
@@ -208,6 +211,35 @@ module CrystalGPT5
         end
 
         def initialize(@kind : Kind, @text : String?, @expr : ExprId?, @control_keyword : String?, @trim_left : Bool = false, @trim_right : Bool = false, @iter_vars : Array(String)? = nil, @iterable : ExprId? = nil, @span : Span? = nil)
+        end
+      end
+
+      # Represents a piece of an interpolated string
+      #
+      # Phase 8: String interpolation support
+      # For "Hello, #{name}!" we have:
+      # - Text("Hello, ")
+      # - Expression(name_expr_id)
+      # - Text("!")
+      struct StringPiece
+        enum Kind
+          Text
+          Expression
+        end
+
+        getter kind : Kind
+        getter text : String?
+        getter expr : ExprId?
+
+        def self.text(value : String)
+          new(Kind::Text, value, nil)
+        end
+
+        def self.expression(expr : ExprId)
+          new(Kind::Expression, nil, expr)
+        end
+
+        def initialize(@kind : Kind, @text : String?, @expr : ExprId?)
         end
       end
 

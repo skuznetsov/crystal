@@ -1674,4 +1674,151 @@ describe TypeInferenceEngine do
       self2_type.as(InstanceType).class_symbol.name.should eq("Node")
     end
   end
+
+  # ============================================================
+  # PHASE 8: String Interpolation Tests
+  # ============================================================
+
+  describe "Phase 8: String Interpolation" do
+    it "infers String type for basic interpolation" do
+      source = <<-CRYSTAL
+        name = "World"
+        msg = "Hello, \#{name}!"
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get msg assignment
+      msg_assign = program.arena[program.roots[1]]
+      interpolated_str_id = msg_assign.assign_value.not_nil!
+      interpolated_type = engine.context.get_type(interpolated_str_id)
+
+      interpolated_type.should be_a(PrimitiveType)
+      interpolated_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "infers types for interpolated expressions" do
+      source = <<-CRYSTAL
+        x = 5
+        y = 10
+        result = "Sum: \#{x + y}"
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get result assignment
+      result_assign = program.arena[program.roots[2]]
+      interpolated_str_id = result_assign.assign_value.not_nil!
+      interpolated_node = program.arena[interpolated_str_id]
+
+      # Check the interpolated string type
+      interpolated_type = engine.context.get_type(interpolated_str_id)
+      interpolated_type.should be_a(PrimitiveType)
+      interpolated_type.as(PrimitiveType).name.should eq("String")
+
+      # Check the expression inside interpolation (x + y)
+      pieces = interpolated_node.string_pieces.not_nil!
+      expr_piece = pieces.find { |p| p.kind == StringPiece::Kind::Expression }.not_nil!
+      expr_id = expr_piece.expr.not_nil!
+      expr_type = engine.context.get_type(expr_id)
+      expr_type.should be_a(PrimitiveType)
+      expr_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles multiple interpolations" do
+      source = <<-CRYSTAL
+        a = 1
+        b = 2
+        c = 3
+        text = "Values: \#{a}, \#{b}, \#{c}"
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get text assignment
+      text_assign = program.arena[program.roots[3]]
+      interpolated_str_id = text_assign.assign_value.not_nil!
+      interpolated_node = program.arena[interpolated_str_id]
+
+      # Check overall type
+      interpolated_type = engine.context.get_type(interpolated_str_id)
+      interpolated_type.should be_a(PrimitiveType)
+      interpolated_type.as(PrimitiveType).name.should eq("String")
+
+      # Check that we have text and expression pieces
+      pieces = interpolated_node.string_pieces.not_nil!
+      # "Values: ", a, ", ", b, ", ", c
+      pieces.size.should eq(6)
+
+      # Count expression pieces
+      expr_pieces = pieces.select { |p| p.kind == StringPiece::Kind::Expression }
+      expr_pieces.size.should eq(3)
+    end
+
+    it "handles nested interpolation" do
+      source = <<-CRYSTAL
+        outer = "outer"
+        inner = "The \#{outer} value"
+        full = "Full: \#{inner}"
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get full assignment
+      full_assign = program.arena[program.roots[2]]
+      full_str_id = full_assign.assign_value.not_nil!
+      full_type = engine.context.get_type(full_str_id)
+
+      full_type.should be_a(PrimitiveType)
+      full_type.as(PrimitiveType).name.should eq("String")
+
+      # Get inner assignment
+      inner_assign = program.arena[program.roots[1]]
+      inner_str_id = inner_assign.assign_value.not_nil!
+      inner_type = engine.context.get_type(inner_str_id)
+
+      inner_type.should be_a(PrimitiveType)
+      inner_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "handles method calls in interpolation" do
+      source = <<-CRYSTAL
+        class Dog
+          def initialize(@name : String)
+          end
+
+          def bark
+            "Woof!"
+          end
+
+          def introduce
+            "I am \#{@name} and I say \#{bark}"
+          end
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get class node
+      class_node = program.arena[program.roots[0]]
+      class_body = class_node.class_body.not_nil!
+
+      # Find introduce method (should be third method)
+      introduce_def = program.arena[class_body[2]]
+      introduce_body = introduce_def.def_body.not_nil!
+      interpolated_str_id = introduce_body[0]
+
+      # Check interpolated string type
+      interpolated_type = engine.context.get_type(interpolated_str_id)
+      interpolated_type.should be_a(PrimitiveType)
+      interpolated_type.as(PrimitiveType).name.should eq("String")
+
+      # Check interpolation contains method call
+      interpolated_node = program.arena[interpolated_str_id]
+      pieces = interpolated_node.string_pieces.not_nil!
+
+      # Should have: "I am ", @name, " and I say ", bark call
+      pieces.size.should eq(4)
+    end
+  end
 end

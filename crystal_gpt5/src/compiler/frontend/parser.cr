@@ -821,7 +821,7 @@ module CrystalGPT5
           buffer.clear
         end
 
-        private def parse_expression(precedence : Int32) : ExprId
+        protected def parse_expression(precedence : Int32) : ExprId
           skip_trivia
           left = parse_prefix
           return PREFIX_ERROR if left.invalid?
@@ -908,6 +908,9 @@ module CrystalGPT5
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::String, token.span, literal: token.slice))
             advance
             id
+          when Token::Kind::StringInterpolation
+            # Phase 8: String interpolation
+            parse_string_interpolation(token)
           when Token::Kind::Plus, Token::Kind::Minus
             # Unary operators
             op = token
@@ -947,6 +950,160 @@ module CrystalGPT5
           closing_span = previous_token.try(&.span)
           grouping_span = cover_optional_spans(lparen.span, node_span(expr), closing_span)
           @arena.add(ExpressionNode.new(ExpressionNode::Kind::Grouping, grouping_span, left: expr))
+        end
+
+        # Phase 8: Parse string interpolation
+        # Converts "Hello, #{name}!" into StringPiece array:
+        # - Text("Hello, ")
+        # - Expression(name_expr_id)
+        # - Text("!")
+        private def parse_string_interpolation(token : Token) : ExprId
+          content = String.new(token.slice)
+          pieces = [] of StringPiece
+          i = 0
+
+          while i < content.size
+            # Find next #{
+            text_start = i
+            while i < content.size
+              break if i + 1 < content.size && content[i] == '#' && content[i + 1] == '{'
+              i += 1
+            end
+
+            # Add text piece if any
+            if i > text_start
+              pieces << StringPiece.text(content[text_start...i])
+            end
+
+            break if i >= content.size
+
+            # Skip #{
+            i += 2
+
+            # Find matching } (handle nested braces)
+            expr_start = i
+            brace_depth = 1
+            while i < content.size && brace_depth > 0
+              if content[i] == '{'
+                brace_depth += 1
+              elsif content[i] == '}'
+                brace_depth -= 1
+              end
+              i += 1 if brace_depth > 0
+            end
+
+            # Parse expression
+            expr_text = content[expr_start...i]
+            expr_id = parse_interpolation_expression(expr_text)
+            pieces << StringPiece.expression(expr_id)
+
+            # Move past the closing }
+            i += 1
+          end
+
+          advance
+          @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::StringInterpolation,
+            token.span,
+            string_pieces: pieces
+          ))
+        end
+
+        # Helper: Parse expression text from interpolation
+        # Creates a sub-parser and copies its arena into main arena
+        private def parse_interpolation_expression(expr_text : String) : ExprId
+          # Create sub-parser for the expression
+          sub_lexer = Lexer.new(expr_text)
+          sub_parser = Parser.new(sub_lexer)
+          sub_expr_id = sub_parser.parse_expression(0)
+
+          # Copy sub-parser's arena nodes into our arena
+          copy_arena_nodes(sub_parser.@arena, sub_expr_id)
+        end
+
+        # Copy nodes from sub-arena to main arena, adjusting IDs
+        private def copy_arena_nodes(sub_arena : AstArena, root_id : ExprId) : ExprId
+          id_map = {} of Int32 => ExprId
+
+          # Copy all nodes, building ID mapping
+          sub_arena.nodes.each_with_index do |node, idx|
+            new_id = copy_node(node, id_map)
+            id_map[idx] = new_id
+          end
+
+          # Return the mapped root ID
+          id_map[root_id.index]
+        end
+
+        # Copy a single node, remapping child IDs
+        private def copy_node(node : ExpressionNode, id_map : Hash(Int32, ExprId)) : ExprId
+          # Remap optional ExprId fields
+          remap = ->(id : ExprId?) {
+            id ? id_map[id.index]? || id : nil
+          }
+
+          # Remap array fields
+          remap_array = ->(ids : Array(ExprId)?) {
+            ids ? ids.map { |id| id_map[id.index]? || id } : nil
+          }
+
+          # Remap elsif branches
+          remap_elsifs = ->(elsifs : Array(ElsifBranch)?) {
+            elsifs ? elsifs.map { |branch|
+              ElsifBranch.new(
+                remap.call(branch.condition).not_nil!,
+                remap_array.call(branch.body).not_nil!,
+                branch.span
+              )
+            } : nil
+          }
+
+          # Remap string pieces
+          remap_pieces = ->(pieces : Array(StringPiece)?) {
+            pieces ? pieces.map { |piece|
+              if piece.kind == StringPiece::Kind::Expression
+                StringPiece.expression(remap.call(piece.expr).not_nil!)
+              else
+                piece
+              end
+            } : nil
+          }
+
+          @arena.add(ExpressionNode.new(
+            node.kind,
+            node.span,
+            literal: node.literal,
+            number_kind: node.number_kind,
+            operator: node.operator,
+            left: remap.call(node.left),
+            right: remap.call(node.right),
+            callee: remap.call(node.callee),
+            args: remap_array.call(node.args),
+            member: node.member,
+            macro_expr: remap.call(node.macro_expr),
+            macro_name: node.macro_name,
+            macro_pieces: node.macro_pieces,
+            trim_left: node.trim_left,
+            trim_right: node.trim_right,
+            def_name: node.def_name,
+            def_params: node.def_params,
+            def_return_type: node.def_return_type,
+            def_body: remap_array.call(node.def_body),
+            class_name: node.class_name,
+            class_body: remap_array.call(node.class_body),
+            class_super_name: node.class_super_name,
+            if_condition: remap.call(node.if_condition),
+            if_then: remap_array.call(node.if_then),
+            if_elsifs: remap_elsifs.call(node.if_elsifs),
+            if_else: remap_array.call(node.if_else),
+            while_condition: remap.call(node.while_condition),
+            while_body: remap_array.call(node.while_body),
+            assign_target: remap.call(node.assign_target),
+            assign_value: remap.call(node.assign_value),
+            ivar_decl_type: node.ivar_decl_type,
+            return_value: remap.call(node.return_value),
+            string_pieces: remap_pieces.call(node.string_pieces)
+          ))
         end
 
         private def parse_parenthesized_call(callee : ExprId) : ExprId

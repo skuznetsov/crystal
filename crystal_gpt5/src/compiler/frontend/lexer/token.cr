@@ -23,6 +23,7 @@ module CrystalGPT5
           InstanceVar  # @var
           Number
           String
+          StringInterpolation  # Phase 8: "text #{expr} text"
 
           # Keywords
           If
