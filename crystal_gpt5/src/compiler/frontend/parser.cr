@@ -922,6 +922,9 @@ module CrystalGPT5
             @arena.add(ExpressionNode.new(ExpressionNode::Kind::Unary, unary_span, operator: op.slice, right: right))
           when Token::Kind::LParen
             parse_grouping
+          when Token::Kind::LBracket
+            # Phase 9: Array literal
+            parse_array_literal
           when Token::Kind::Operator
             # Generic fallback for unhandled operators (e.g., macro operators)
             op_text = token_text(token)
@@ -950,6 +953,82 @@ module CrystalGPT5
           closing_span = previous_token.try(&.span)
           grouping_span = cover_optional_spans(lparen.span, node_span(expr), closing_span)
           @arena.add(ExpressionNode.new(ExpressionNode::Kind::Grouping, grouping_span, left: expr))
+        end
+
+        # Phase 9: Parse array literal [1, 2, 3] or [] of Type
+        private def parse_array_literal : ExprId
+          lbracket = current_token
+          advance
+          skip_trivia
+
+          elements = [] of ExprId
+          of_type : Slice(UInt8)? = nil
+
+          # Check for closing bracket (empty array)
+          if current_token.kind == Token::Kind::RBracket
+            advance
+            skip_trivia
+
+            # Check for "of Type" syntax
+            if current_token.kind == Token::Kind::Identifier && token_text(current_token) == "of"
+              advance
+              skip_trivia
+
+              # Parse type name
+              type_token = current_token
+              if type_token.kind == Token::Kind::Identifier
+                of_type = type_token.slice
+                advance
+              else
+                emit_unexpected(type_token)
+                return PREFIX_ERROR
+              end
+            end
+
+            closing_span = previous_token.try(&.span) || lbracket.span
+            array_span = lbracket.span.cover(closing_span)
+            return @arena.add(ExpressionNode.new(
+              ExpressionNode::Kind::ArrayLiteral,
+              array_span,
+              array_elements: elements,
+              array_of_type: of_type
+            ))
+          end
+
+          # Parse array elements
+          loop do
+            element = parse_expression(0)
+            if element.invalid?
+              return PREFIX_ERROR
+            end
+            elements << element
+
+            skip_trivia
+            break if current_token.kind != Token::Kind::Comma
+
+            advance  # consume comma
+            skip_trivia
+
+            # Allow trailing comma
+            break if current_token.kind == Token::Kind::RBracket
+          end
+
+          # Expect closing bracket
+          unless current_token.kind == Token::Kind::RBracket
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+
+          closing_bracket = current_token
+          advance
+
+          array_span = lbracket.span.cover(closing_bracket.span)
+          @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::ArrayLiteral,
+            array_span,
+            array_elements: elements,
+            array_of_type: of_type
+          ))
         end
 
         # Phase 8: Parse string interpolation
@@ -1102,7 +1181,9 @@ module CrystalGPT5
             assign_value: remap.call(node.assign_value),
             ivar_decl_type: node.ivar_decl_type,
             return_value: remap.call(node.return_value),
-            string_pieces: remap_pieces.call(node.string_pieces)
+            string_pieces: remap_pieces.call(node.string_pieces),
+            array_elements: remap_array.call(node.array_elements),
+            array_of_type: node.array_of_type
           ))
         end
 
@@ -1157,7 +1238,7 @@ module CrystalGPT5
             spans << closing_span
           end
           index_span = Span.cover_all(spans)
-          @arena.add(ExpressionNode.new(ExpressionNode::Kind::Index, index_span, callee: target, args: indexes))
+          @arena.add(ExpressionNode.new(ExpressionNode::Kind::Index, index_span, left: target, args: indexes))
         end
 
         private def parse_member_access(receiver : ExprId) : ExprId
@@ -1552,6 +1633,7 @@ module CrystalGPT5
           Token::Kind::GreaterEq => 7,   # Greater or equal
           Token::Kind::Plus      => 10,  # Addition
           Token::Kind::Minus     => 10,  # Subtraction
+          Token::Kind::LShift    => 10,  # Left shift / array push (Phase 9)
           Token::Kind::Star      => 20,  # Multiplication (highest)
           Token::Kind::Slash     => 20,  # Division
         }

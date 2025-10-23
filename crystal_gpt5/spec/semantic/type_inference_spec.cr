@@ -1821,4 +1821,183 @@ describe TypeInferenceEngine do
       pieces.size.should eq(4)
     end
   end
+
+  # ============================================================
+  # PHASE 9: Array Tests
+  # ============================================================
+
+  describe "Phase 9: Arrays" do
+    it "infers Array(Int32) for integer array" do
+      source = <<-CRYSTAL
+        arr = [1, 2, 3]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get array assignment
+      arr_assign = program.arena[program.roots[0]]
+      array_id = arr_assign.assign_value.not_nil!
+      array_type = engine.context.get_type(array_id)
+
+      array_type.should be_a(ArrayType)
+      array_type.as(ArrayType).element_type.should be_a(PrimitiveType)
+      array_type.as(ArrayType).element_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers Array(String) for string array" do
+      source = <<-CRYSTAL
+        names = ["Alice", "Bob", "Charlie"]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      arr_assign = program.arena[program.roots[0]]
+      array_id = arr_assign.assign_value.not_nil!
+      array_type = engine.context.get_type(array_id)
+
+      array_type.should be_a(ArrayType)
+      array_type.as(ArrayType).element_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "infers union type for heterogeneous array" do
+      source = <<-CRYSTAL
+        mixed = [1, "hello", true]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      arr_assign = program.arena[program.roots[0]]
+      array_id = arr_assign.assign_value.not_nil!
+      array_type = engine.context.get_type(array_id)
+
+      array_type.should be_a(ArrayType)
+      element_type = array_type.as(ArrayType).element_type
+      element_type.should be_a(UnionType)
+    end
+
+    it "handles empty array with 'of Type' syntax" do
+      source = <<-CRYSTAL
+        empty = [] of Int32
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      arr_assign = program.arena[program.roots[0]]
+      array_id = arr_assign.assign_value.not_nil!
+      array_type = engine.context.get_type(array_id)
+
+      array_type.should be_a(ArrayType)
+      array_type.as(ArrayType).element_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers element type from array indexing" do
+      source = <<-CRYSTAL
+        arr = [1, 2, 3]
+        x = arr[0]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get x assignment
+      x_assign = program.arena[program.roots[1]]
+      index_expr_id = x_assign.assign_value.not_nil!
+      index_type = engine.context.get_type(index_expr_id)
+
+      index_type.should be_a(PrimitiveType)
+      index_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles nested arrays" do
+      source = <<-CRYSTAL
+        nested = [[1, 2], [3, 4]]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      arr_assign = program.arena[program.roots[0]]
+      array_id = arr_assign.assign_value.not_nil!
+      array_type = engine.context.get_type(array_id)
+
+      array_type.should be_a(ArrayType)
+      inner_type = array_type.as(ArrayType).element_type
+      inner_type.should be_a(ArrayType)
+      inner_type.as(ArrayType).element_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles array.size method" do
+      source = <<-CRYSTAL
+        arr = [1, 2, 3]
+        len = arr.size
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get len assignment
+      len_assign = program.arena[program.roots[1]]
+      size_call_id = len_assign.assign_value.not_nil!
+      size_type = engine.context.get_type(size_call_id)
+
+      size_type.should be_a(PrimitiveType)
+      size_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles array.empty? method" do
+      source = <<-CRYSTAL
+        arr = [1, 2, 3]
+        is_empty = arr.empty?
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      empty_assign = program.arena[program.roots[1]]
+      empty_call_id = empty_assign.assign_value.not_nil!
+      empty_type = engine.context.get_type(empty_call_id)
+
+      empty_type.should be_a(PrimitiveType)
+      empty_type.as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "handles array.first and array.last" do
+      source = <<-CRYSTAL
+        arr = [1, 2, 3]
+        f = arr.first
+        l = arr.last
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Check first
+      f_assign = program.arena[program.roots[1]]
+      first_id = f_assign.assign_value.not_nil!
+      first_type = engine.context.get_type(first_id)
+
+      first_type.should be_a(PrimitiveType)
+      first_type.as(PrimitiveType).name.should eq("Int32")
+
+      # Check last
+      l_assign = program.arena[program.roots[2]]
+      last_id = l_assign.assign_value.not_nil!
+      last_type = engine.context.get_type(last_id)
+
+      last_type.should be_a(PrimitiveType)
+      last_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles array << push operator" do
+      source = <<-CRYSTAL
+        arr = [1, 2, 3]
+        result = arr << 4
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      result_assign = program.arena[program.roots[1]]
+      push_id = result_assign.assign_value.not_nil!
+      push_type = engine.context.get_type(push_id)
+
+      # << returns the array itself
+      push_type.should be_a(ArrayType)
+      push_type.as(ArrayType).element_type.as(PrimitiveType).name.should eq("Int32")
+    end
+  end
 end

@@ -4,6 +4,7 @@ require "./types/primitive_type"
 require "./types/class_type"
 require "./types/instance_type"
 require "./types/union_type"
+require "./types/array_type"
 require "./analyzer"
 require "../frontend/ast"
 
@@ -63,6 +64,8 @@ module CrystalGPT5
             infer_string(node)
           when .string_interpolation?
             infer_string_interpolation(node, expr_id)
+          when .array_literal?
+            infer_array_literal(node, expr_id)
           when .bool?
             infer_bool(node)
           when .nil?
@@ -82,6 +85,9 @@ module CrystalGPT5
           when .member_access?
             # In Crystal, obj.method without parens is a zero-argument method call
             infer_member_access(node, expr_id)
+          when .index?
+            # Phase 9: Array indexing arr[0]
+            infer_index(node, expr_id)
           when .if?
             infer_if(node)
           when .while?
@@ -237,6 +243,26 @@ module CrystalGPT5
         # Parse simple type name (e.g., "Int32", "String")
         # For Phase 1: Only built-in primitive types
         private def parse_type_name(name : String) : Type
+          # Check for generic type syntax: Array(T)
+          if name.includes?('(') && name.includes?(')')
+            # Extract base type and type argument
+            paren_start = name.index('(').not_nil!
+            paren_end = name.rindex(')').not_nil!
+
+            base_type = name[0...paren_start]
+            type_arg = name[(paren_start + 1)...paren_end]
+
+            case base_type
+            when "Array"
+              element_type = parse_type_name(type_arg)
+              return ArrayType.new(element_type)
+            else
+              emit_error("Unknown generic type '#{base_type}'")
+              return @context.nil_type
+            end
+          end
+
+          # Handle primitive types
           case name
           when "Int32"   then @context.int32_type
           when "Int64"   then @context.int64_type
@@ -270,7 +296,7 @@ module CrystalGPT5
           op = node.operator_string || ""
 
           result_type = case op
-          when "+", "-", "*", "/"
+          when "+", "-", "*", "/", "<<"
             # Phase 4B.3/4B.5: Try method lookup first for built-in methods
             if method = lookup_method(left_type, op, [right_type])
               if ann = method.return_annotation
@@ -279,7 +305,7 @@ module CrystalGPT5
                 @context.nil_type
               end
             # Fallback: numeric promotion for untyped numeric operators
-            elsif numeric_type?(left_type) && numeric_type?(right_type)
+            elsif op != "<<" && numeric_type?(left_type) && numeric_type?(right_type)
               promote_numeric_types(left_type, right_type)
             else
               # No method found and not numeric types
@@ -564,6 +590,64 @@ module CrystalGPT5
         end
 
         # ============================================================
+        # PHASE 9: Array Literals
+        # ============================================================
+
+        private def infer_array_literal(node, expr_id : ExprId) : Type
+          # Determine element type
+          element_type : Type
+
+          # Case 1: Explicit "of Type" syntax ([] of Int32)
+          if of_type_slice = node.array_of_type
+            type_name = String.new(of_type_slice)
+            element_type = parse_type_name(type_name)
+          # Case 2: Infer from elements
+          elsif elements = node.array_elements
+            if elements.empty?
+              # Empty array without type annotation - default to Nil
+              # (In real Crystal this would be an error, but we'll allow it for now)
+              element_type = @context.nil_type
+            else
+              # Infer type of each element
+              element_types = elements.map { |elem_id| infer_expression(elem_id) }
+
+              # Union all element types
+              element_type = @context.union_of(element_types)
+            end
+          else
+            # Empty array without elements or type - shouldn't happen
+            element_type = @context.nil_type
+          end
+
+          # Create Array(T) type
+          array_type = ArrayType.new(element_type)
+          @context.set_type(expr_id, array_type)
+          array_type
+        end
+
+        private def infer_index(node, expr_id : ExprId) : Type
+          # Get target (array) and index types
+          target_id = node.left
+          index_id = node.args.try(&.first)
+
+          return @context.nil_type unless target_id && index_id
+
+          target_type = infer_expression(target_id)
+          _index_type = infer_expression(index_id)
+
+          # Check if target is an array
+          if target_type.is_a?(ArrayType)
+            element_type = target_type.element_type
+            @context.set_type(expr_id, element_type)
+            element_type
+          else
+            # Not an array - emit error
+            emit_error("Cannot index non-array type #{target_type}", expr_id)
+            @context.nil_type
+          end
+        end
+
+        # ============================================================
         # PHASE 4: Method Calls
         # ============================================================
 
@@ -596,15 +680,19 @@ module CrystalGPT5
           end
 
           # Lookup method with overload resolution
-          if method = lookup_method(receiver_type, method_name, arg_types)
+          result_type = if method = lookup_method(receiver_type, method_name, arg_types)
             if ann = method.return_annotation
-              return parse_type_name(ann)
+              parse_type_name(ann)
+            else
+              @context.nil_type
             end
           else
             emit_error("Method '#{method_name}' not found on #{receiver_type}", expr_id)
+            @context.nil_type
           end
 
-          @context.nil_type
+          @context.set_type(expr_id, result_type)
+          result_type
         end
 
         private def infer_call(node, expr_id : ExprId) : Type
@@ -660,16 +748,20 @@ module CrystalGPT5
           end
 
           # Lookup method with overload resolution (Phase 4B)
-          if method = lookup_method(receiver_type, method_name, arg_types)
+          result_type = if method = lookup_method(receiver_type, method_name, arg_types)
             # Return declared return type
             if ann = method.return_annotation
-              return parse_type_name(ann)
+              parse_type_name(ann)
+            else
+              @context.nil_type
             end
           else
             emit_error("Method '#{method_name}' not found on #{receiver_type}", expr_id)
+            @context.nil_type
           end
 
-          @context.nil_type
+          @context.set_type(expr_id, result_type)
+          result_type
         end
 
         # Phase 4B: Method lookup with overload resolution
@@ -737,6 +829,9 @@ module CrystalGPT5
           when PrimitiveType
             # Phase 4B.3: Built-in methods for primitive types
             methods.concat(get_builtin_methods(receiver_type.name, method_name))
+          when ArrayType
+            # Phase 9: Built-in methods for arrays
+            methods.concat(get_array_builtin_methods(receiver_type, method_name))
           when UnionType
             # Phase 4B.4: Find common method in all union members
             # Method can only be called on union if it exists in ALL constituent types
@@ -958,6 +1053,62 @@ module CrystalGPT5
                 scope: dummy_scope
               )
             end
+          end
+
+          methods
+        end
+
+        # Phase 9: Built-in methods for Array(T)
+        private def get_array_builtin_methods(array_type : ArrayType, method_name : String) : Array(MethodSymbol)
+          methods = [] of MethodSymbol
+
+          # Dummy values for built-in methods
+          dummy_node_id = ExprId.new(0)
+          dummy_scope = SymbolTable.new(nil)
+
+          element_type_name = array_type.element_type.to_s
+
+          case method_name
+          when "size"
+            # Array(T)#size : Int32
+            methods << MethodSymbol.new(
+              method_name,
+              dummy_node_id,
+              params: [] of Frontend::Parameter,
+              return_annotation: "Int32",
+              scope: dummy_scope
+            )
+          when "empty?"
+            # Array(T)#empty? : Bool
+            methods << MethodSymbol.new(
+              method_name,
+              dummy_node_id,
+              params: [] of Frontend::Parameter,
+              return_annotation: "Bool",
+              scope: dummy_scope
+            )
+          when "first", "last"
+            # Array(T)#first : T
+            # Array(T)#last : T
+            # Return element type
+            methods << MethodSymbol.new(
+              method_name,
+              dummy_node_id,
+              params: [] of Frontend::Parameter,
+              return_annotation: element_type_name,
+              scope: dummy_scope
+            )
+          when "<<"
+            # Array(T)#<<(T) : Array(T)
+            # Push returns the array itself
+            param = Frontend::Parameter.new(name: "value", type_annotation: element_type_name)
+            methods << MethodSymbol.new(
+              method_name,
+              dummy_node_id,
+              params: [param],
+              return_annotation: "Array(#{element_type_name})",
+              scope: dummy_scope
+            )
           end
 
           methods

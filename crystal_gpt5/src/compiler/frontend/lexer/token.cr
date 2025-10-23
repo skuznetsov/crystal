@@ -55,6 +55,9 @@ module CrystalGPT5
           EqEq        # ==
           NotEq       # !=
 
+          # Shift/append operators
+          LShift      # << (Phase 9: array push)
+
           # Logical operators
           AndAnd      # &&
           OrOr        # ||

@@ -92,6 +92,7 @@ module CrystalGPT5
           Return  # Phase 6: return statements
           Self    # Phase 7: self keyword
           StringInterpolation  # Phase 8: string interpolation
+          ArrayLiteral  # Phase 9: array literals [1, 2, 3]
         end
 
         getter kind : Kind
@@ -127,6 +128,8 @@ module CrystalGPT5
         getter ivar_decl_type : Slice(UInt8)?  # Phase 5C: @var : Type
         getter return_value : ExprId?  # Phase 6: return statements
         getter string_pieces : Array(StringPiece)?  # Phase 8: string interpolation
+        getter array_elements : Array(ExprId)?  # Phase 9: array literal elements
+        getter array_of_type : Slice(UInt8)?  # Phase 9: explicit type for [] of Type
 
         def initialize(
           @kind : Kind,
@@ -162,6 +165,8 @@ module CrystalGPT5
           @ivar_decl_type : Slice(UInt8)? = nil,
           @return_value : ExprId? = nil,
           @string_pieces : Array(StringPiece)? = nil,
+          @array_elements : Array(ExprId)? = nil,
+          @array_of_type : Slice(UInt8)? = nil,
         )
         end
 

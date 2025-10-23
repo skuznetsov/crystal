@@ -301,10 +301,18 @@ module CrystalGPT5
             # Keep {} as generic Operator for macro parsing compatibility
             Token::Kind::Operator
           when '<'.ord.to_u8
-            # Check for <=
-            if @offset < @rope.size && current_byte == '='.ord.to_u8
-              advance
-              Token::Kind::LessEq
+            # Check for << or <=
+            if @offset < @rope.size
+              next_byte = current_byte
+              if next_byte == '<'.ord.to_u8
+                advance
+                Token::Kind::LShift
+              elsif next_byte == '='.ord.to_u8
+                advance
+                Token::Kind::LessEq
+              else
+                Token::Kind::Less
+              end
             else
               Token::Kind::Less
             end
