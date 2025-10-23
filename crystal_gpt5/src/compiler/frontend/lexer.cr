@@ -119,6 +119,7 @@ module CrystalGPT5
           when "false"  then Token::Kind::False
           when "nil"    then Token::Kind::Nil
           when "return" then Token::Kind::Return
+          when "self"   then Token::Kind::Self
           else
             Token::Kind::Identifier
           end

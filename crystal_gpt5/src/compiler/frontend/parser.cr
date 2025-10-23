@@ -876,6 +876,11 @@ module CrystalGPT5
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Nil, token.span, literal: token.slice))
             advance
             id
+          when Token::Kind::Self
+            # Phase 7: self keyword
+            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Self, token.span))
+            advance
+            id
           when Token::Kind::If
             parse_if
           when Token::Kind::While

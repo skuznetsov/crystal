@@ -38,6 +38,7 @@ module CrystalGPT5
           False
           Nil
           Return  # Phase 6
+          Self    # Phase 7
 
           # Arithmetic operators
           Plus        # +

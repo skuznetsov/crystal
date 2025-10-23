@@ -88,6 +88,8 @@ module CrystalGPT5
             infer_assign(node)
           when .return?
             infer_return(node, expr_id)
+          when .self?
+            infer_self(node, expr_id)
           else
             # Unknown expression kind
             @context.nil_type
@@ -512,6 +514,22 @@ module CrystalGPT5
           else
             # Return without value returns nil
             @context.set_type(expr_id, @context.nil_type)
+            @context.nil_type
+          end
+        end
+
+        # ============================================================
+        # PHASE 7: Self Keyword
+        # ============================================================
+
+        private def infer_self(node, expr_id : ExprId) : Type
+          # self returns InstanceType of the current class
+          if current_class = @current_class
+            instance_type = InstanceType.new(current_class)
+            @context.set_type(expr_id, instance_type)
+            instance_type
+          else
+            # self outside class context (shouldn't happen in valid code)
             @context.nil_type
           end
         end

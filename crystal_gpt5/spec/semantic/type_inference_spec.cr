@@ -1550,4 +1550,128 @@ describe TypeInferenceEngine do
       return2_type.as(PrimitiveType).name.should eq("String")
     end
   end
+
+  describe "Phase 7: Self Keyword" do
+    it "infers InstanceType for self in method" do
+      source = <<-CRYSTAL
+        class Dog
+          def get_self
+            self
+          end
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get self expression from method body
+      class_node = program.arena[program.roots[0]]
+      def_node = program.arena[class_node.class_body.not_nil![0]]
+      self_expr_id = def_node.def_body.not_nil![0]
+
+      # Check self has InstanceType(Dog)
+      self_type = engine.context.get_type(self_expr_id)
+      self_type.should be_a(InstanceType)
+      self_type.as(InstanceType).class_symbol.name.should eq("Dog")
+    end
+
+    it "handles self return for method chaining" do
+      source = <<-CRYSTAL
+        class Builder
+          def step1
+            self
+          end
+
+          def step2
+            self
+          end
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get both methods
+      class_node = program.arena[program.roots[0]]
+      class_body = class_node.class_body.not_nil!
+
+      # Check step1 returns self
+      def1_node = program.arena[class_body[0]]
+      self1_expr_id = def1_node.def_body.not_nil![0]
+      self1_type = engine.context.get_type(self1_expr_id)
+      self1_type.should be_a(InstanceType)
+      self1_type.as(InstanceType).class_symbol.name.should eq("Builder")
+
+      # Check step2 returns self
+      def2_node = program.arena[class_body[1]]
+      self2_expr_id = def2_node.def_body.not_nil![0]
+      self2_type = engine.context.get_type(self2_expr_id)
+      self2_type.should be_a(InstanceType)
+      self2_type.as(InstanceType).class_symbol.name.should eq("Builder")
+    end
+
+    it "handles different self types in different classes" do
+      source = <<-CRYSTAL
+        class Dog
+          def who_am_i
+            self
+          end
+        end
+
+        class Cat
+          def who_am_i
+            self
+          end
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get Dog's self
+      dog_class = program.arena[program.roots[0]]
+      dog_def = program.arena[dog_class.class_body.not_nil![0]]
+      dog_self_id = dog_def.def_body.not_nil![0]
+      dog_self_type = engine.context.get_type(dog_self_id)
+      dog_self_type.should be_a(InstanceType)
+      dog_self_type.as(InstanceType).class_symbol.name.should eq("Dog")
+
+      # Get Cat's self
+      cat_class = program.arena[program.roots[1]]
+      cat_def = program.arena[cat_class.class_body.not_nil![0]]
+      cat_self_id = cat_def.def_body.not_nil![0]
+      cat_self_type = engine.context.get_type(cat_self_id)
+      cat_self_type.should be_a(InstanceType)
+      cat_self_type.as(InstanceType).class_symbol.name.should eq("Cat")
+    end
+
+    it "handles self in conditional return" do
+      source = <<-CRYSTAL
+        class Node
+          def conditional_self(flag : Bool)
+            return self if flag
+            self
+          end
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get method body
+      class_node = program.arena[program.roots[0]]
+      def_node = program.arena[class_node.class_body.not_nil![0]]
+      def_body = def_node.def_body.not_nil!
+
+      # First statement is if (with postfix)
+      if_node = program.arena[def_body[0]]
+      return_node = program.arena[if_node.if_then.not_nil![0]]
+      self1_id = return_node.return_value.not_nil!
+      self1_type = engine.context.get_type(self1_id)
+      self1_type.should be_a(InstanceType)
+      self1_type.as(InstanceType).class_symbol.name.should eq("Node")
+
+      # Second statement is bare self
+      self2_id = def_body[1]
+      self2_type = engine.context.get_type(self2_id)
+      self2_type.should be_a(InstanceType)
+      self2_type.as(InstanceType).class_symbol.name.should eq("Node")
+    end
+  end
 end

@@ -90,6 +90,7 @@ module CrystalGPT5
           Def
           Class
           Return  # Phase 6: return statements
+          Self    # Phase 7: self keyword
         end
 
         getter kind : Kind
