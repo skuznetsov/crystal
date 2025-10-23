@@ -300,17 +300,20 @@ module CrystalGPT5
           unless operator_token?(current_token, Token::Kind::RParen)
             loop do
               # Parse parameter name
-              token = current_token
-              unless token.kind == Token::Kind::Identifier
-                emit_unexpected(token)
+              name_token = current_token
+              unless name_token.kind == Token::Kind::Identifier
+                emit_unexpected(name_token)
                 break
               end
-              param_name = token_text(token)
+              param_name = token_text(name_token)
+              param_name_span = name_token.span
+              param_start_span = name_token.span
               advance
               skip_trivia
 
               # Parse optional type annotation: : Type
               type_annotation = nil
+              param_type_span = nil
               if operator_token?(current_token, Token::Kind::Colon)
                 advance  # consume ':'
                 skip_trivia
@@ -319,6 +322,7 @@ module CrystalGPT5
                 type_token = current_token
                 if type_token.kind == Token::Kind::Identifier
                   type_annotation = token_text(type_token)
+                  param_type_span = type_token.span
                   advance
                   skip_trivia
                 else
@@ -326,7 +330,20 @@ module CrystalGPT5
                 end
               end
 
-              params << Parameter.new(param_name, type_annotation)
+              # Calculate full parameter span
+              param_span = if param_type_span
+                param_start_span.cover(param_type_span)
+              else
+                param_start_span
+              end
+
+              params << Parameter.new(
+                param_name,
+                type_annotation,
+                param_span,
+                param_name_span,
+                param_type_span
+              )
 
               break unless operator_token?(current_token, Token::Kind::Comma)
               advance
@@ -779,17 +796,27 @@ module CrystalGPT5
 
             # Parse parameter list
             loop do
-              unless current_token.kind == Token::Kind::Identifier
-                emit_unexpected(current_token)
+              name_token = current_token
+              unless name_token.kind == Token::Kind::Identifier
+                emit_unexpected(name_token)
                 return PREFIX_ERROR
               end
 
-              param_name = token_text(current_token)
+              param_name = token_text(name_token)
+              param_name_span = name_token.span
+              param_span = name_token.span
               advance
               skip_trivia
 
               # TODO: Support type annotations in block params
-              params << Parameter.new(param_name)
+              # For now, block params only have name (no type annotation)
+              params << Parameter.new(
+                param_name,
+                nil,              # no type annotation
+                param_span,       # full span = name span for now
+                param_name_span,  # name span
+                nil               # no type span
+              )
 
               # Check for comma or closing |
               if current_token.kind == Token::Kind::Comma

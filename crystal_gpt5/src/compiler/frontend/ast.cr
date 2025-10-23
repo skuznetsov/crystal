@@ -84,18 +84,31 @@ module CrystalGPT5
 
       # Represents a method parameter with optional type annotation
       #
-      # Phase 4A: Parameter types for method resolution
+      # Phase 4A: Parameter types for method resolution (PRODUCTION-READY)
+      # For production compiler with IDE support, we track:
       # - name: Parameter name (e.g., "x", "y")
       # - type_annotation: Optional type (e.g., "Int32", "String", nil)
+      # - span: Full parameter span ("x : Int32")
+      # - name_span: Just name ("x") for rename refactoring
+      # - type_span: Just type ("Int32") for hover, optional like type_annotation
       #
       # Examples:
-      #   def foo(x)           → Parameter("x", nil)
-      #   def foo(x : Int32)   → Parameter("x", "Int32")
+      #   def foo(x)           → Parameter("x", nil, span, name_span, nil)
+      #   def foo(x : Int32)   → Parameter("x", "Int32", span, name_span, type_span)
       struct Parameter
         getter name : String
         getter type_annotation : String?
+        getter span : Span              # Full "x : Int32" span
+        getter name_span : Span         # Just "x" for rename
+        getter type_span : Span?        # Just "Int32" for hover (optional)
 
-        def initialize(@name : String, @type_annotation : String? = nil)
+        def initialize(
+          @name : String,
+          @type_annotation : String? = nil,
+          @span : Span = Span.new(0, 0, 0, 0, 0, 0),
+          @name_span : Span = Span.new(0, 0, 0, 0, 0, 0),
+          @type_span : Span? = nil
+        )
         end
       end
 
