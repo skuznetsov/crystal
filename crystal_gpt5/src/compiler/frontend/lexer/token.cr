@@ -89,8 +89,14 @@ module CrystalGPT5
           Semicolon   # ;
           Colon       # :
 
-          # Assignment (future)
+          # Assignment
           Eq          # =
+          PlusEq      # += (Phase 20: compound assignment)
+          MinusEq     # -= (Phase 20: compound assignment)
+          StarEq      # *= (Phase 20: compound assignment)
+          SlashEq     # /= (Phase 20: compound assignment)
+          PercentEq   # %= (Phase 20: compound assignment)
+          StarStarEq  # **= (Phase 20: compound assignment)
 
           # Other operators (keep for now, will migrate gradually)
           Operator    # Generic fallback for unhandled operators

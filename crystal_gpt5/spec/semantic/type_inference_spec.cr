@@ -3182,4 +3182,151 @@ describe TypeInferenceEngine do
       expr_type.as(PrimitiveType).name.should eq("Int32")
     end
   end
+
+  # Phase 20: Compound Assignment Operators
+  describe "Phase 20: Compound Assignment" do
+    it "handles += operator" do
+      source = <<-CRYSTAL
+        x = 10
+        x += 5
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Second statement is compound assignment desugared to x = x + 5
+      assign_node = program.arena[program.roots[1]]
+      assign_node.kind.should eq(ExpressionNode::Kind::Assign)
+
+      # Value should be a binary expression (x + 5)
+      value_id = assign_node.assign_value.not_nil!
+      value_node = program.arena[value_id]
+      value_node.kind.should eq(ExpressionNode::Kind::Binary)
+      value_node.operator_string.should eq("+")
+
+      # Type should be Int32
+      value_type = engine.context.get_type(value_id)
+      value_type.should be_a(PrimitiveType)
+      value_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles -= operator" do
+      source = <<-CRYSTAL
+        x = 20
+        x -= 3
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      value_id = assign_node.assign_value.not_nil!
+      value_node = program.arena[value_id]
+
+      value_node.operator_string.should eq("-")
+
+      value_type = engine.context.get_type(value_id)
+      value_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles *= operator" do
+      source = <<-CRYSTAL
+        x = 4
+        x *= 3
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      value_id = assign_node.assign_value.not_nil!
+      value_node = program.arena[value_id]
+
+      value_node.operator_string.should eq("*")
+
+      value_type = engine.context.get_type(value_id)
+      value_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles /= operator" do
+      source = <<-CRYSTAL
+        x = 20
+        x /= 4
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      value_id = assign_node.assign_value.not_nil!
+      value_node = program.arena[value_id]
+
+      value_node.operator_string.should eq("/")
+
+      value_type = engine.context.get_type(value_id)
+      value_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles %= operator" do
+      source = <<-CRYSTAL
+        x = 17
+        x %= 5
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      value_id = assign_node.assign_value.not_nil!
+      value_node = program.arena[value_id]
+
+      value_node.operator_string.should eq("%")
+
+      value_type = engine.context.get_type(value_id)
+      value_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles **= operator" do
+      source = <<-CRYSTAL
+        x = 2
+        x **= 3
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      value_id = assign_node.assign_value.not_nil!
+      value_node = program.arena[value_id]
+
+      value_node.operator_string.should eq("**")
+
+      value_type = engine.context.get_type(value_id)
+      value_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles compound assignment with float" do
+      source = <<-CRYSTAL
+        x = 10.5_f64
+        x += 2.5_f64
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      value_id = assign_node.assign_value.not_nil!
+
+      value_type = engine.context.get_type(value_id)
+      value_type.as(PrimitiveType).name.should eq("Float64")
+    end
+
+    it "handles compound assignment on instance variable" do
+      source = <<-CRYSTAL
+        @count = 0
+        @count += 1
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      target = assign_node.assign_target.not_nil!
+      target_node = program.arena[target]
+
+      target_node.kind.should eq(ExpressionNode::Kind::InstanceVar)
+    end
+  end
 end

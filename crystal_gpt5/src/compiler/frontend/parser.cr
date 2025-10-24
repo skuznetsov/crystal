@@ -90,8 +90,14 @@ module CrystalGPT5
           skip_trivia
           token = current_token
 
-          # Check for assignment: identifier = value
-          if token.kind == Token::Kind::Eq
+          # Check for assignment: identifier = value or compound assignment (+=, -=, etc.)
+          if token.kind == Token::Kind::Eq ||
+             token.kind == Token::Kind::PlusEq ||
+             token.kind == Token::Kind::MinusEq ||
+             token.kind == Token::Kind::StarEq ||
+             token.kind == Token::Kind::SlashEq ||
+             token.kind == Token::Kind::PercentEq ||
+             token.kind == Token::Kind::StarStarEq
             # Verify left side is an identifier, instance variable, or index (Phase 14B: hash/array assignment)
             left_node = @arena[left]
             unless left_node.kind == ExpressionNode::Kind::Identifier ||
@@ -101,14 +107,47 @@ module CrystalGPT5
               return PREFIX_ERROR
             end
 
-            # Consume '=' token
-            eq_token = token
+            # Consume assignment token
+            assign_token = token
+            is_compound = assign_token.kind != Token::Kind::Eq
             advance
             skip_trivia
 
-            # Parse value expression
-            value = parse_expression(0)
-            return PREFIX_ERROR if value.invalid?
+            # Parse right-hand side expression
+            rhs = parse_expression(0)
+            return PREFIX_ERROR if rhs.invalid?
+
+            # Phase 20: Desugar compound assignment
+            # x += 5  =>  x = x + 5
+            value = if is_compound
+              # Map compound token to operator
+              operator = case assign_token.kind
+              when Token::Kind::PlusEq     then "+"
+              when Token::Kind::MinusEq    then "-"
+              when Token::Kind::StarEq     then "*"
+              when Token::Kind::SlashEq    then "/"
+              when Token::Kind::PercentEq  then "%"
+              when Token::Kind::StarStarEq then "**"
+              else
+                ""
+              end
+
+              # Create binary expression: left op rhs
+              # Use left node's span for the cloned left reference
+              rhs_span = node_span(rhs)
+              binary_span = left_node.span.cover(rhs_span)
+
+              @arena.add(ExpressionNode.new(
+                ExpressionNode::Kind::Binary,
+                binary_span,
+                operator: operator.to_slice,
+                left: left,
+                right: rhs
+              ))
+            else
+              # Regular assignment: just use rhs
+              rhs
+            end
 
             # Create Assign node
             value_span = node_span(value)

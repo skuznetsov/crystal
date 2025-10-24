@@ -321,22 +321,54 @@ module CrystalGPT5
           # Determine token kind based on operator
           kind : Token::Kind = case first
           when '+'.ord.to_u8
-            Token::Kind::Plus
+            # Check for +=
+            if @offset < @rope.size && current_byte == '='.ord.to_u8
+              advance
+              Token::Kind::PlusEq  # Phase 20: Compound assignment
+            else
+              Token::Kind::Plus
+            end
           when '-'.ord.to_u8
-            Token::Kind::Minus
+            # Check for -=
+            if @offset < @rope.size && current_byte == '='.ord.to_u8
+              advance
+              Token::Kind::MinusEq  # Phase 20: Compound assignment
+            else
+              Token::Kind::Minus
+            end
           when '*'.ord.to_u8
-            # Check for **
+            # Check for ** or *= or **=
             if @offset < @rope.size && current_byte == '*'.ord.to_u8
               advance
-              Token::Kind::StarStar  # Phase 19: Exponentiation
+              # Check for **=
+              if @offset < @rope.size && current_byte == '='.ord.to_u8
+                advance
+                Token::Kind::StarStarEq  # Phase 20: Compound assignment
+              else
+                Token::Kind::StarStar  # Phase 19: Exponentiation
+              end
+            elsif @offset < @rope.size && current_byte == '='.ord.to_u8
+              advance
+              Token::Kind::StarEq  # Phase 20: Compound assignment
             else
               Token::Kind::Star
             end
           when '/'.ord.to_u8
-            Token::Kind::Slash
+            # Check for /=
+            if @offset < @rope.size && current_byte == '='.ord.to_u8
+              advance
+              Token::Kind::SlashEq  # Phase 20: Compound assignment
+            else
+              Token::Kind::Slash
+            end
           when '%'.ord.to_u8
-            # Phase 18: Modulo operator
-            Token::Kind::Percent
+            # Check for %=
+            if @offset < @rope.size && current_byte == '='.ord.to_u8
+              advance
+              Token::Kind::PercentEq  # Phase 20: Compound assignment
+            else
+              Token::Kind::Percent  # Phase 18: Modulo operator
+            end
           when '('.ord.to_u8
             Token::Kind::LParen
           when ')'.ord.to_u8
