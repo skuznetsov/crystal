@@ -10,6 +10,9 @@ bin/crystal-gpt5
 *.swp
 *.swo
 
+# MCP/Agent data
+.agents/
+
 # OS
 .DS_Store
 
