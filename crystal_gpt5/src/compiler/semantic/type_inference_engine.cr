@@ -131,6 +131,9 @@ module CrystalGPT5
           when .tuple_literal?
             # Phase 15: Tuple literals
             infer_tuple_literal(node, expr_id)
+          when .ternary?
+            # Phase 23: Ternary operator
+            infer_ternary(node, expr_id)
           when .grouping?
             # Grouping expressions: (expr)
             # Type is the type of the wrapped expression
@@ -1457,6 +1460,28 @@ module CrystalGPT5
           # Create Tuple(T1, T2, ..., Tn) type
           tuple_type = TupleType.new(element_types)
           tuple_type
+        end
+
+        # Phase 23: Infer type of ternary operator
+        #
+        # condition ? true_branch : false_branch
+        #
+        # Returns the union of true_branch and false_branch types
+        private def infer_ternary(node, expr_id : ExprId) : Type
+          condition_id = node.ternary_condition.not_nil!
+          true_id = node.ternary_true_branch.not_nil!
+          false_id = node.ternary_false_branch.not_nil!
+
+          # Infer all three expressions
+          condition_type = infer_expression(condition_id)
+          true_type = infer_expression(true_id)
+          false_type = infer_expression(false_id)
+
+          # In Crystal, condition can be any type (truthy/falsy semantics)
+          # We don't need to check condition_type
+
+          # Return union of both branches
+          union_of([true_type, false_type])
         end
 
         # ============================================================

@@ -1306,6 +1306,35 @@ module CrystalGPT5
                   range_exclusive: exclusive,
                 )
               )
+            # Phase 23: Handle ternary operator specially
+            elsif token.kind == Token::Kind::Question
+              # We have: left ? right (so far)
+              # Now need: : false_branch
+              skip_trivia
+              unless current_token.kind == Token::Kind::Colon
+                # Error: expected ':' in ternary operator
+                left = PREFIX_ERROR
+                break
+              end
+              colon_token = current_token
+              advance  # consume ':'
+
+              # Parse false branch with same precedence (right-associative)
+              false_branch = parse_expression(current_precedence)
+              if false_branch.invalid?
+                left = PREFIX_ERROR
+                break
+              end
+
+              left = @arena.add(
+                ExpressionNode.new(
+                  ExpressionNode::Kind::Ternary,
+                  cover_optional_spans(node_span(left), token.span, node_span(false_branch)),
+                  ternary_condition: left,
+                  ternary_true_branch: right,
+                  ternary_false_branch: false_branch,
+                )
+              )
             else
               left = build_binary(left, token, right)
             end
@@ -2463,7 +2492,8 @@ module CrystalGPT5
         end
 
         BINARY_PRECEDENCE = {
-          Token::Kind::OrOr      => 3,   # Logical OR (lowest)
+          Token::Kind::Question  => 2,   # Ternary operator (Phase 23, second lowest)
+          Token::Kind::OrOr      => 3,   # Logical OR
           Token::Kind::AndAnd    => 4,   # Logical AND
           Token::Kind::DotDot    => 5,   # Inclusive range (Phase 13)
           Token::Kind::DotDotDot => 5,   # Exclusive range (Phase 13)

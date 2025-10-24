@@ -95,6 +95,7 @@ module CrystalGPT5
           Comma       # ,
           Semicolon   # ;
           Colon       # :
+          Question    # ? (Phase 23: ternary operator)
 
           # Assignment
           Eq          # =

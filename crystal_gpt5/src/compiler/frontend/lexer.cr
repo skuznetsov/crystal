@@ -483,6 +483,9 @@ module CrystalGPT5
               # Standalone . - use generic Operator for now (member access)
               Token::Kind::Operator
             end
+          when '?'.ord.to_u8
+            # Phase 23: Ternary operator
+            Token::Kind::Question
           else
             # Unknown operator - use generic fallback
             Token::Kind::Operator

@@ -3599,4 +3599,169 @@ describe TypeInferenceEngine do
       shift_type.as(PrimitiveType).name.should eq("Int64")
     end
   end
+
+  # Phase 23: Ternary Operator
+  describe "Phase 23: Ternary Operator" do
+    it "handles basic ternary with same types" do
+      source = <<-CRYSTAL
+        x = true ? 10 : 20
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      ternary_id = assign_node.assign_value.not_nil!
+      ternary_node = program.arena[ternary_id]
+
+      ternary_node.kind.should eq(ExpressionNode::Kind::Ternary)
+
+      ternary_type = engine.context.get_type(ternary_id)
+      ternary_type.should be_a(PrimitiveType)
+      ternary_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles ternary with different types creating union" do
+      source = <<-CRYSTAL
+        x = true ? 1 : 2.5
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      ternary_id = assign_node.assign_value.not_nil!
+
+      ternary_type = engine.context.get_type(ternary_id)
+      ternary_type.should be_a(UnionType)
+
+      union = ternary_type.as(UnionType)
+      union.types.size.should eq(2)
+
+      type_names = union.types.map(&.to_s).sort
+      type_names.should eq(["Float64", "Int32"])
+    end
+
+    it "handles ternary with variables" do
+      source = <<-CRYSTAL
+        a = 5
+        b = a > 3 ? 100 : 200
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      ternary_id = assign_node.assign_value.not_nil!
+
+      ternary_type = engine.context.get_type(ternary_id)
+      ternary_type.should be_a(PrimitiveType)
+      ternary_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles nested ternary (right-associative)" do
+      source = <<-CRYSTAL
+        x = true ? 1 : false ? 2 : 3
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      ternary_id = assign_node.assign_value.not_nil!
+      outer_ternary = program.arena[ternary_id]
+
+      # Outer ternary: true ? 1 : (false ? 2 : 3)
+      outer_ternary.kind.should eq(ExpressionNode::Kind::Ternary)
+
+      # False branch should be another ternary
+      false_branch_id = outer_ternary.ternary_false_branch.not_nil!
+      false_branch = program.arena[false_branch_id]
+      false_branch.kind.should eq(ExpressionNode::Kind::Ternary)
+
+      ternary_type = engine.context.get_type(ternary_id)
+      ternary_type.should be_a(PrimitiveType)
+      ternary_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "respects operator precedence for ternary" do
+      source = <<-CRYSTAL
+        x = 1 + 1 > 0 ? 100 : 200
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      ternary_id = assign_node.assign_value.not_nil!
+      ternary_node = program.arena[ternary_id]
+
+      # Should parse as: (1 + 1 > 0) ? 100 : 200
+      ternary_node.kind.should eq(ExpressionNode::Kind::Ternary)
+
+      condition_id = ternary_node.ternary_condition.not_nil!
+      condition_node = program.arena[condition_id]
+      condition_node.kind.should eq(ExpressionNode::Kind::Binary)
+
+      ternary_type = engine.context.get_type(ternary_id)
+      ternary_type.should be_a(PrimitiveType)
+      ternary_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles ternary with string types" do
+      source = <<-CRYSTAL
+        x = false ? "yes" : "no"
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      ternary_id = assign_node.assign_value.not_nil!
+
+      ternary_type = engine.context.get_type(ternary_id)
+      ternary_type.should be_a(PrimitiveType)
+      ternary_type.as(PrimitiveType).name.should eq("String")
+    end
+
+    it "handles ternary with mixed string and int creating union" do
+      source = <<-CRYSTAL
+        x = true ? "hello" : 42
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      ternary_id = assign_node.assign_value.not_nil!
+
+      ternary_type = engine.context.get_type(ternary_id)
+      ternary_type.should be_a(UnionType)
+
+      union = ternary_type.as(UnionType)
+      type_names = union.types.map(&.to_s).sort
+      type_names.should eq(["Int32", "String"])
+    end
+
+    it "handles ternary in arithmetic expression" do
+      source = <<-CRYSTAL
+        x = (true ? 10 : 5) + 3
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      add_expr_id = assign_node.assign_value.not_nil!
+      add_node = program.arena[add_expr_id]
+
+      # Should be Binary(+) with left = Grouping(Ternary)
+      add_node.kind.should eq(ExpressionNode::Kind::Binary)
+
+      left_id = add_node.left.not_nil!
+      left_node = program.arena[left_id]
+      left_node.kind.should eq(ExpressionNode::Kind::Grouping)
+
+      # Inside grouping is ternary
+      inner_id = left_node.left.not_nil!
+      inner_node = program.arena[inner_id]
+      inner_node.kind.should eq(ExpressionNode::Kind::Ternary)
+
+      result_type = engine.context.get_type(add_expr_id)
+      result_type.should be_a(PrimitiveType)
+      result_type.as(PrimitiveType).name.should eq("Int32")
+    end
+  end
 end

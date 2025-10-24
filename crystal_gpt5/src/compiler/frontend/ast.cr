@@ -148,6 +148,7 @@ module CrystalGPT5
           HashLiteral  # Phase 14: hash literals {"k"=>v}
           TupleLiteral  # Phase 15: tuple literals {1, 2, 3}
           Symbol  # Phase 16: symbol literals :hello
+          Ternary  # Phase 23: ternary operator (cond ? true : false)
         end
 
         getter kind : Kind
@@ -201,6 +202,9 @@ module CrystalGPT5
         getter hash_of_key_type : Slice(UInt8)?  # Phase 14: explicit key type for {} of K => V
         getter hash_of_value_type : Slice(UInt8)?  # Phase 14: explicit value type for {} of K => V
         getter tuple_elements : Array(ExprId)?  # Phase 15: tuple literal elements
+        getter ternary_condition : ExprId?  # Phase 23: ternary condition
+        getter ternary_true_branch : ExprId?  # Phase 23: ternary true branch
+        getter ternary_false_branch : ExprId?  # Phase 23: ternary false branch
 
         def initialize(
           @kind : Kind,
@@ -253,6 +257,9 @@ module CrystalGPT5
           @hash_of_key_type : Slice(UInt8)? = nil,
           @hash_of_value_type : Slice(UInt8)? = nil,
           @tuple_elements : Array(ExprId)? = nil,
+          @ternary_condition : ExprId? = nil,
+          @ternary_true_branch : ExprId? = nil,
+          @ternary_false_branch : ExprId? = nil,
         )
         end
 
