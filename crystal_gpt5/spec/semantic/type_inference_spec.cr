@@ -3072,4 +3072,114 @@ describe TypeInferenceEngine do
       right_node.operator_string.should eq("%")
     end
   end
+
+  # Phase 19: Exponentiation Operator
+  describe "Phase 19: Exponentiation Operator" do
+    it "infers Int32 for integer exponentiation" do
+      source = <<-CRYSTAL
+        x = 2 ** 3
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      exp_expr_id = assign_node.assign_value.not_nil!
+      exp_type = engine.context.get_type(exp_expr_id)
+
+      exp_type.should be_a(PrimitiveType)
+      exp_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers Float64 for float exponentiation" do
+      source = <<-CRYSTAL
+        x = 2.0_f64 ** 3.0_f64
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      exp_expr_id = assign_node.assign_value.not_nil!
+      exp_type = engine.context.get_type(exp_expr_id)
+
+      exp_type.should be_a(PrimitiveType)
+      exp_type.as(PrimitiveType).name.should eq("Float64")
+    end
+
+    it "handles exponentiation with variables" do
+      source = <<-CRYSTAL
+        base = 10
+        exp = 2
+        result = base ** exp
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[2]]
+      exp_expr_id = assign_node.assign_value.not_nil!
+      exp_type = engine.context.get_type(exp_expr_id)
+
+      exp_type.should be_a(PrimitiveType)
+      exp_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "respects operator precedence for exponentiation" do
+      source = <<-CRYSTAL
+        x = 2 * 3 ** 2
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      expr_id = assign_node.assign_value.not_nil!
+      expr_node = program.arena[expr_id]
+
+      # Should parse as 2 * (3 ** 2), not (2 * 3) ** 2
+      expr_node.kind.should eq(ExpressionNode::Kind::Binary)
+      expr_node.operator_string.should eq("*")
+
+      # Right side should be exponentiation
+      right_id = expr_node.right.not_nil!
+      right_node = program.arena[right_id]
+      right_node.kind.should eq(ExpressionNode::Kind::Binary)
+      right_node.operator_string.should eq("**")
+    end
+
+    it "handles exponentiation in complex expression" do
+      source = <<-CRYSTAL
+        x = 2 ** 3 + 1
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      add_expr_id = assign_node.assign_value.not_nil!
+      add_node = program.arena[add_expr_id]
+
+      # Should parse as (2 ** 3) + 1
+      add_node.kind.should eq(ExpressionNode::Kind::Binary)
+      add_node.operator_string.should eq("+")
+
+      # Left side should be exponentiation
+      left_id = add_node.left.not_nil!
+      left_node = program.arena[left_id]
+      left_node.kind.should eq(ExpressionNode::Kind::Binary)
+      left_node.operator_string.should eq("**")
+    end
+
+    it "handles multiple exponentiations" do
+      source = <<-CRYSTAL
+        x = 2 ** 2 ** 2
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      expr_id = assign_node.assign_value.not_nil!
+      expr_type = engine.context.get_type(expr_id)
+
+      # Type should still be Int32
+      expr_type.should be_a(PrimitiveType)
+      expr_type.as(PrimitiveType).name.should eq("Int32")
+    end
+  end
 end

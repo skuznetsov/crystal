@@ -2437,9 +2437,10 @@ module CrystalGPT5
           Token::Kind::Plus      => 10,  # Addition
           Token::Kind::Minus     => 10,  # Subtraction
           Token::Kind::LShift    => 10,  # Left shift / array push (Phase 9)
-          Token::Kind::Star      => 20,  # Multiplication (highest)
+          Token::Kind::Star      => 20,  # Multiplication
           Token::Kind::Slash     => 20,  # Division
           Token::Kind::Percent   => 20,  # Modulo (Phase 18)
+          Token::Kind::StarStar  => 25,  # Exponentiation (Phase 19, highest precedence)
         }
 
         UNARY_OPERATORS = [Token::Kind::Plus, Token::Kind::Minus, Token::Kind::Not]

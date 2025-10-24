@@ -325,7 +325,13 @@ module CrystalGPT5
           when '-'.ord.to_u8
             Token::Kind::Minus
           when '*'.ord.to_u8
-            Token::Kind::Star
+            # Check for **
+            if @offset < @rope.size && current_byte == '*'.ord.to_u8
+              advance
+              Token::Kind::StarStar  # Phase 19: Exponentiation
+            else
+              Token::Kind::Star
+            end
           when '/'.ord.to_u8
             Token::Kind::Slash
           when '%'.ord.to_u8

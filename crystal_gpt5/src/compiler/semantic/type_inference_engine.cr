@@ -343,8 +343,8 @@ module CrystalGPT5
           op = node.operator_string || ""
 
           result_type = case op
-          when "+", "-", "*", "/", "%", "<<"
-            # Phase 4B.3/4B.5/18: Try method lookup first for built-in methods
+          when "+", "-", "*", "/", "%", "**", "<<"
+            # Phase 4B.3/4B.5/18/19: Try method lookup first for built-in methods
             if method = lookup_method(left_type, op, [right_type])
               if ann = method.return_annotation
                 parse_type_name(ann)

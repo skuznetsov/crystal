@@ -51,6 +51,7 @@ module CrystalGPT5
           Plus        # +
           Minus       # -
           Star        # *
+          StarStar    # ** (Phase 19: exponentiation)
           Slash       # /
           Percent     # % (Phase 18: modulo)
 
