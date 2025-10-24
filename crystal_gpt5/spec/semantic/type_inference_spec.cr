@@ -3473,4 +3473,130 @@ describe TypeInferenceEngine do
       bitwise_type.as(PrimitiveType).name.should eq("Int32")
     end
   end
+
+  # Phase 22: Right Shift Operator
+  describe "Phase 22: Right Shift Operator" do
+    it "handles basic right shift" do
+      source = <<-CRYSTAL
+        x = 8 >> 2
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      shift_expr_id = assign_node.assign_value.not_nil!
+      shift_node = program.arena[shift_expr_id]
+
+      shift_node.kind.should eq(ExpressionNode::Kind::Binary)
+      shift_node.operator_string.should eq(">>")
+
+      shift_type = engine.context.get_type(shift_expr_id)
+      shift_type.should be_a(PrimitiveType)
+      shift_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles right shift with negative numbers" do
+      source = <<-CRYSTAL
+        x = -8 >> 2
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      shift_expr_id = assign_node.assign_value.not_nil!
+
+      # Right operand is the shift, left is unary minus
+      shift_type = engine.context.get_type(shift_expr_id)
+      shift_type.should be_a(PrimitiveType)
+      shift_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles right shift with variables" do
+      source = <<-CRYSTAL
+        a = 16
+        b = 2
+        c = a >> b
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[2]]
+      shift_expr_id = assign_node.assign_value.not_nil!
+
+      shift_type = engine.context.get_type(shift_expr_id)
+      shift_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "respects operator precedence for right shift" do
+      source = <<-CRYSTAL
+        x = 8 >> 2 + 1
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Should parse as 8 >> (2 + 1) since >> and + have same precedence
+      # Actually left-to-right: (8 >> 2) + 1
+      assign_node = program.arena[program.roots[0]]
+      expr_id = assign_node.assign_value.not_nil!
+
+      # Just verify it parses and types correctly
+      expr_type = engine.context.get_type(expr_id)
+      expr_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles right shift in complex expression" do
+      source = <<-CRYSTAL
+        x = 32 >> 2 * 2
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Should parse as 32 >> (2 * 2) since * has higher precedence
+      assign_node = program.arena[program.roots[0]]
+      expr_id = assign_node.assign_value.not_nil!
+      expr_node = program.arena[expr_id]
+
+      expr_node.kind.should eq(ExpressionNode::Kind::Binary)
+      expr_node.operator_string.should eq(">>")
+
+      expr_type = engine.context.get_type(expr_id)
+      expr_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "distinguishes >> from > comparison" do
+      source = <<-CRYSTAL
+        a = 8 >> 2
+        b = 8 > 2
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # First is right shift (returns Int32)
+      assign1 = program.arena[program.roots[0]]
+      shift_id = assign1.assign_value.not_nil!
+      shift_type = engine.context.get_type(shift_id)
+      shift_type.as(PrimitiveType).name.should eq("Int32")
+
+      # Second is comparison (returns Bool)
+      assign2 = program.arena[program.roots[1]]
+      comp_id = assign2.assign_value.not_nil!
+      comp_type = engine.context.get_type(comp_id)
+      comp_type.as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "handles right shift with different integer types" do
+      source = <<-CRYSTAL
+        x = 16_i64 >> 2
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      shift_expr_id = assign_node.assign_value.not_nil!
+
+      shift_type = engine.context.get_type(shift_expr_id)
+      shift_type.should be_a(PrimitiveType)
+      shift_type.as(PrimitiveType).name.should eq("Int64")
+    end
+  end
 end

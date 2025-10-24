@@ -64,7 +64,8 @@ module CrystalGPT5
           NotEq       # !=
 
           # Shift/append operators
-          LShift      # << (Phase 9: array push)
+          LShift      # << (Phase 9: array push / left shift)
+          RShift      # >> (Phase 22: right shift)
 
           # Range operators
           DotDot      # .. (Phase 13: inclusive range)

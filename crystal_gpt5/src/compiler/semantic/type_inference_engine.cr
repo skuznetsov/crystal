@@ -343,8 +343,8 @@ module CrystalGPT5
           op = node.operator_string || ""
 
           result_type = case op
-          when "+", "-", "*", "/", "%", "**", "<<", "&", "|", "^"
-            # Phase 4B.3/4B.5/18/19/21: Try method lookup first for built-in methods
+          when "+", "-", "*", "/", "%", "**", "<<", ">>", "&", "|", "^"
+            # Phase 4B.3/4B.5/18/19/21/22: Try method lookup first for built-in methods
             if method = lookup_method(left_type, op, [right_type])
               if ann = method.return_annotation
                 parse_type_name(ann)
@@ -352,6 +352,7 @@ module CrystalGPT5
                 @context.nil_type
               end
             # Fallback: numeric promotion for untyped numeric operators
+            # Exclude << (array push operator) as it has specific semantics
             elsif op != "<<" && numeric_type?(left_type) && numeric_type?(right_type)
               promote_numeric_types(left_type, right_type)
             else

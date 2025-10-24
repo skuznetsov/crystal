@@ -404,10 +404,18 @@ module CrystalGPT5
               Token::Kind::Less
             end
           when '>'.ord.to_u8
-            # Check for >=
-            if @offset < @rope.size && current_byte == '='.ord.to_u8
-              advance
-              Token::Kind::GreaterEq
+            # Check for >> or >=
+            if @offset < @rope.size
+              next_byte = current_byte
+              if next_byte == '>'.ord.to_u8
+                advance
+                Token::Kind::RShift  # Phase 22: Right shift
+              elsif next_byte == '='.ord.to_u8
+                advance
+                Token::Kind::GreaterEq
+              else
+                Token::Kind::Greater
+              end
             else
               Token::Kind::Greater
             end

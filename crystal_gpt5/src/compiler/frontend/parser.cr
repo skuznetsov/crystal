@@ -2479,6 +2479,7 @@ module CrystalGPT5
           Token::Kind::Plus      => 10,  # Addition
           Token::Kind::Minus     => 10,  # Subtraction
           Token::Kind::LShift    => 10,  # Left shift / array push (Phase 9)
+          Token::Kind::RShift    => 10,  # Right shift (Phase 22)
           Token::Kind::Star      => 20,  # Multiplication
           Token::Kind::Slash     => 20,  # Division
           Token::Kind::Percent   => 20,  # Modulo (Phase 18)
