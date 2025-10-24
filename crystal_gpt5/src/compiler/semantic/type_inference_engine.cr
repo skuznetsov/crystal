@@ -372,7 +372,7 @@ module CrystalGPT5
             @context.nil_type
           end
 
-          @context.set_type(expr_id, result_type)
+          # Type will be set by infer_expression
           result_type
         end
 
@@ -451,10 +451,10 @@ module CrystalGPT5
           then_type = if then_body = node.if_then
             if then_body.size > 0
               # Infer all expressions in body, save type of last
+              # (infer_expression sets types automatically)
               result_type = @context.nil_type
               then_body.each do |expr_id|
                 result_type = infer_expression(expr_id)
-                @context.set_type(expr_id, result_type)
               end
               result_type
             else
@@ -475,11 +475,11 @@ module CrystalGPT5
               end
 
               # Infer elsif body (type of last expression)
+              # (infer_expression sets types automatically)
               elsif_type = if elsif_branch.body.size > 0
                 result_type = @context.nil_type
                 elsif_branch.body.each do |expr_id|
                   result_type = infer_expression(expr_id)
-                  @context.set_type(expr_id, result_type)
                 end
                 result_type
               else
@@ -491,13 +491,13 @@ module CrystalGPT5
           end
 
           # Infer else body (or Nil if no else)
+          # (infer_expression sets types automatically)
           else_type = if else_body = node.if_else
             if else_body.size > 0
               # Infer all expressions in body, save type of last
               result_type = @context.nil_type
               else_body.each do |expr_id|
                 result_type = infer_expression(expr_id)
-                @context.set_type(expr_id, result_type)
               end
               result_type
             else
@@ -566,7 +566,7 @@ module CrystalGPT5
           # just return value type
 
           # Assignments return the value type in Crystal
-          @context.set_type(expr_id, value_type)
+          # Type will be set by infer_expression
           value_type
         end
 
@@ -576,13 +576,12 @@ module CrystalGPT5
 
         private def infer_return(node, expr_id : ExprId) : Type
           # If return has a value, infer its type
+          # (Type will be set by infer_expression)
           if value_id = node.return_value
             value_type = infer_expression(value_id)
-            @context.set_type(expr_id, value_type)
             value_type
           else
             # Return without value returns nil
-            @context.set_type(expr_id, @context.nil_type)
             @context.nil_type
           end
         end
@@ -593,9 +592,9 @@ module CrystalGPT5
 
         private def infer_self(node, expr_id : ExprId) : Type
           # self returns InstanceType of the current class
+          # (Type will be set by infer_expression)
           if current_class = @current_class
             instance_type = InstanceType.new(current_class)
-            @context.set_type(expr_id, instance_type)
             instance_type
           else
             # self outside class context (shouldn't happen in valid code)
@@ -620,7 +619,7 @@ module CrystalGPT5
             end
           end
 
-          @context.set_type(expr_id, @context.string_type)
+          # Type will be set by infer_expression
           @context.string_type
         end
 
@@ -655,8 +654,8 @@ module CrystalGPT5
           end
 
           # Create Array(T) type
+          # (Type will be set by infer_expression)
           array_type = ArrayType.new(element_type)
-          @context.set_type(expr_id, array_type)
           array_type
         end
 
@@ -673,12 +672,12 @@ module CrystalGPT5
           # Phase 9: Array indexing
           if target_type.is_a?(ArrayType)
             element_type = target_type.element_type
-            @context.set_type(expr_id, element_type)
+            # Type will be set by infer_expression
             element_type
           # Phase 14B: Hash indexing
           elsif target_type.is_a?(HashType)
             value_type = target_type.value_type
-            @context.set_type(expr_id, value_type)
+            # Type will be set by infer_expression
             value_type
           else
             # Not an array or hash - emit error
@@ -736,7 +735,7 @@ module CrystalGPT5
             @context.nil_type
           end
 
-          @context.set_type(expr_id, result_type)
+          # Type will be set by infer_expression
           result_type
         end
 
@@ -811,7 +810,7 @@ module CrystalGPT5
             @context.nil_type
           end
 
-          @context.set_type(expr_id, result_type)
+          # Type will be set by infer_expression
           result_type
         end
 
@@ -1174,6 +1173,7 @@ module CrystalGPT5
           body = node.block_body || [] of ExprId
 
           # Type of block is the type of its last expression
+          # (Type will be set by infer_expression)
           block_type = if body.empty?
             @context.nil_type
           else
@@ -1181,7 +1181,6 @@ module CrystalGPT5
             infer_expression(body.last)
           end
 
-          @context.set_type(expr_id, block_type)
           block_type
         end
 
@@ -1193,7 +1192,7 @@ module CrystalGPT5
 
           # For now, yield returns Nil
           # TODO: In full implementation, yield should return the block's return type
-          @context.set_type(expr_id, @context.nil_type)
+          # (Type will be set by infer_expression)
           @context.nil_type
         end
 
@@ -1243,13 +1242,13 @@ module CrystalGPT5
           end
 
           # Case type is union of all branch types
+          # (Type will be set by infer_expression)
           case_type = if branch_types.size == 1
             branch_types[0]
           else
             @context.union_of(branch_types)
           end
 
-          @context.set_type(expr_id, case_type)
           case_type
         end
 
@@ -1259,19 +1258,19 @@ module CrystalGPT5
 
         private def infer_break(node, expr_id : ExprId) : Type
           # Break can have an optional value
+          # (Type will be set by infer_expression)
           break_type = if value_id = node.break_value
             infer_expression(value_id)
           else
             @context.nil_type
           end
 
-          @context.set_type(expr_id, break_type)
           break_type
         end
 
         private def infer_next(node, expr_id : ExprId) : Type
           # Next has no value in Crystal, always returns Nil
-          @context.set_type(expr_id, @context.nil_type)
+          # (Type will be set by infer_expression)
           @context.nil_type
         end
 
@@ -1288,8 +1287,8 @@ module CrystalGPT5
           end_type = infer_expression(end_id)
 
           # Create Range(B, E) type
+          # (Type will be set by infer_expression)
           range_type = RangeType.new(begin_type, end_type)
-          @context.set_type(expr_id, range_type)
           range_type
         end
 
@@ -1298,6 +1297,7 @@ module CrystalGPT5
         # ============================================================
 
         private def infer_hash_literal(node, expr_id : ExprId) : Type
+          # Type will be set by infer_expression
           entries = node.hash_entries
 
           # Empty hash with explicit type annotation
@@ -1313,13 +1313,11 @@ module CrystalGPT5
               value_type = lookup_type_by_name(value_type_name)
 
               hash_type = HashType.new(key_type, value_type)
-              @context.set_type(expr_id, hash_type)
               return hash_type
             else
               # Empty hash without type annotation - error
               # For now, default to Hash(Nil, Nil) as placeholder
               hash_type = HashType.new(@context.nil_type, @context.nil_type)
-              @context.set_type(expr_id, hash_type)
               return hash_type
             end
           end
@@ -1350,7 +1348,6 @@ module CrystalGPT5
           end
 
           hash_type = HashType.new(final_key_type, final_value_type)
-          @context.set_type(expr_id, hash_type)
           hash_type
         end
 

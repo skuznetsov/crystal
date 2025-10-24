@@ -12,3 +12,6 @@ bin/crystal-gpt5
 
 # OS
 .DS_Store
+
+# Debug/test files
+test_*.cr
