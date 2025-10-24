@@ -744,8 +744,7 @@ module CrystalGPT5
           # Check if there are yield arguments
           # yield without args if: newline, EOF, end, else, elsif, if (for postfix), do, }
           token = current_token
-          if token.kind.in?(Token::Kind::Newline, Token::Kind::EOF, Token::Kind::End, Token::Kind::Else, Token::Kind::Elsif, Token::Kind::If, Token::Kind::Do) ||
-             (token.kind == Token::Kind::Operator && token_text(token) == "}")
+          if token.kind.in?(Token::Kind::Newline, Token::Kind::EOF, Token::Kind::End, Token::Kind::Else, Token::Kind::Elsif, Token::Kind::If, Token::Kind::Do, Token::Kind::RBrace)
             # Yield without args
             @arena.add(
               ExpressionNode.new(
@@ -785,7 +784,7 @@ module CrystalGPT5
         # Phase 10: Parse block
         # Grammar: { |params| body } or do |params| body end
         private def parse_block : ExprId
-          is_brace_form = current_token.kind == Token::Kind::Operator && token_text(current_token) == "{"
+          is_brace_form = current_token.kind == Token::Kind::LBrace
           start_token = current_token
           advance  # consume { or do
           skip_trivia
@@ -849,7 +848,7 @@ module CrystalGPT5
 
             # Check for block terminator
             if is_brace_form
-              break if current_token.kind == Token::Kind::Operator && token_text(current_token) == "}"
+              break if current_token.kind == Token::Kind::RBrace
             else
               break if current_token.kind == Token::Kind::End
             end
@@ -863,7 +862,7 @@ module CrystalGPT5
 
           # Consume closing delimiter
           end_token = current_token
-          unless (is_brace_form && current_token.kind == Token::Kind::Operator && token_text(current_token) == "}") ||
+          unless (is_brace_form && current_token.kind == Token::Kind::RBrace) ||
                  (!is_brace_form && current_token.kind == Token::Kind::End)
             emit_unexpected(current_token)
             return PREFIX_ERROR
@@ -1228,21 +1227,21 @@ module CrystalGPT5
             when Token::Kind::LBracket
               left = parse_index(left)
               next
+            when Token::Kind::LBrace
+              # Phase 10: Block with {} syntax
+              left = attach_block_to_call(left)
+              next
+            when Token::Kind::Do
+              # Phase 10: Block with do/end syntax
+              left = attach_block_to_call(left)
+              next
             when Token::Kind::Operator
               # Check for operators not yet converted to enum (e.g., ".")
               case token_text(token)
               when "."
                 left = parse_member_access(left)
                 next
-              when "{"
-                # Phase 10: Block with {} syntax
-                left = attach_block_to_call(left)
-                next
               end
-            when Token::Kind::Do
-              # Phase 10: Block with do/end syntax
-              left = attach_block_to_call(left)
-              next
             end
 
             break unless infix?(token)
@@ -1339,14 +1338,14 @@ module CrystalGPT5
           when Token::Kind::LBracket
             # Phase 9: Array literal
             parse_array_literal
+          when Token::Kind::LBrace
+            # Phase 14/15: Hash or Tuple literal (disambiguated by presence of =>)
+            parse_hash_or_tuple
           when Token::Kind::Operator
             # Generic fallback for unhandled operators (e.g., macro operators)
             op_text = token_text(token)
             if op_text == "("
               parse_grouping
-            elsif op_text == "{"
-              # Phase 14: Hash literal
-              parse_hash_literal
             else
               emit_unexpected(token)
               advance
@@ -1459,7 +1458,7 @@ module CrystalGPT5
           of_value_type : Slice(UInt8)? = nil
 
           # Check for closing brace (empty hash)
-          if current_token.kind == Token::Kind::Operator && token_text(current_token) == "}"
+          if current_token.kind == Token::Kind::RBrace
             advance  # consume }
             skip_trivia
 
@@ -1547,13 +1546,13 @@ module CrystalGPT5
             skip_trivia
 
             # Allow trailing comma
-            if current_token.kind == Token::Kind::Operator && token_text(current_token) == "}"
+            if current_token.kind == Token::Kind::RBrace
               break
             end
           end
 
           # Expect closing brace
-          unless current_token.kind == Token::Kind::Operator && token_text(current_token) == "}"
+          unless current_token.kind == Token::Kind::RBrace
             emit_unexpected(current_token)
             return PREFIX_ERROR
           end
@@ -1568,6 +1567,226 @@ module CrystalGPT5
             hash_entries: entries,
             hash_of_key_type: of_key_type,
             hash_of_value_type: of_value_type
+          ))
+        end
+
+        # Phase 14/15: Disambiguate hash vs tuple literal
+        # Hash: {"key" => value} or {} of K => V
+        # Tuple: {1, 2, 3} or {value} or {value,}
+        #
+        # Strategy: Look ahead after first element
+        # - If we see "=>" → hash
+        # - If we see "," or "}" → tuple
+        # - Empty "{}" → hash (existing behavior)
+        private def parse_hash_or_tuple : ExprId
+          lbrace = current_token
+          advance  # consume {
+          skip_trivia
+
+          # Empty {} → hash
+          if current_token.kind == Token::Kind::RBrace
+            # Empty hash - delegate to parse_hash_literal
+            return parse_hash_literal_from_lbrace(lbrace)
+          end
+
+          # Parse first element (key for hash, value for tuple)
+          first_elem = parse_expression(0)
+          return PREFIX_ERROR if first_elem.invalid?
+          skip_trivia
+
+          # Check what follows
+          case current_token.kind
+          when Token::Kind::Arrow
+            # "=>" → this is a hash
+            return parse_hash_literal_continued(lbrace, first_elem)
+          when Token::Kind::Comma, Token::Kind::RBrace
+            # "," or "}" → this is a tuple
+            return parse_tuple_literal_continued(lbrace, first_elem)
+          else
+            # Unexpected token
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+        end
+
+        # Phase 15: Continue parsing tuple literal after first element
+        private def parse_tuple_literal_continued(lbrace : Token, first_elem : ExprId) : ExprId
+          elements = [first_elem]
+
+          # Check for comma or closing brace
+          loop do
+            case current_token.kind
+            when Token::Kind::RBrace
+              # End of tuple
+              break
+            when Token::Kind::Comma
+              advance  # consume comma
+              skip_trivia
+
+              # Allow trailing comma
+              if current_token.kind == Token::Kind::RBrace
+                break
+              end
+
+              # Parse next element
+              elem = parse_expression(0)
+              return PREFIX_ERROR if elem.invalid?
+              elements << elem
+              skip_trivia
+            else
+              emit_unexpected(current_token)
+              return PREFIX_ERROR
+            end
+          end
+
+          # Expect closing brace
+          unless current_token.kind == Token::Kind::RBrace
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+
+          closing_brace = current_token
+          advance
+
+          tuple_span = lbrace.span.cover(closing_brace.span)
+          @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::TupleLiteral,
+            tuple_span,
+            tuple_elements: elements
+          ))
+        end
+
+        # Phase 14: Parse empty hash literal
+        private def parse_hash_literal_from_lbrace(lbrace : Token) : ExprId
+          # Current token is RBrace
+          advance  # consume }
+          skip_trivia
+
+          entries = [] of HashEntry
+          of_key_type : Slice(UInt8)? = nil
+          of_value_type : Slice(UInt8)? = nil
+
+          # Check for "of K => V" syntax
+          if current_token.kind == Token::Kind::Identifier && token_text(current_token) == "of"
+            advance
+            skip_trivia
+
+            # Parse key type
+            key_type_token = current_token
+            if key_type_token.kind == Token::Kind::Identifier
+              of_key_type = key_type_token.slice
+              advance
+              skip_trivia
+
+              # Expect =>
+              unless current_token.kind == Token::Kind::Arrow
+                emit_unexpected(current_token)
+                return PREFIX_ERROR
+              end
+              advance  # consume =>
+              skip_trivia
+
+              # Parse value type
+              value_type_token = current_token
+              if value_type_token.kind == Token::Kind::Identifier
+                of_value_type = value_type_token.slice
+                advance
+              else
+                emit_unexpected(value_type_token)
+                return PREFIX_ERROR
+              end
+            else
+              emit_unexpected(key_type_token)
+              return PREFIX_ERROR
+            end
+          end
+
+          # Use lbrace span as start, current as end (after "of K => V" if present)
+          closing_span = lbrace.span.cover(lbrace.span)  # Minimal span for now
+          @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::HashLiteral,
+            closing_span,
+            hash_entries: entries,
+            hash_of_key_type: of_key_type,
+            hash_of_value_type: of_value_type
+          ))
+        end
+
+        # Phase 14: Continue parsing hash literal after first key
+        private def parse_hash_literal_continued(lbrace : Token, first_key : ExprId) : ExprId
+          # Current token should be Arrow
+          unless current_token.kind == Token::Kind::Arrow
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          arrow_token = current_token
+          advance  # consume =>
+          skip_trivia
+
+          # Parse first value
+          first_value = parse_expression(0)
+          return PREFIX_ERROR if first_value.invalid?
+
+          key_span = node_span(first_key)
+          value_span = node_span(first_value)
+          entry_span = key_span.cover(value_span)
+          skip_trivia
+
+          entries = [HashEntry.new(first_key, first_value, entry_span, arrow_token.span)]
+
+          # Parse remaining entries
+          loop do
+            unless current_token.kind == Token::Kind::Comma
+              break
+            end
+
+            advance  # consume comma
+            skip_trivia
+
+            # Allow trailing comma
+            if current_token.kind == Token::Kind::RBrace
+              break
+            end
+
+            # Parse key
+            key = parse_expression(0)
+            return PREFIX_ERROR if key.invalid?
+            key_span = node_span(key)
+            skip_trivia
+
+            # Expect =>
+            unless current_token.kind == Token::Kind::Arrow
+              emit_unexpected(current_token)
+              return PREFIX_ERROR
+            end
+            arrow_token = current_token
+            advance  # consume =>
+            skip_trivia
+
+            # Parse value
+            value = parse_expression(0)
+            return PREFIX_ERROR if value.invalid?
+            value_span = node_span(value)
+            entry_span = key_span.cover(value_span)
+            skip_trivia
+
+            entries << HashEntry.new(key, value, entry_span, arrow_token.span)
+          end
+
+          # Expect closing brace
+          unless current_token.kind == Token::Kind::RBrace
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+
+          closing_brace = current_token
+          advance
+
+          hash_span = lbrace.span.cover(closing_brace.span)
+          @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::HashLiteral,
+            hash_span,
+            hash_entries: entries
           ))
         end
 
@@ -1931,21 +2150,21 @@ module CrystalGPT5
 
         private def macro_expression_start?
           current = current_token
-          return false unless current.kind == Token::Kind::Operator && token_text(current) == "{"
+          return false unless current.kind == Token::Kind::LBrace
           peek = peek_token
-          peek.kind == Token::Kind::Operator && token_text(peek) == "{"
+          peek.kind == Token::Kind::LBrace
         end
 
         private def macro_expression_left_trim?
           second = peek_token(1)
           third = peek_token(2)
-          second.kind == Token::Kind::Operator && token_text(second) == "{" &&
+          second.kind == Token::Kind::LBrace &&
             third.kind == Token::Kind::Operator && token_text(third) == "-"
         end
 
         private def macro_control_start?
           current = current_token
-          return false unless current.kind == Token::Kind::Operator && token_text(current) == "{"
+          return false unless current.kind == Token::Kind::LBrace
           peek = peek_token
           peek.kind == Token::Kind::Operator && token_text(peek) == "%"
         end

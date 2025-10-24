@@ -2655,4 +2655,109 @@ describe TypeInferenceEngine do
       engine.diagnostics.first.message.should contain("Cannot index")
     end
   end
+
+  describe "Phase 15: Tuples" do
+    it "infers heterogeneous tuple type" do
+      source = <<-CRYSTAL
+        t = {1, "hello", true}
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      # Get assignment
+      assign_node = program.arena[program.roots[0]]
+      assign_node.kind.should eq(ExpressionNode::Kind::Assign)
+
+      # Get tuple literal
+      tuple_id = assign_node.assign_value.not_nil!
+      tuple_type = engine.context.get_type(tuple_id)
+
+      # Check it's a TupleType
+      tuple_type.should be_a(TupleType)
+      tuple_type = tuple_type.as(TupleType)
+
+      # Check element types
+      tuple_type.element_types.size.should eq(3)
+      tuple_type.element_types[0].should be_a(PrimitiveType)
+      tuple_type.element_types[0].as(PrimitiveType).name.should eq("Int32")
+      tuple_type.element_types[1].should be_a(PrimitiveType)
+      tuple_type.element_types[1].as(PrimitiveType).name.should eq("String")
+      tuple_type.element_types[2].should be_a(PrimitiveType)
+      tuple_type.element_types[2].as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "infers homogeneous tuple type" do
+      source = <<-CRYSTAL
+        t = {1, 2, 3}
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      assign_node = program.arena[program.roots[0]]
+      tuple_id = assign_node.assign_value.not_nil!
+      tuple_type = engine.context.get_type(tuple_id).as(TupleType)
+
+      tuple_type.element_types.size.should eq(3)
+      tuple_type.element_types.all? { |t| t.as(PrimitiveType).name == "Int32" }.should be_true
+    end
+
+    it "supports tuple indexing with literal" do
+      source = <<-CRYSTAL
+        t = {1, "hello", true}
+        x = t[0]
+        y = t[1]
+        z = t[2]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # x = t[0] should be Int32
+      x_assign = program.arena[program.roots[1]]
+      x_value_id = x_assign.assign_value.not_nil!
+      x_type = engine.context.get_type(x_value_id)
+      x_type.should be_a(PrimitiveType)
+      x_type.as(PrimitiveType).name.should eq("Int32")
+
+      # y = t[1] should be String
+      y_assign = program.arena[program.roots[2]]
+      y_value_id = y_assign.assign_value.not_nil!
+      y_type = engine.context.get_type(y_value_id)
+      y_type.should be_a(PrimitiveType)
+      y_type.as(PrimitiveType).name.should eq("String")
+
+      # z = t[2] should be Bool
+      z_assign = program.arena[program.roots[3]]
+      z_value_id = z_assign.assign_value.not_nil!
+      z_type = engine.context.get_type(z_value_id)
+      z_type.should be_a(PrimitiveType)
+      z_type.as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "emits error for tuple index out of bounds" do
+      source = <<-CRYSTAL
+        t = {1, 2}
+        x = t[5]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      engine.diagnostics.size.should be > 0
+      engine.diagnostics.first.message.should contain("out of bounds")
+    end
+
+    it "handles nested tuples" do
+      source = <<-CRYSTAL
+        t = {1, {2, 3}}
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      assign_node = program.arena[program.roots[0]]
+      tuple_id = assign_node.assign_value.not_nil!
+      tuple_type = engine.context.get_type(tuple_id).as(TupleType)
+
+      tuple_type.element_types.size.should eq(2)
+      tuple_type.element_types[0].should be_a(PrimitiveType)
+      tuple_type.element_types[1].should be_a(TupleType)
+
+      nested = tuple_type.element_types[1].as(TupleType)
+      nested.element_types.size.should eq(2)
+    end
+  end
 end

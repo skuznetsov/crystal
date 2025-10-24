@@ -7,6 +7,7 @@ require "./types/union_type"
 require "./types/array_type"
 require "./types/range_type"
 require "./types/hash_type"
+require "./types/tuple_type"
 require "./analyzer"
 require "../frontend/ast"
 
@@ -121,6 +122,9 @@ module CrystalGPT5
           when .hash_literal?
             # Phase 14: Hash literals
             infer_hash_literal(node, expr_id)
+          when .tuple_literal?
+            # Phase 15: Tuple literals
+            infer_tuple_literal(node, expr_id)
           when .grouping?
             # Grouping expressions: (expr)
             # Type is the type of the wrapped expression
@@ -679,8 +683,33 @@ module CrystalGPT5
             value_type = target_type.value_type
             # Type will be set by infer_expression
             value_type
+          # Phase 15: Tuple indexing
+          elsif target_type.is_a?(TupleType)
+            # Tuple indexing requires compile-time constant index
+            # For now, support only integer literals
+            index_node = @program.arena[index_id]
+            if index_node.kind == ExpressionNode::Kind::Number
+              # Parse literal index
+              index_text = index_node.literal_string
+              if index_text
+                index_value = index_text.to_i32? || 0
+                # Get type at specific index
+                if elem_type = target_type.type_at(index_value)
+                  elem_type
+                else
+                  emit_error("Tuple index #{index_value} out of bounds (size: #{target_type.size})", expr_id)
+                  @context.nil_type
+                end
+              else
+                emit_error("Invalid tuple index literal", expr_id)
+                @context.nil_type
+              end
+            else
+              emit_error("Tuple indexing requires compile-time constant integer", expr_id)
+              @context.nil_type
+            end
           else
-            # Not an array or hash - emit error
+            # Not an array, hash, or tuple - emit error
             emit_error("Cannot index type #{target_type}", expr_id)
             @context.nil_type
           end
@@ -1349,6 +1378,27 @@ module CrystalGPT5
 
           hash_type = HashType.new(final_key_type, final_value_type)
           hash_type
+        end
+
+        # ============================================================
+        # PHASE 15: Tuple Literals
+        # ============================================================
+
+        private def infer_tuple_literal(node, expr_id : ExprId) : Type
+          # Type will be set by infer_expression
+          elements = node.tuple_elements
+
+          # Empty tuple (shouldn't happen, but handle gracefully)
+          if elements.nil? || elements.empty?
+            return TupleType.new([] of Type)
+          end
+
+          # Infer type of each element
+          element_types = elements.map { |elem_id| infer_expression(elem_id) }
+
+          # Create Tuple(T1, T2, ..., Tn) type
+          tuple_type = TupleType.new(element_types)
+          tuple_type
         end
 
         # ============================================================

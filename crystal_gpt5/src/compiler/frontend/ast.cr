@@ -146,6 +146,7 @@ module CrystalGPT5
           Next   # Phase 12: next
           Range  # Phase 13: range literals (1..10, 1...10)
           HashLiteral  # Phase 14: hash literals {"k"=>v}
+          TupleLiteral  # Phase 15: tuple literals {1, 2, 3}
         end
 
         getter kind : Kind
@@ -198,6 +199,7 @@ module CrystalGPT5
         getter hash_entries : Array(HashEntry)?  # Phase 14: hash key-value pairs
         getter hash_of_key_type : Slice(UInt8)?  # Phase 14: explicit key type for {} of K => V
         getter hash_of_value_type : Slice(UInt8)?  # Phase 14: explicit value type for {} of K => V
+        getter tuple_elements : Array(ExprId)?  # Phase 15: tuple literal elements
 
         def initialize(
           @kind : Kind,
@@ -249,6 +251,7 @@ module CrystalGPT5
           @hash_entries : Array(HashEntry)? = nil,
           @hash_of_key_type : Slice(UInt8)? = nil,
           @hash_of_value_type : Slice(UInt8)? = nil,
+          @tuple_elements : Array(ExprId)? = nil,
         )
         end
 

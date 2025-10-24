@@ -302,9 +302,10 @@ module CrystalGPT5
             Token::Kind::Semicolon
           when ':'.ord.to_u8
             Token::Kind::Colon
-          when '{'.ord.to_u8, '}'.ord.to_u8
-            # Keep {} as generic Operator for macro parsing compatibility
-            Token::Kind::Operator
+          when '{'.ord.to_u8
+            Token::Kind::LBrace
+          when '}'.ord.to_u8
+            Token::Kind::RBrace
           when '<'.ord.to_u8
             # Check for << or <=
             if @offset < @rope.size
