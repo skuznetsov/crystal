@@ -74,6 +74,7 @@ module CrystalGPT5
           # Logical operators
           AndAnd      # &&
           OrOr        # ||
+          Not         # ! (Phase 17: logical not)
 
           # Grouping and delimiters
           LParen      # (

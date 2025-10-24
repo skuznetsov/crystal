@@ -2850,4 +2850,139 @@ describe TypeInferenceEngine do
       body_type.as(PrimitiveType).name.should eq("Symbol")
     end
   end
+
+  # Phase 17: Unary Operators
+  describe "Phase 17: Unary Operators" do
+    it "infers Bool type for logical not on bool" do
+      source = <<-CRYSTAL
+        x = true
+        y = !x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get the second assignment (y = !x)
+      assign_node = program.arena[program.roots[1]]
+      not_expr_id = assign_node.assign_value.not_nil!
+      not_type = engine.context.get_type(not_expr_id)
+
+      not_type.should be_a(PrimitiveType)
+      not_type.as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "infers Bool type for logical not on nil" do
+      source = <<-CRYSTAL
+        x = nil
+        y = !x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      not_expr_id = assign_node.assign_value.not_nil!
+      not_type = engine.context.get_type(not_expr_id)
+
+      not_type.should be_a(PrimitiveType)
+      not_type.as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "infers Bool type for logical not on number" do
+      source = <<-CRYSTAL
+        x = 42
+        y = !x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      not_expr_id = assign_node.assign_value.not_nil!
+      not_type = engine.context.get_type(not_expr_id)
+
+      not_type.should be_a(PrimitiveType)
+      not_type.as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "infers Bool type for logical not on string" do
+      source = <<-CRYSTAL
+        x = "hello"
+        y = !x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      not_expr_id = assign_node.assign_value.not_nil!
+      not_type = engine.context.get_type(not_expr_id)
+
+      not_type.should be_a(PrimitiveType)
+      not_type.as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "infers correct type for unary minus on number" do
+      source = <<-CRYSTAL
+        x = 42
+        y = -x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      neg_expr_id = assign_node.assign_value.not_nil!
+      neg_type = engine.context.get_type(neg_expr_id)
+
+      neg_type.should be_a(PrimitiveType)
+      neg_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers correct type for unary plus on number" do
+      source = <<-CRYSTAL
+        x = 3.14_f64
+        y = +x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      plus_expr_id = assign_node.assign_value.not_nil!
+      plus_type = engine.context.get_type(plus_expr_id)
+
+      plus_type.should be_a(PrimitiveType)
+      plus_type.as(PrimitiveType).name.should eq("Float64")
+    end
+
+    it "handles double negation" do
+      source = <<-CRYSTAL
+        x = true
+        y = !!x
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[1]]
+      double_not_id = assign_node.assign_value.not_nil!
+      double_not_type = engine.context.get_type(double_not_id)
+
+      double_not_type.should be_a(PrimitiveType)
+      double_not_type.as(PrimitiveType).name.should eq("Bool")
+    end
+
+    it "handles logical not in conditional" do
+      source = <<-CRYSTAL
+        x = false
+        if !x
+          y = 1
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Get the if statement
+      if_node = program.arena[program.roots[1]]
+      condition_id = if_node.if_condition.not_nil!
+      condition_type = engine.context.get_type(condition_id)
+
+      condition_type.should be_a(PrimitiveType)
+      condition_type.as(PrimitiveType).name.should eq("Bool")
+    end
+  end
 end

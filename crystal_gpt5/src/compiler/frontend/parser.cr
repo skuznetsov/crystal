@@ -1329,7 +1329,7 @@ module CrystalGPT5
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Symbol, token.span, literal: token.slice))
             advance
             id
-          when Token::Kind::Plus, Token::Kind::Minus
+          when Token::Kind::Plus, Token::Kind::Minus, Token::Kind::Not
             # Unary operators
             op = token
             advance
@@ -2441,7 +2441,7 @@ module CrystalGPT5
           Token::Kind::Slash     => 20,  # Division
         }
 
-        UNARY_OPERATORS = [Token::Kind::Plus, Token::Kind::Minus]
+        UNARY_OPERATORS = [Token::Kind::Plus, Token::Kind::Minus, Token::Kind::Not]
       end
     end
   end

@@ -80,6 +80,9 @@ module CrystalGPT5
             infer_identifier(node, expr_id)
           when .instance_var?
             infer_instance_var(node, expr_id)
+          when .unary?
+            # Phase 17: Unary operators (+x, -x, !x)
+            infer_unary(node, expr_id)
           when .binary?
             infer_binary(node, expr_id)
           when .def?
@@ -385,6 +388,44 @@ module CrystalGPT5
           end
 
           # Type will be set by infer_expression
+          result_type
+        end
+
+        # Phase 17: Unary operator type inference
+        private def infer_unary(node, expr_id : ExprId) : Type
+          # Unary node has right (operand) and operator fields
+          operand_id = node.right
+          return @context.nil_type unless operand_id
+
+          operand_type = infer_expression(operand_id)
+          op = node.operator_string || ""
+
+          result_type = case op
+          when "!"
+            # Logical not: always returns Bool
+            # In Crystal: nil and false are falsy, everything else is truthy
+            @context.bool_type
+          when "+"
+            # Unary plus: identity for numeric types
+            if numeric_type?(operand_type)
+              operand_type
+            else
+              emit_error("Unary '+' not defined for #{operand_type}", expr_id)
+              @context.nil_type
+            end
+          when "-"
+            # Unary minus: negation for numeric types
+            if numeric_type?(operand_type)
+              operand_type
+            else
+              emit_error("Unary '-' not defined for #{operand_type}", expr_id)
+              @context.nil_type
+            end
+          else
+            emit_error("Unknown unary operator '#{op}'", expr_id)
+            @context.nil_type
+          end
+
           result_type
         end
 

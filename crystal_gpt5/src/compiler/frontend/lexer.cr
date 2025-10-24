@@ -392,8 +392,8 @@ module CrystalGPT5
               advance
               Token::Kind::NotEq
             else
-              # Standalone ! - use generic Operator for now
-              Token::Kind::Operator
+              # Phase 17: Logical not operator
+              Token::Kind::Not
             end
           when '&'.ord.to_u8
             # Check for &&
