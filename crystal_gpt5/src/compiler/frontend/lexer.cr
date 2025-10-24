@@ -31,6 +31,9 @@ module CrystalGPT5
             lex_newline
           when byte == AT_SIGN
             lex_instance_var
+          when byte == COLON
+            # Phase 16: Check if this is a symbol literal
+            lex_symbol_or_colon
           when identifier_start?(byte)
             lex_identifier
           when ascii_number?(byte)
@@ -165,6 +168,43 @@ module CrystalGPT5
 
           Token.new(
             Token::Kind::InstanceVar,
+            @rope.bytes[from...@offset],
+            build_span(start_offset, start_line, start_column)
+          )
+        end
+
+        # Phase 16: Lex symbol literal or colon
+        # :identifier → Symbol token with slice ":identifier"
+        # : (not followed by identifier) → Colon token
+        private def lex_symbol_or_colon
+          start_offset, start_line, start_column = capture_position
+          from = @offset
+
+          # Consume :
+          advance
+
+          # Check if followed by identifier start
+          if @offset >= @rope.size || !identifier_start?(current_byte)
+            # Just a colon (for type annotations)
+            return Token.new(
+              Token::Kind::Colon,
+              @rope.bytes[from...@offset],
+              build_span(start_offset, start_line, start_column)
+            )
+          end
+
+          # Read identifier part
+          while @offset < @rope.size && identifier_char?(current_byte)
+            advance
+          end
+
+          # Symbols can have suffix (?, !)
+          if @offset < @rope.size && identifier_suffix?(current_byte)
+            advance
+          end
+
+          Token.new(
+            Token::Kind::Symbol,
             @rope.bytes[from...@offset],
             build_span(start_offset, start_line, start_column)
           )
@@ -434,6 +474,7 @@ module CrystalGPT5
         EXCLAMATION  = '!'.ord.to_u8
         AT_SIGN      = '@'.ord.to_u8
         LEFT_BRACE   = '{'.ord.to_u8  # Phase 8: for interpolation detection
+        COLON        = ':'.ord.to_u8  # Phase 16: for symbol literals
 
         private def build_span(start_offset, start_line, start_column)
           Span.new(

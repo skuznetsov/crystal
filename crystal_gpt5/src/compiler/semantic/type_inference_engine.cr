@@ -67,6 +67,9 @@ module CrystalGPT5
             infer_string(node)
           when .string_interpolation?
             infer_string_interpolation(node, expr_id)
+          when .symbol?
+            # Phase 16: Symbol literals
+            infer_symbol(node)
           when .array_literal?
             infer_array_literal(node, expr_id)
           when .bool?
@@ -161,6 +164,11 @@ module CrystalGPT5
 
         private def infer_string(node) : Type
           @context.string_type
+        end
+
+        # Phase 16: Symbol literal type inference
+        private def infer_symbol(node) : Type
+          @context.symbol_type
         end
 
         private def infer_bool(node) : Type

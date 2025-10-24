@@ -1324,6 +1324,11 @@ module CrystalGPT5
           when Token::Kind::StringInterpolation
             # Phase 8: String interpolation
             parse_string_interpolation(token)
+          when Token::Kind::Symbol
+            # Phase 16: Symbol literal
+            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Symbol, token.span, literal: token.slice))
+            advance
+            id
           when Token::Kind::Plus, Token::Kind::Minus
             # Unary operators
             op = token

@@ -147,6 +147,7 @@ module CrystalGPT5
           Range  # Phase 13: range literals (1..10, 1...10)
           HashLiteral  # Phase 14: hash literals {"k"=>v}
           TupleLiteral  # Phase 15: tuple literals {1, 2, 3}
+          Symbol  # Phase 16: symbol literals :hello
         end
 
         getter kind : Kind

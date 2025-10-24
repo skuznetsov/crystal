@@ -24,6 +24,7 @@ module CrystalGPT5
           Number
           String
           StringInterpolation  # Phase 8: "text #{expr} text"
+          Symbol  # Phase 16: :symbol
 
           # Keywords
           If

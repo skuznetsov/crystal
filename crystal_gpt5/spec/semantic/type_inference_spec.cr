@@ -2760,4 +2760,94 @@ describe TypeInferenceEngine do
       nested.element_types.size.should eq(2)
     end
   end
+
+  # Phase 16: Symbol Literals
+  describe "Phase 16: Symbols" do
+    it "infers Symbol type for symbol literal" do
+      source = <<-CRYSTAL
+        s = :hello
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      assign_node = program.arena[program.roots[0]]
+      symbol_id = assign_node.assign_value.not_nil!
+      symbol_type = engine.context.get_type(symbol_id)
+
+      symbol_type.should be_a(PrimitiveType)
+      symbol_type.as(PrimitiveType).name.should eq("Symbol")
+    end
+
+    it "handles symbols with underscores and numbers" do
+      source = <<-CRYSTAL
+        s1 = :hello_world
+        s2 = :var123
+        s3 = :_private
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # Check each symbol assignment
+      [0, 1, 2].each do |i|
+        assign_node = program.arena[program.roots[i]]
+        symbol_id = assign_node.assign_value.not_nil!
+        symbol_type = engine.context.get_type(symbol_id)
+
+        symbol_type.should be_a(PrimitiveType)
+        symbol_type.as(PrimitiveType).name.should eq("Symbol")
+      end
+    end
+
+    it "infers symbols as hash keys" do
+      source = <<-CRYSTAL
+        h = {:name => "Alice", :age => 30}
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      assign_node = program.arena[program.roots[0]]
+      hash_id = assign_node.assign_value.not_nil!
+      hash_type = engine.context.get_type(hash_id).as(HashType)
+
+      # Key type should be Symbol
+      hash_type.key_type.should be_a(PrimitiveType)
+      hash_type.key_type.as(PrimitiveType).name.should eq("Symbol")
+
+      # Value type should be String | Int32
+      hash_type.value_type.should be_a(UnionType)
+    end
+
+    it "handles symbols in arrays" do
+      source = <<-CRYSTAL
+        arr = [:foo, :bar, :baz]
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+      assign_node = program.arena[program.roots[0]]
+      array_id = assign_node.assign_value.not_nil!
+      array_type = engine.context.get_type(array_id).as(ArrayType)
+
+      array_type.element_type.should be_a(PrimitiveType)
+      array_type.element_type.as(PrimitiveType).name.should eq("Symbol")
+    end
+
+    it "distinguishes colon from symbol" do
+      source = <<-CRYSTAL
+        def foo(x : Int32)
+          :result
+        end
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      # The method definition should be parsed correctly
+      # (colon used for type annotation, not symbol)
+      def_node = program.arena[program.roots[0]]
+      def_node.kind.should eq(ExpressionNode::Kind::Def)
+
+      # Method body contains symbol
+      body_expr_id = def_node.def_body.not_nil![0]
+      body_type = engine.context.get_type(body_expr_id)
+      body_type.should be_a(PrimitiveType)
+      body_type.as(PrimitiveType).name.should eq("Symbol")
+    end
+  end
 end
