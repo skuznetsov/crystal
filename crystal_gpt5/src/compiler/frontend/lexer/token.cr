@@ -52,6 +52,7 @@ module CrystalGPT5
           Minus       # -
           Star        # *
           Slash       # /
+          Percent     # % (Phase 18: modulo)
 
           # Comparison operators
           Less        # <

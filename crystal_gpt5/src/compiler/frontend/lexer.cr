@@ -328,6 +328,9 @@ module CrystalGPT5
             Token::Kind::Star
           when '/'.ord.to_u8
             Token::Kind::Slash
+          when '%'.ord.to_u8
+            # Phase 18: Modulo operator
+            Token::Kind::Percent
           when '('.ord.to_u8
             Token::Kind::LParen
           when ')'.ord.to_u8

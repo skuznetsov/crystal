@@ -2985,4 +2985,91 @@ describe TypeInferenceEngine do
       condition_type.as(PrimitiveType).name.should eq("Bool")
     end
   end
+
+  # Phase 18: Modulo Operator
+  describe "Phase 18: Modulo Operator" do
+    it "infers Int32 for integer modulo" do
+      source = <<-CRYSTAL
+        x = 10 % 3
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      mod_expr_id = assign_node.assign_value.not_nil!
+      mod_type = engine.context.get_type(mod_expr_id)
+
+      mod_type.should be_a(PrimitiveType)
+      mod_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "infers Float64 for float modulo" do
+      source = <<-CRYSTAL
+        x = 7.5_f64 % 2.5_f64
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      mod_expr_id = assign_node.assign_value.not_nil!
+      mod_type = engine.context.get_type(mod_expr_id)
+
+      mod_type.should be_a(PrimitiveType)
+      mod_type.as(PrimitiveType).name.should eq("Float64")
+    end
+
+    it "handles modulo with variables" do
+      source = <<-CRYSTAL
+        a = 17
+        b = 5
+        c = a % b
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[2]]
+      mod_expr_id = assign_node.assign_value.not_nil!
+      mod_type = engine.context.get_type(mod_expr_id)
+
+      mod_type.should be_a(PrimitiveType)
+      mod_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "handles modulo in expression" do
+      source = <<-CRYSTAL
+        x = (10 % 3) + 1
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      add_expr_id = assign_node.assign_value.not_nil!
+      add_type = engine.context.get_type(add_expr_id)
+
+      add_type.should be_a(PrimitiveType)
+      add_type.as(PrimitiveType).name.should eq("Int32")
+    end
+
+    it "respects operator precedence for modulo" do
+      source = <<-CRYSTAL
+        x = 10 + 7 % 3
+      CRYSTAL
+
+      program, analyzer, engine = infer_types(source)
+
+      assign_node = program.arena[program.roots[0]]
+      expr_id = assign_node.assign_value.not_nil!
+      expr_node = program.arena[expr_id]
+
+      # Should parse as 10 + (7 % 3), not (10 + 7) % 3
+      expr_node.kind.should eq(ExpressionNode::Kind::Binary)
+      expr_node.operator_string.should eq("+")
+
+      # Right side should be modulo
+      right_id = expr_node.right.not_nil!
+      right_node = program.arena[right_id]
+      right_node.kind.should eq(ExpressionNode::Kind::Binary)
+      right_node.operator_string.should eq("%")
+    end
+  end
 end
