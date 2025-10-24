@@ -1368,8 +1368,8 @@ module CrystalGPT5
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Symbol, token.span, literal: token.slice))
             advance
             id
-          when Token::Kind::Plus, Token::Kind::Minus, Token::Kind::Not
-            # Unary operators
+          when Token::Kind::Plus, Token::Kind::Minus, Token::Kind::Not, Token::Kind::Tilde
+            # Unary operators (Phase 21: added Tilde for bitwise NOT)
             op = token
             advance
             right = parse_expression(UNARY_PRECEDENCE)
@@ -2467,6 +2467,9 @@ module CrystalGPT5
           Token::Kind::AndAnd    => 4,   # Logical AND
           Token::Kind::DotDot    => 5,   # Inclusive range (Phase 13)
           Token::Kind::DotDotDot => 5,   # Exclusive range (Phase 13)
+          Token::Kind::Pipe      => 6,   # Bitwise OR (Phase 21)
+          Token::Kind::Caret     => 6,   # Bitwise XOR (Phase 21)
+          Token::Kind::Amp       => 6,   # Bitwise AND (Phase 21)
           Token::Kind::EqEq      => 7,   # Equality
           Token::Kind::NotEq     => 7,   # Inequality
           Token::Kind::Less      => 7,   # Less than
@@ -2482,7 +2485,7 @@ module CrystalGPT5
           Token::Kind::StarStar  => 25,  # Exponentiation (Phase 19, highest precedence)
         }
 
-        UNARY_OPERATORS = [Token::Kind::Plus, Token::Kind::Minus, Token::Kind::Not]
+        UNARY_OPERATORS = [Token::Kind::Plus, Token::Kind::Minus, Token::Kind::Not, Token::Kind::Tilde]
       end
     end
   end

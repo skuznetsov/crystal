@@ -442,8 +442,8 @@ module CrystalGPT5
               advance
               Token::Kind::AndAnd
             else
-              # Standalone & - use generic Operator for now
-              Token::Kind::Operator
+              # Phase 21: Bitwise AND
+              Token::Kind::Amp
             end
           when '|'.ord.to_u8
             # Check for ||
@@ -451,9 +451,15 @@ module CrystalGPT5
               advance
               Token::Kind::OrOr
             else
-              # Standalone | - use generic Operator for now
-              Token::Kind::Operator
+              # Phase 21: Bitwise OR
+              Token::Kind::Pipe
             end
+          when '^'.ord.to_u8
+            # Phase 21: Bitwise XOR
+            Token::Kind::Caret
+          when '~'.ord.to_u8
+            # Phase 21: Bitwise NOT
+            Token::Kind::Tilde
           when '.'.ord.to_u8
             # Check for .. and ...
             if @offset < @rope.size && current_byte == '.'.ord.to_u8

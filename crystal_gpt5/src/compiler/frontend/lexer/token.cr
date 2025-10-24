@@ -78,6 +78,12 @@ module CrystalGPT5
           OrOr        # ||
           Not         # ! (Phase 17: logical not)
 
+          # Bitwise operators (Phase 21)
+          Amp         # & (bitwise AND)
+          Pipe        # | (bitwise OR)
+          Caret       # ^ (bitwise XOR)
+          Tilde       # ~ (bitwise NOT)
+
           # Grouping and delimiters
           LParen      # (
           RParen      # )

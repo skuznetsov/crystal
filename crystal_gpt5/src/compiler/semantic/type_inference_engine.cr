@@ -343,8 +343,8 @@ module CrystalGPT5
           op = node.operator_string || ""
 
           result_type = case op
-          when "+", "-", "*", "/", "%", "**", "<<"
-            # Phase 4B.3/4B.5/18/19: Try method lookup first for built-in methods
+          when "+", "-", "*", "/", "%", "**", "<<", "&", "|", "^"
+            # Phase 4B.3/4B.5/18/19/21: Try method lookup first for built-in methods
             if method = lookup_method(left_type, op, [right_type])
               if ann = method.return_annotation
                 parse_type_name(ann)
@@ -419,6 +419,14 @@ module CrystalGPT5
               operand_type
             else
               emit_error("Unary '-' not defined for #{operand_type}", expr_id)
+              @context.nil_type
+            end
+          when "~"
+            # Phase 21: Bitwise NOT for integer types
+            if numeric_type?(operand_type)
+              operand_type
+            else
+              emit_error("Bitwise '~' not defined for #{operand_type}", expr_id)
               @context.nil_type
             end
           else
