@@ -53,6 +53,12 @@ module CrystalGPT5
                 when Token::Kind::Abstract
                   # Phase 36: abstract class/def
                   parse_abstract
+                when Token::Kind::Private
+                  # Phase 37: private def
+                  parse_private
+                when Token::Kind::Protected
+                  # Phase 37: protected def
+                  parse_protected
                 else
                   PREFIX_ERROR
                 end
@@ -259,7 +265,7 @@ module CrystalGPT5
 
         private def definition_start?
           token = current_token
-          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Abstract
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Abstract || token.kind == Token::Kind::Private || token.kind == Token::Kind::Protected
         end
 
         # Phase 35: Check if identifier is a constant (uppercase first letter)
@@ -314,7 +320,8 @@ module CrystalGPT5
         end
 
         # Phase 36: Modified to support abstract modifier
-        private def parse_def(is_abstract : Bool = false) : ExprId
+        # Phase 37: Modified to support visibility modifier
+        private def parse_def(is_abstract : Bool = false, visibility : Visibility? = nil) : ExprId
           def_token = current_token
           advance
           skip_trivia
@@ -386,6 +393,7 @@ module CrystalGPT5
               def_return_type: return_type,
               def_body: body_ids,
               def_is_abstract: is_abstract,
+              def_visibility: visibility,
             )
           )
         end
@@ -1733,6 +1741,10 @@ module CrystalGPT5
                   parse_alias
                 when Token::Kind::Abstract
                   parse_abstract
+                when Token::Kind::Private
+                  parse_private
+                when Token::Kind::Protected
+                  parse_protected
                 else
                   # Phase 5B: Use parse_statement for assignments
                   parse_statement
@@ -1792,6 +1804,40 @@ module CrystalGPT5
             parse_class(is_struct: true, is_abstract: true)
           when Token::Kind::Def
             parse_def(is_abstract: true)
+          else
+            emit_unexpected(current_token)
+            PREFIX_ERROR
+          end
+        end
+
+        # Phase 37: Parse private visibility modifier
+        # Grammar: private def method_name
+        private def parse_private : ExprId
+          private_token = current_token
+          advance
+          skip_trivia
+
+          # Currently only support private methods
+          case current_token.kind
+          when Token::Kind::Def
+            parse_def(visibility: Visibility::Private)
+          else
+            emit_unexpected(current_token)
+            PREFIX_ERROR
+          end
+        end
+
+        # Phase 37: Parse protected visibility modifier
+        # Grammar: protected def method_name
+        private def parse_protected : ExprId
+          protected_token = current_token
+          advance
+          skip_trivia
+
+          # Currently only support protected methods
+          case current_token.kind
+          when Token::Kind::Def
+            parse_def(visibility: Visibility::Protected)
           else
             emit_unexpected(current_token)
             PREFIX_ERROR
@@ -1980,6 +2026,10 @@ module CrystalGPT5
                   parse_alias
                 when Token::Kind::Abstract
                   parse_abstract
+                when Token::Kind::Private
+                  parse_private
+                when Token::Kind::Protected
+                  parse_protected
                 else
                   parse_statement
                 end

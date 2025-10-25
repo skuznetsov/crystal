@@ -144,6 +144,8 @@ module CrystalGPT5
           when "enum" then Token::Kind::Enum  # Phase 33
           when "alias" then Token::Kind::Alias  # Phase 34
           when "abstract" then Token::Kind::Abstract  # Phase 36
+          when "private" then Token::Kind::Private  # Phase 37
+          when "protected" then Token::Kind::Protected  # Phase 37
           else
             Token::Kind::Identifier
           end

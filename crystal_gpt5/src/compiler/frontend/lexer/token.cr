@@ -62,6 +62,8 @@ module CrystalGPT5
           Enum  # Phase 33: enum definition
           Alias  # Phase 34: type alias
           Abstract  # Phase 36: abstract modifier
+          Private  # Phase 37: private visibility
+          Protected  # Phase 37: protected visibility
 
           # Arithmetic operators
           Plus        # +

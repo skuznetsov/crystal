@@ -34,6 +34,13 @@ module CrystalGPT5
         end
       end
 
+      # Phase 37: Visibility modifier for methods
+      enum Visibility
+        Public
+        Private
+        Protected
+      end
+
       # Represents an elsif branch in an if expression
       #
       # For production compiler with IDE support, we track:
@@ -264,6 +271,7 @@ module CrystalGPT5
         getter class_is_struct : Bool?  # Phase 32: true for struct, false/nil for class
         getter class_is_abstract : Bool?  # Phase 36: true for abstract class
         getter def_is_abstract : Bool?  # Phase 36: true for abstract method
+        getter def_visibility : Visibility?  # Phase 37: nil = public (default)
         getter if_condition : ExprId?
         getter if_then : Array(ExprId)?
         getter if_elsifs : Array(ElsifBranch)?
@@ -339,6 +347,7 @@ module CrystalGPT5
           @class_is_struct : Bool? = nil,
           @class_is_abstract : Bool? = nil,
           @def_is_abstract : Bool? = nil,
+          @def_visibility : Visibility? = nil,
           @if_condition : ExprId? = nil,
           @if_then : Array(ExprId)? = nil,
           @if_elsifs : Array(ElsifBranch)? = nil,
