@@ -112,6 +112,58 @@ module CrystalGPT5
         end
       end
 
+      # Represents an accessor specification (getter/setter/property)
+      #
+      # Phase 30: Accessor macros (PRODUCTION-READY)
+      # For production compiler with IDE support, we track:
+      # - name: Accessor name (e.g., "name", "age")
+      # - type_annotation: Optional type (e.g., "String", "Int32", nil)
+      # - default_value: Optional default value expression
+      # - span: Full accessor span ("name : String = value")
+      # - name_span: Just name ("name") for rename refactoring
+      # - type_span: Just type ("String") for hover, optional like type_annotation
+      #
+      # Examples:
+      #   getter name              → AccessorSpec("name", nil, nil, ...)
+      #   getter name : String     → AccessorSpec("name", "String", nil, ...)
+      #   getter name = "default"  → AccessorSpec("name", nil, default_expr_id, ...)
+      #   getter name : String = "default" → AccessorSpec("name", "String", default_expr_id, ...)
+      struct AccessorSpec
+        getter name : String
+        getter type_annotation : String?
+        getter default_value : ExprId?
+        getter span : Span              # Full "name : String = value" span
+        getter name_span : Span         # Just "name" for rename
+        getter type_span : Span?        # Just "String" for hover (optional)
+
+        def initialize(
+          @name : String,
+          @type_annotation : String? = nil,
+          @default_value : ExprId? = nil,
+          @span : Span = Span.new(0, 0, 0, 0, 0, 0),
+          @name_span : Span = Span.new(0, 0, 0, 0, 0, 0),
+          @type_span : Span? = nil
+        )
+        end
+      end
+
+      # Represents a rescue clause in exception handling
+      #
+      # Phase 29: Exception handling
+      # - exception_type: Optional exception type to catch (e.g., "RuntimeError")
+      # - variable_name: Optional variable to bind exception (e.g., "e")
+      # - body: The rescue handler body expressions
+      # - span: Exact source location
+      struct RescueClause
+        getter exception_type : Slice(UInt8)?
+        getter variable_name : Slice(UInt8)?
+        getter body : Array(ExprId)
+        getter span : Span
+
+        def initialize(@exception_type : Slice(UInt8)?, @variable_name : Slice(UInt8)?, @body : Array(ExprId), @span : Span)
+        end
+      end
+
       struct ExpressionNode
         enum Kind
           Identifier
@@ -151,6 +203,14 @@ module CrystalGPT5
           TupleLiteral  # Phase 15: tuple literals {1, 2, 3}
           Symbol  # Phase 16: symbol literals :hello
           Ternary  # Phase 23: ternary operator (cond ? true : false)
+          Begin  # Phase 28: begin/end blocks
+          Raise  # Phase 29: raise exception
+          Getter  # Phase 30: getter macro
+          Setter  # Phase 30: setter macro
+          Property  # Phase 30: property macro (getter + setter)
+          Module  # Phase 31: module definition
+          Include  # Phase 31: include module into class/module
+          Extend  # Phase 31: extend module into class/module
         end
 
         getter kind : Kind
@@ -207,6 +267,15 @@ module CrystalGPT5
         getter ternary_condition : ExprId?  # Phase 23: ternary condition
         getter ternary_true_branch : ExprId?  # Phase 23: ternary true branch
         getter ternary_false_branch : ExprId?  # Phase 23: ternary false branch
+        getter begin_body : Array(ExprId)?  # Phase 28: begin block body
+        getter rescue_clauses : Array(RescueClause)?  # Phase 29: rescue handlers
+        getter ensure_body : Array(ExprId)?  # Phase 29: ensure block body
+        getter raise_value : ExprId?  # Phase 29: expression to raise
+        getter accessor_specs : Array(AccessorSpec)?  # Phase 30: getter/setter/property specifications
+        getter module_name : Slice(UInt8)?  # Phase 31: module name
+        getter module_body : Array(ExprId)?  # Phase 31: module body
+        getter include_name : Slice(UInt8)?  # Phase 31: include module name
+        getter extend_name : Slice(UInt8)?  # Phase 31: extend module name
 
         def initialize(
           @kind : Kind,
@@ -262,6 +331,15 @@ module CrystalGPT5
           @ternary_condition : ExprId? = nil,
           @ternary_true_branch : ExprId? = nil,
           @ternary_false_branch : ExprId? = nil,
+          @begin_body : Array(ExprId)? = nil,
+          @rescue_clauses : Array(RescueClause)? = nil,
+          @ensure_body : Array(ExprId)? = nil,
+          @raise_value : ExprId? = nil,
+          @accessor_specs : Array(AccessorSpec)? = nil,
+          @module_name : Slice(UInt8)? = nil,
+          @module_body : Array(ExprId)? = nil,
+          @include_name : Slice(UInt8)? = nil,
+          @extend_name : Slice(UInt8)? = nil,
         )
         end
 

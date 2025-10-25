@@ -107,6 +107,21 @@ module CrystalGPT5
           when .until?
             # Phase 25: until loop
             infer_until(node)
+          when .begin?
+            # Phase 28/29: begin/end blocks with rescue/ensure
+            infer_begin(node)
+          when .raise?
+            # Phase 29: raise exception
+            infer_raise(node)
+          when .getter?
+            # Phase 30: getter macro
+            infer_accessor(node)
+          when .setter?
+            # Phase 30: setter macro
+            infer_accessor(node)
+          when .property?
+            # Phase 30: property macro
+            infer_accessor(node)
           when .assign?
             infer_assign(node, expr_id)
           when .return?
@@ -140,6 +155,15 @@ module CrystalGPT5
           when .ternary?
             # Phase 23: Ternary operator
             infer_ternary(node, expr_id)
+          when .module?
+            # Phase 31: Module definition
+            infer_module(node, expr_id)
+          when .include?
+            # Phase 31: Include module
+            infer_include(node)
+          when .extend?
+            # Phase 31: Extend module
+            infer_extend(node)
           when .grouping?
             # Grouping expressions: (expr)
             # Type is the type of the wrapped expression
@@ -271,6 +295,42 @@ module CrystalGPT5
           @current_class = previous_class
 
           # Class definitions don't have value types
+          @context.nil_type
+        end
+
+        # Phase 31: Type inference for module definition
+        private def infer_module(node, expr_id : ExprId) : Type
+          # In a full implementation, we would:
+          # 1. Look up ModuleSymbol from symbol table
+          # 2. Save current module context
+          # 3. Process module body
+          # 4. Restore previous module context
+          # For now, just process the body
+          (node.module_body || [] of ExprId).each do |body_expr_id|
+            infer_expression(body_expr_id)
+          end
+
+          # Module definitions don't have value types
+          @context.nil_type
+        end
+
+        # Phase 31: Type inference for include statement
+        private def infer_include(node) : Type
+          # In a full implementation, we would:
+          # 1. Look up the module being included
+          # 2. Mix the module's methods into the current class/module
+          # 3. Verify module exists
+          # For now, include statements just return Nil
+          @context.nil_type
+        end
+
+        # Phase 31: Type inference for extend statement
+        private def infer_extend(node) : Type
+          # In a full implementation, we would:
+          # 1. Look up the module being extended
+          # 2. Mix the module's methods as class methods
+          # 3. Verify module exists
+          # For now, extend statements just return Nil
           @context.nil_type
         end
 
@@ -651,6 +711,83 @@ module CrystalGPT5
           end
 
           # Until loops always return Nil in Crystal (like while)
+          @context.nil_type
+        end
+
+        # Phase 28/29: Type inference for begin/end blocks with rescue/ensure
+        # Begin blocks return the type of the last expression, or Nil if empty
+        # With rescue: union of begin body type and all rescue body types
+        # Ensure doesn't affect type (always runs but doesn't change return value)
+        private def infer_begin(node) : Type
+          # Infer begin body type
+          body = node.begin_body
+          begin_type = if body && body.size > 0
+            result_type = @context.nil_type
+            body.each do |expr_id|
+              result_type = infer_expression(expr_id)
+            end
+            result_type
+          else
+            @context.nil_type
+          end
+
+          # Phase 29: Infer rescue clause types
+          types = [begin_type]
+          if rescue_clauses = node.rescue_clauses
+            rescue_clauses.each do |rescue_clause|
+              rescue_type = if rescue_clause.body.size > 0
+                result_type = @context.nil_type
+                rescue_clause.body.each do |expr_id|
+                  result_type = infer_expression(expr_id)
+                end
+                result_type
+              else
+                @context.nil_type
+              end
+              types << rescue_type
+            end
+          end
+
+          # Phase 29: Infer ensure body (for side effects only, doesn't affect type)
+          if ensure_body = node.ensure_body
+            ensure_body.each { |expr_id| infer_expression(expr_id) }
+          end
+
+          # Return union of begin and all rescue types
+          union_of(types)
+        end
+
+        # Phase 29: Type inference for raise statement
+        # Raise always returns Nil (it never actually returns, but we use Nil for simplicity)
+        # In a full compiler, this would be NoReturn type
+        private def infer_raise(node) : Type
+          # Infer the raise value (if present)
+          if raise_value = node.raise_value
+            infer_expression(raise_value)
+          end
+
+          # Raise never returns, but we use Nil as type
+          @context.nil_type
+        end
+
+        # Phase 30: Type inference for accessor macros (getter/setter/property)
+        # These are declarations, not expressions - they return Nil
+        # In a full compiler with macro expansion, they would:
+        #   1. Declare instance variable (@name : Type)
+        #   2. Generate getter method (def name : Type; @name; end)
+        #   3. Generate setter method (def name=(@name : Type); end)
+        # For now, we parse and type-check the structure only
+        private def infer_accessor(node) : Type
+          # Future: infer default value types if present
+          if specs = node.accessor_specs
+            specs.each do |spec|
+              if default_value = spec.default_value
+                infer_expression(default_value)
+              end
+            end
+          end
+
+          # Accessor macros return Nil as they are declarations
           @context.nil_type
         end
 

@@ -42,6 +42,8 @@ module CrystalGPT5
                   parse_def
                 when Token::Kind::Class
                   parse_class
+                when Token::Kind::Module
+                  parse_module
                 else
                   PREFIX_ERROR
                 end
@@ -81,6 +83,16 @@ module CrystalGPT5
           if current_token.kind == Token::Kind::Next
             stmt = parse_next
             return parse_postfix_if_modifier(stmt)
+          end
+
+          # Phase 31: include statements
+          if current_token.kind == Token::Kind::Include
+            return parse_include
+          end
+
+          # Phase 31: extend statements
+          if current_token.kind == Token::Kind::Extend
+            return parse_extend
           end
 
           # Parse left side (could be identifier or expression)
@@ -217,7 +229,7 @@ module CrystalGPT5
 
         private def definition_start?
           token = current_token
-          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module
         end
 
         private def parse_macro_definition : ExprId
@@ -807,6 +819,433 @@ module CrystalGPT5
           )
         end
 
+        # Phase 28/29: Parse begin/end block with optional rescue/ensure
+        # Grammar: begin <body> [rescue [type] [=> var] <rescue_body>]* [ensure <ensure_body>] end
+        # Returns the value of the last expression in the body (or rescue if exception)
+        private def parse_begin : ExprId
+          begin_token = current_token
+          advance  # consume 'begin'
+          consume_newlines
+
+          # Parse main body
+          body_ids = [] of ExprId
+          loop do
+            skip_trivia
+            token = current_token
+            break if token.kind == Token::Kind::Rescue || token.kind == Token::Kind::Ensure || token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            expr = parse_statement
+            body_ids << expr unless expr.invalid?
+            consume_newlines
+          end
+
+          # Parse rescue clauses (Phase 29)
+          rescue_clauses = nil
+          while current_token.kind == Token::Kind::Rescue
+            rescue_clauses ||= [] of RescueClause
+            rescue_start = current_token
+            advance  # consume 'rescue'
+            skip_trivia
+
+            # Optional: exception type and variable binding
+            # rescue SomeError => e
+            # rescue => e
+            # rescue SomeError
+            # rescue
+            exception_type : Slice(UInt8)? = nil
+            variable_name : Slice(UInt8)? = nil
+
+            token = current_token
+            # Check if we have an exception type (identifier before => or newline)
+            if token.kind == Token::Kind::Identifier
+              exception_type = token.slice
+              advance
+              skip_trivia
+              token = current_token
+            end
+
+            # Check for => variable binding
+            if token.kind == Token::Kind::Arrow
+              advance  # consume '=>'
+              skip_trivia
+              token = current_token
+              if token.kind == Token::Kind::Identifier
+                variable_name = token.slice
+                advance
+              end
+            end
+
+            consume_newlines
+
+            # Parse rescue body
+            rescue_body = [] of ExprId
+            loop do
+              skip_trivia
+              token = current_token
+              break if token.kind == Token::Kind::Rescue || token.kind == Token::Kind::Ensure || token.kind == Token::Kind::End
+              break if token.kind == Token::Kind::EOF
+
+              expr = parse_statement
+              rescue_body << expr unless expr.invalid?
+              consume_newlines
+            end
+
+            rescue_span = rescue_start.span
+            rescue_clauses << RescueClause.new(exception_type, variable_name, rescue_body, rescue_span)
+          end
+
+          # Parse ensure clause (Phase 29)
+          ensure_body = nil
+          if current_token.kind == Token::Kind::Ensure
+            advance  # consume 'ensure'
+            consume_newlines
+
+            ensure_body = [] of ExprId
+            loop do
+              skip_trivia
+              token = current_token
+              break if token.kind == Token::Kind::End
+              break if token.kind == Token::Kind::EOF
+
+              expr = parse_statement
+              ensure_body << expr unless expr.invalid?
+              consume_newlines
+            end
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          begin_span = if end_token
+            begin_token.span.cover(end_token.span)
+          else
+            begin_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Begin,
+              begin_span,
+              begin_body: body_ids,
+              rescue_clauses: rescue_clauses,
+              ensure_body: ensure_body,
+            )
+          )
+        end
+
+        # Phase 29: Parse raise statement
+        # Grammar: raise <expression>
+        # Note: bare 'raise' (re-raise) is only valid in rescue blocks
+        private def parse_raise : ExprId
+          raise_token = current_token
+          advance
+          skip_trivia
+
+          # Check if there's a raise value
+          # raise without value is rare (re-raise in rescue), but we'll allow it
+          token = current_token
+          if token.kind.in?(Token::Kind::Newline, Token::Kind::EOF, Token::Kind::End, Token::Kind::Else, Token::Kind::Elsif, Token::Kind::Rescue, Token::Kind::Ensure)
+            # Bare raise (re-raise current exception)
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Raise,
+                raise_token.span,
+                raise_value: nil
+              )
+            )
+          else
+            # Raise with expression
+            value = parse_expression(0)
+            return PREFIX_ERROR if value.invalid?
+
+            value_span = node_span(value)
+            raise_span = raise_token.span.cover(value_span)
+
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Raise,
+                raise_span,
+                raise_value: value
+              )
+            )
+          end
+        end
+
+        # Phase 30: Parse getter macro (PRODUCTION-READY)
+        # Grammar: getter name [: Type] [= value] [, name2 [: Type2] [= value2], ...]
+        # Examples:
+        #   getter name
+        #   getter name : String
+        #   getter name = "default"
+        #   getter name : String = "default"
+        #   getter name, age : Int32, email : String
+        private def parse_getter : ExprId
+          getter_token = current_token
+          advance
+          skip_trivia
+
+          # Parse accessor specifications (comma-separated)
+          specs = [] of AccessorSpec
+          loop do
+            # Must have at least one accessor
+            break if current_token.kind != Token::Kind::Identifier
+
+            # Parse accessor name
+            name_token = current_token
+            accessor_name = token_text(name_token)
+            name_span = name_token.span
+            spec_start_span = name_token.span
+            advance
+            skip_trivia
+
+            # Parse optional type annotation: : Type
+            type_annotation = nil
+            type_span = nil
+            if operator_token?(current_token, Token::Kind::Colon)
+              advance  # consume ':'
+              skip_trivia
+
+              # Parse type (simple identifier)
+              type_token = current_token
+              if type_token.kind == Token::Kind::Identifier
+                type_annotation = token_text(type_token)
+                type_span = type_token.span
+                advance
+                skip_trivia
+              else
+                emit_unexpected(type_token)
+              end
+            end
+
+            # Parse optional default value: = expression
+            default_value = nil
+            if operator_token?(current_token, Token::Kind::Eq)
+              advance  # consume '='
+              skip_trivia
+
+              # Parse default value expression
+              default_expr = parse_expression(0)
+              return PREFIX_ERROR if default_expr.invalid?
+              default_value = default_expr
+              skip_trivia
+            end
+
+            # Calculate full span
+            full_span = if default_value
+              spec_start_span.cover(node_span(default_value))
+            elsif type_span
+              spec_start_span.cover(type_span)
+            else
+              name_span
+            end
+
+            specs << AccessorSpec.new(
+              accessor_name,
+              type_annotation,
+              default_value,
+              full_span,
+              name_span,
+              type_span
+            )
+
+            # Check for comma (more accessors)
+            if current_token.kind == Token::Kind::Comma
+              advance
+              skip_trivia
+            else
+              break
+            end
+          end
+
+          getter_span = getter_token.span
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Getter,
+              getter_span,
+              accessor_specs: specs
+            )
+          )
+        end
+
+        # Phase 30: Parse setter macro (PRODUCTION-READY)
+        # Grammar: setter name [: Type] [= value] [, name2 [: Type2] [= value2], ...]
+        private def parse_setter : ExprId
+          setter_token = current_token
+          advance
+          skip_trivia
+
+          # Parse accessor specifications (comma-separated)
+          specs = [] of AccessorSpec
+          loop do
+            break if current_token.kind != Token::Kind::Identifier
+
+            # Parse accessor name
+            name_token = current_token
+            accessor_name = token_text(name_token)
+            name_span = name_token.span
+            spec_start_span = name_token.span
+            advance
+            skip_trivia
+
+            # Parse optional type annotation: : Type
+            type_annotation = nil
+            type_span = nil
+            if operator_token?(current_token, Token::Kind::Colon)
+              advance  # consume ':'
+              skip_trivia
+
+              type_token = current_token
+              if type_token.kind == Token::Kind::Identifier
+                type_annotation = token_text(type_token)
+                type_span = type_token.span
+                advance
+                skip_trivia
+              else
+                emit_unexpected(type_token)
+              end
+            end
+
+            # Parse optional default value: = expression
+            default_value = nil
+            if operator_token?(current_token, Token::Kind::Eq)
+              advance  # consume '='
+              skip_trivia
+
+              default_expr = parse_expression(0)
+              return PREFIX_ERROR if default_expr.invalid?
+              default_value = default_expr
+              skip_trivia
+            end
+
+            # Calculate full span
+            full_span = if default_value
+              spec_start_span.cover(node_span(default_value))
+            elsif type_span
+              spec_start_span.cover(type_span)
+            else
+              name_span
+            end
+
+            specs << AccessorSpec.new(
+              accessor_name,
+              type_annotation,
+              default_value,
+              full_span,
+              name_span,
+              type_span
+            )
+
+            # Check for comma (more accessors)
+            if current_token.kind == Token::Kind::Comma
+              advance
+              skip_trivia
+            else
+              break
+            end
+          end
+
+          setter_span = setter_token.span
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Setter,
+              setter_span,
+              accessor_specs: specs
+            )
+          )
+        end
+
+        # Phase 30: Parse property macro (PRODUCTION-READY)
+        # Grammar: property name [: Type] [= value] [, name2 [: Type2] [= value2], ...]
+        private def parse_property : ExprId
+          property_token = current_token
+          advance
+          skip_trivia
+
+          # Parse accessor specifications (comma-separated)
+          specs = [] of AccessorSpec
+          loop do
+            break if current_token.kind != Token::Kind::Identifier
+
+            # Parse accessor name
+            name_token = current_token
+            accessor_name = token_text(name_token)
+            name_span = name_token.span
+            spec_start_span = name_token.span
+            advance
+            skip_trivia
+
+            # Parse optional type annotation: : Type
+            type_annotation = nil
+            type_span = nil
+            if operator_token?(current_token, Token::Kind::Colon)
+              advance  # consume ':'
+              skip_trivia
+
+              type_token = current_token
+              if type_token.kind == Token::Kind::Identifier
+                type_annotation = token_text(type_token)
+                type_span = type_token.span
+                advance
+                skip_trivia
+              else
+                emit_unexpected(type_token)
+              end
+            end
+
+            # Parse optional default value: = expression
+            default_value = nil
+            if operator_token?(current_token, Token::Kind::Eq)
+              advance  # consume '='
+              skip_trivia
+
+              default_expr = parse_expression(0)
+              return PREFIX_ERROR if default_expr.invalid?
+              default_value = default_expr
+              skip_trivia
+            end
+
+            # Calculate full span
+            full_span = if default_value
+              spec_start_span.cover(node_span(default_value))
+            elsif type_span
+              spec_start_span.cover(type_span)
+            else
+              name_span
+            end
+
+            specs << AccessorSpec.new(
+              accessor_name,
+              type_annotation,
+              default_value,
+              full_span,
+              name_span,
+              type_span
+            )
+
+            # Check for comma (more accessors)
+            if current_token.kind == Token::Kind::Comma
+              advance
+              skip_trivia
+            else
+              break
+            end
+          end
+
+          property_span = property_token.span
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Property,
+              property_span,
+              accessor_specs: specs
+            )
+          )
+        end
+
         # Phase 6: Parse return statement
         # Grammar: return | return <expression>
         private def parse_return : ExprId
@@ -1235,6 +1674,8 @@ module CrystalGPT5
                   parse_def
                 when Token::Kind::Class
                   parse_class
+                when Token::Kind::Module
+                  parse_module
                 else
                   # Phase 5B: Use parse_statement for assignments
                   parse_statement
@@ -1263,6 +1704,117 @@ module CrystalGPT5
               class_name: name_token.slice,
               class_body: body_ids,
               class_super_name: super_name_token.try(&.slice),
+            )
+          )
+        end
+
+        # Phase 31: Parse module definition
+        # Grammar: module Name ... end
+        private def parse_module : ExprId
+          module_token = current_token
+          advance
+          skip_trivia
+
+          name_token = current_token
+          unless name_token.kind == Token::Kind::Identifier
+            emit_unexpected(name_token)
+            return PREFIX_ERROR
+          end
+          advance
+
+          consume_newlines
+
+          body_ids = [] of ExprId
+          loop do
+            skip_trivia
+            token = current_token
+            break if token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            if definition_start?
+              expr = case current_token.kind
+                when Token::Kind::Def
+                  parse_def
+                when Token::Kind::Class
+                  parse_class
+                when Token::Kind::Module
+                  parse_module
+                else
+                  parse_statement
+                end
+            else
+              expr = parse_statement
+            end
+            body_ids << expr unless expr.invalid?
+            consume_newlines
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          module_span = if end_token
+            module_token.span.cover(end_token.span)
+          else
+            module_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Module,
+              module_span,
+              module_name: name_token.slice,
+              module_body: body_ids,
+            )
+          )
+        end
+
+        # Phase 31: Parse include statement
+        # Grammar: include ModuleName
+        private def parse_include : ExprId
+          include_token = current_token
+          advance
+          skip_trivia
+
+          name_token = current_token
+          unless name_token.kind == Token::Kind::Identifier
+            emit_unexpected(name_token)
+            return PREFIX_ERROR
+          end
+          advance
+
+          include_span = include_token.span.cover(name_token.span)
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Include,
+              include_span,
+              include_name: name_token.slice,
+            )
+          )
+        end
+
+        # Phase 31: Parse extend statement
+        # Grammar: extend ModuleName
+        private def parse_extend : ExprId
+          extend_token = current_token
+          advance
+          skip_trivia
+
+          name_token = current_token
+          unless name_token.kind == Token::Kind::Identifier
+            emit_unexpected(name_token)
+            return PREFIX_ERROR
+          end
+          advance
+
+          extend_span = extend_token.span.cover(name_token.span)
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Extend,
+              extend_span,
+              extend_name: name_token.slice,
             )
           )
         end
@@ -1571,6 +2123,21 @@ module CrystalGPT5
           when Token::Kind::Until
             # Phase 25: until loop
             parse_until
+          when Token::Kind::Begin
+            # Phase 28: begin/end blocks
+            parse_begin
+          when Token::Kind::Raise
+            # Phase 29: raise exception
+            parse_raise
+          when Token::Kind::Getter
+            # Phase 30: getter macro
+            parse_getter
+          when Token::Kind::Setter
+            # Phase 30: setter macro
+            parse_setter
+          when Token::Kind::Property
+            # Phase 30: property macro
+            parse_property
           when Token::Kind::Identifier
             # Regular identifier
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Identifier, token.span, literal: token.slice))

@@ -130,6 +130,16 @@ module CrystalGPT5
           when "next"   then Token::Kind::Next
           when "unless" then Token::Kind::Unless  # Phase 24
           when "until"  then Token::Kind::Until   # Phase 25
+          when "begin"  then Token::Kind::Begin   # Phase 28
+          when "rescue" then Token::Kind::Rescue  # Phase 29
+          when "ensure" then Token::Kind::Ensure  # Phase 29
+          when "raise"  then Token::Kind::Raise   # Phase 29
+          when "getter" then Token::Kind::Getter  # Phase 30
+          when "setter" then Token::Kind::Setter  # Phase 30
+          when "property" then Token::Kind::Property  # Phase 30
+          when "module" then Token::Kind::Module  # Phase 31
+          when "include" then Token::Kind::Include  # Phase 31
+          when "extend" then Token::Kind::Extend  # Phase 31
           else
             Token::Kind::Identifier
           end
