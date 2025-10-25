@@ -124,6 +124,7 @@ module CrystalGPT5
           when "return" then Token::Kind::Return
           when "self"   then Token::Kind::Self
           when "super"  then Token::Kind::Super  # Phase 39
+          when "typeof" then Token::Kind::Typeof  # Phase 40
           when "yield"  then Token::Kind::Yield
           when "case"   then Token::Kind::Case
           when "when"   then Token::Kind::When

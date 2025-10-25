@@ -131,6 +131,9 @@ module CrystalGPT5
           when .super?
             # Phase 39: Super expressions
             infer_super(node, expr_id)
+          when .typeof?
+            # Phase 40: Typeof expressions
+            infer_typeof(node, expr_id)
           when .block?
             # Phase 10: Block literals
             infer_block(node, expr_id)
@@ -969,6 +972,28 @@ module CrystalGPT5
 
           # Return Nil for now (in full implementation, would return parent method's return type)
           # If super_args is nil, it means implicit args (pass all method args)
+          @context.nil_type
+        end
+
+        # Phase 40: Type inference for typeof (type introspection)
+        private def infer_typeof(node, expr_id : ExprId) : Type
+          # typeof returns the type of its argument(s) at compile time
+          # In a full implementation:
+          # - typeof(x) returns the type of x (e.g., Int32)
+          # - typeof(x, y) returns the union type (e.g., Int32 | String)
+
+          # For now, infer types of arguments and return a placeholder
+          if args = node.typeof_args
+            arg_types = [] of Type
+            args.each do |arg_expr_id|
+              arg_type = infer_expression(arg_expr_id)
+              arg_types << arg_type
+            end
+
+            # In full implementation, would return Type metaclass
+            # For now, return nil_type as placeholder
+          end
+
           @context.nil_type
         end
 
