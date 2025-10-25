@@ -236,6 +236,7 @@ module CrystalGPT5
           Struct  # Phase 32: struct definition (value type)
           Enum  # Phase 33: enum definition (enumerated type)
           Alias  # Phase 34: type alias
+          Constant  # Phase 35: constant declaration
         end
 
         getter kind : Kind
@@ -307,6 +308,8 @@ module CrystalGPT5
         getter enum_members : Array(EnumMember)?  # Phase 33: enum members
         getter alias_name : Slice(UInt8)?  # Phase 34: alias name
         getter alias_value : Slice(UInt8)?  # Phase 34: aliased type
+        getter constant_name : Slice(UInt8)?  # Phase 35: constant name
+        getter constant_value : ExprId?  # Phase 35: constant value expression
 
         def initialize(
           @kind : Kind,
@@ -377,6 +380,8 @@ module CrystalGPT5
           @enum_members : Array(EnumMember)? = nil,
           @alias_name : Slice(UInt8)? = nil,
           @alias_value : Slice(UInt8)? = nil,
+          @constant_name : Slice(UInt8)? = nil,
+          @constant_value : ExprId? = nil,
         )
         end
 

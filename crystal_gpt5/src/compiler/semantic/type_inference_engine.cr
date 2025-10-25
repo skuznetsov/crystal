@@ -174,6 +174,9 @@ module CrystalGPT5
           when .alias?
             # Phase 34: Type alias definition
             infer_alias(node)
+          when .constant?
+            # Phase 35: Constant declaration
+            infer_constant(node)
           when .grouping?
             # Grouping expressions: (expr)
             # Type is the type of the wrapped expression
@@ -369,6 +372,16 @@ module CrystalGPT5
           # For now, we just acknowledge the alias exists and return Nil
           # In future, this would register the alias in a type registry
           @context.nil_type
+        end
+
+        private def infer_constant(node) : Type
+          # Phase 35: Constant declaration
+          # Infer type from the assigned value expression
+          if value_expr = node.constant_value
+            infer_expression(value_expr)
+          else
+            @context.nil_type
+          end
         end
 
         private def infer_instance_var(node, expr_id : ExprId) : Type

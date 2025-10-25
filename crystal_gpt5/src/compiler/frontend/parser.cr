@@ -116,8 +116,29 @@ module CrystalGPT5
              token.kind == Token::Kind::SlashEq ||
              token.kind == Token::Kind::PercentEq ||
              token.kind == Token::Kind::StarStarEq
-            # Verify left side is an identifier, instance variable, or index (Phase 14B: hash/array assignment)
+            # Phase 35: Check if this is a constant declaration (uppercase identifier + =)
             left_node = @arena[left]
+            if token.kind == Token::Kind::Eq &&
+               left_node.kind == ExpressionNode::Kind::Identifier &&
+               left_node.literal && is_constant_name?(left_node.literal.not_nil!)
+              # This is a constant declaration
+              advance  # Skip =
+              skip_trivia
+              value_expr = parse_expression(0)
+              return PREFIX_ERROR if value_expr.invalid?
+
+              constant_span = left_node.span.cover(@arena[value_expr].span)
+              return @arena.add(
+                ExpressionNode.new(
+                  ExpressionNode::Kind::Constant,
+                  constant_span,
+                  constant_name: left_node.literal,
+                  constant_value: value_expr,
+                )
+              )
+            end
+
+            # Verify left side is an identifier, instance variable, or index (Phase 14B: hash/array assignment)
             unless left_node.kind == ExpressionNode::Kind::Identifier ||
                    left_node.kind == ExpressionNode::Kind::InstanceVar ||
                    left_node.kind == ExpressionNode::Kind::Index
@@ -236,6 +257,13 @@ module CrystalGPT5
         private def definition_start?
           token = current_token
           token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias
+        end
+
+        # Phase 35: Check if identifier is a constant (uppercase first letter)
+        private def is_constant_name?(slice : Slice(UInt8)) : Bool
+          return false if slice.empty?
+          first_char = slice[0].chr
+          first_char.uppercase? && first_char.ascii_letter?
         end
 
         private def parse_macro_definition : ExprId
