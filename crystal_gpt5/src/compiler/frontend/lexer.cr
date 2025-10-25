@@ -141,6 +141,7 @@ module CrystalGPT5
           when "include" then Token::Kind::Include  # Phase 31
           when "extend" then Token::Kind::Extend  # Phase 31
           when "struct" then Token::Kind::Struct  # Phase 32
+          when "enum" then Token::Kind::Enum  # Phase 33
           else
             Token::Kind::Identifier
           end

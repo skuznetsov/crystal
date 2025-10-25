@@ -59,6 +59,7 @@ module CrystalGPT5
           Include  # Phase 31: include module
           Extend  # Phase 31: extend module
           Struct  # Phase 32: struct definition
+          Enum  # Phase 33: enum definition
 
           # Arithmetic operators
           Plus        # +

@@ -46,6 +46,8 @@ module CrystalGPT5
                   parse_module
                 when Token::Kind::Struct
                   parse_struct
+                when Token::Kind::Enum
+                  parse_enum
                 else
                   PREFIX_ERROR
                 end
@@ -231,7 +233,7 @@ module CrystalGPT5
 
         private def definition_start?
           token = current_token
-          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum
         end
 
         private def parse_macro_definition : ExprId
@@ -1681,6 +1683,8 @@ module CrystalGPT5
                   parse_module
                 when Token::Kind::Struct
                   parse_struct
+                when Token::Kind::Enum
+                  parse_enum
                 else
                   # Phase 5B: Use parse_statement for assignments
                   parse_statement
@@ -1723,6 +1727,105 @@ module CrystalGPT5
         # Struct is syntactically identical to class, but represents a value type
         private def parse_struct : ExprId
           parse_class(is_struct: true)
+        end
+
+        # Phase 33: Parse enum definition
+        # Grammar: enum Name [: BaseType] ... end
+        # Members: CONSTANT [= value]
+        private def parse_enum : ExprId
+          enum_token = current_token
+          advance
+          skip_trivia
+
+          # Parse enum name
+          name_token = current_token
+          unless name_token.kind == Token::Kind::Identifier
+            emit_unexpected(name_token)
+            return PREFIX_ERROR
+          end
+          advance
+          skip_trivia
+
+          # Parse optional base type: : Type
+          base_type_token = nil
+          if current_token.kind == Token::Kind::Colon
+            advance  # consume ':'
+            skip_trivia
+
+            base_type_token = current_token
+            unless base_type_token.kind == Token::Kind::Identifier
+              emit_unexpected(base_type_token)
+              return PREFIX_ERROR
+            end
+            advance
+            skip_trivia
+          end
+
+          consume_newlines
+
+          # Parse enum members
+          members = [] of EnumMember
+          loop do
+            skip_trivia
+            token = current_token
+            break if token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            # Enum members must be CONSTANT identifiers (start with uppercase)
+            unless token.kind == Token::Kind::Identifier
+              emit_unexpected(token)
+              break
+            end
+
+            member_name_token = token
+            member_name = token_text(member_name_token)
+            member_name_span = member_name_token.span
+            advance
+            skip_trivia
+
+            # Parse optional value: = expression
+            member_value = nil
+            member_value_span = nil
+            if current_token.kind == Token::Kind::Eq
+              advance  # consume '='
+              skip_trivia
+
+              value_expr = parse_expression(0)
+              return PREFIX_ERROR if value_expr.invalid?
+              member_value = value_expr
+              member_value_span = node_span(value_expr)
+              skip_trivia
+            end
+
+            members << EnumMember.new(
+              member_name,
+              member_value,
+              member_name_span,
+              member_value_span
+            )
+
+            consume_newlines
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          enum_span = if end_token
+            enum_token.span.cover(end_token.span)
+          else
+            enum_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Enum,
+              enum_span,
+              enum_name: name_token.slice,
+              enum_base_type: base_type_token.try(&.slice),
+              enum_members: members,
+            )
+          )
         end
 
         # Phase 31: Parse module definition

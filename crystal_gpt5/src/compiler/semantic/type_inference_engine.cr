@@ -168,6 +168,9 @@ module CrystalGPT5
             # Phase 32: Struct definition (value type)
             # At parsing stage, handled identically to class
             infer_class(node, expr_id)
+          when .enum?
+            # Phase 33: Enum definition (enumerated type)
+            infer_enum(node)
           when .grouping?
             # Grouping expressions: (expr)
             # Type is the type of the wrapped expression
@@ -335,6 +338,25 @@ module CrystalGPT5
           # 2. Mix the module's methods as class methods
           # 3. Verify module exists
           # For now, extend statements just return Nil
+          @context.nil_type
+        end
+
+        # Phase 33: Type inference for enum definition
+        private def infer_enum(node) : Type
+          # In a full implementation, we would:
+          # 1. Create an EnumType with members
+          # 2. Process member values (if any) and infer their types
+          # 3. Validate base type compatibility
+          # For now, process member values and return Nil
+          if members = node.enum_members
+            members.each do |member|
+              if value_expr = member.value
+                infer_expression(value_expr)
+              end
+            end
+          end
+
+          # Enum definitions don't have value types
           @context.nil_type
         end
 

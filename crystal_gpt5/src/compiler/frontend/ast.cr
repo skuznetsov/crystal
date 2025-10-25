@@ -164,6 +164,28 @@ module CrystalGPT5
         end
       end
 
+      # Represents an enum member in enum definition
+      #
+      # Phase 33: Enum definition
+      # - name: Member name (e.g., "Red")
+      # - value: Optional explicit value (e.g., Red = 1)
+      # - name_span: Exact location of member name
+      # - value_span: Exact location of value expression (optional)
+      struct EnumMember
+        getter name : String
+        getter value : ExprId?
+        getter name_span : Span
+        getter value_span : Span?
+
+        def initialize(
+          @name : String,
+          @value : ExprId? = nil,
+          @name_span : Span = Span.new(0, 0, 0, 0, 0, 0),
+          @value_span : Span? = nil
+        )
+        end
+      end
+
       struct ExpressionNode
         enum Kind
           Identifier
@@ -212,6 +234,7 @@ module CrystalGPT5
           Include  # Phase 31: include module into class/module
           Extend  # Phase 31: extend module into class/module
           Struct  # Phase 32: struct definition (value type)
+          Enum  # Phase 33: enum definition (enumerated type)
         end
 
         getter kind : Kind
@@ -278,6 +301,9 @@ module CrystalGPT5
         getter module_body : Array(ExprId)?  # Phase 31: module body
         getter include_name : Slice(UInt8)?  # Phase 31: include module name
         getter extend_name : Slice(UInt8)?  # Phase 31: extend module name
+        getter enum_name : Slice(UInt8)?  # Phase 33: enum name
+        getter enum_base_type : Slice(UInt8)?  # Phase 33: enum base type (: Int32)
+        getter enum_members : Array(EnumMember)?  # Phase 33: enum members
 
         def initialize(
           @kind : Kind,
@@ -343,6 +369,9 @@ module CrystalGPT5
           @module_body : Array(ExprId)? = nil,
           @include_name : Slice(UInt8)? = nil,
           @extend_name : Slice(UInt8)? = nil,
+          @enum_name : Slice(UInt8)? = nil,
+          @enum_base_type : Slice(UInt8)? = nil,
+          @enum_members : Array(EnumMember)? = nil,
         )
         end
 
