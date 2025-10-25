@@ -756,6 +756,57 @@ module CrystalGPT5
           )
         end
 
+        # Phase 25: Parse until loop (inverse of while)
+        private def parse_until : ExprId
+          until_token = current_token
+          advance
+          skip_trivia
+
+          # Parse condition
+          condition = parse_expression(0)
+          return PREFIX_ERROR if condition.invalid?
+
+          skip_trivia
+          # Optional "do" keyword
+          token = current_token
+          if token.kind == Token::Kind::Do
+            advance
+          end
+          consume_newlines
+
+          # Parse body
+          body_ids = [] of ExprId
+          loop do
+            skip_trivia
+            token = current_token
+            break if token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            expr = parse_statement
+            body_ids << expr unless expr.invalid?
+            consume_newlines
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          until_span = if end_token
+            until_token.span.cover(end_token.span)
+          else
+            until_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Until,
+              until_span,
+              while_condition: condition,  # Reuse while_condition field
+              while_body: body_ids,        # Reuse while_body field
+            )
+          )
+        end
+
         # Phase 6: Parse return statement
         # Grammar: return | return <expression>
         private def parse_return : ExprId
@@ -1441,6 +1492,9 @@ module CrystalGPT5
             parse_case
           when Token::Kind::While
             parse_while
+          when Token::Kind::Until
+            # Phase 25: until loop
+            parse_until
           when Token::Kind::Identifier
             # Regular identifier
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Identifier, token.span, literal: token.slice))

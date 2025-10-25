@@ -104,6 +104,9 @@ module CrystalGPT5
             infer_unless(node)
           when .while?
             infer_while(node)
+          when .until?
+            # Phase 25: until loop
+            infer_until(node)
           when .assign?
             infer_assign(node, expr_id)
           when .return?
@@ -627,6 +630,28 @@ module CrystalGPT5
 
           # Create union type of both branches: then + else
           union_of([then_type, else_type])
+        end
+
+        # Phase 25: Type inference for until loop (inverse of while)
+        private def infer_until(node) : Type
+          # Infer condition type
+          condition_id = node.while_condition  # Reuse while_condition field
+          return @context.nil_type unless condition_id
+
+          condition_type = infer_expression(condition_id)
+
+          # Check condition is Bool
+          unless bool_type?(condition_type)
+            emit_error("Until condition must be Bool, got #{condition_type}", condition_id)
+          end
+
+          # Infer body expressions (result not used)
+          if body = node.while_body  # Reuse while_body field
+            body.each { |expr_id| infer_expression(expr_id) }
+          end
+
+          # Until loops always return Nil in Crystal (like while)
+          @context.nil_type
         end
 
         private def infer_while(node) : Type
