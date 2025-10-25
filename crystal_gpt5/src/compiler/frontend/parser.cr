@@ -50,6 +50,9 @@ module CrystalGPT5
                   parse_enum
                 when Token::Kind::Alias
                   parse_alias
+                when Token::Kind::Abstract
+                  # Phase 36: abstract class/def
+                  parse_abstract
                 else
                   PREFIX_ERROR
                 end
@@ -256,7 +259,7 @@ module CrystalGPT5
 
         private def definition_start?
           token = current_token
-          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Abstract
         end
 
         # Phase 35: Check if identifier is a constant (uppercase first letter)
@@ -310,7 +313,8 @@ module CrystalGPT5
           )
         end
 
-        private def parse_def : ExprId
+        # Phase 36: Modified to support abstract modifier
+        private def parse_def(is_abstract : Bool = false) : ExprId
           def_token = current_token
           advance
           skip_trivia
@@ -343,22 +347,30 @@ module CrystalGPT5
 
           consume_newlines
 
-          body_ids = [] of ExprId
-          loop do
-            skip_trivia
-            token = current_token
-            break if token.kind == Token::Kind::End
-            break if token.kind == Token::Kind::EOF
+          # Phase 36: Abstract methods have no body
+          body_ids = nil
+          if !is_abstract
+            actual_body = [] of ExprId
+            loop do
+              skip_trivia
+              token = current_token
+              break if token.kind == Token::Kind::End
+              break if token.kind == Token::Kind::EOF
 
-            # Phase 5B: Use parse_statement to handle assignments in method bodies
-            expr = parse_statement
-            body_ids << expr unless expr.invalid?
+              # Phase 5B: Use parse_statement to handle assignments in method bodies
+              expr = parse_statement
+              actual_body << expr unless expr.invalid?
+              consume_newlines
+            end
+
+            expect_identifier("end")
+            end_token = previous_token
             consume_newlines
+            body_ids = actual_body
+          else
+            # Abstract methods have no body, no 'end' keyword
+            end_token = nil
           end
-
-          expect_identifier("end")
-          end_token = previous_token
-          consume_newlines
 
           def_span = if end_token
             def_token.span.cover(end_token.span)
@@ -373,6 +385,7 @@ module CrystalGPT5
               def_params: params,
               def_return_type: return_type,
               def_body: body_ids,
+              def_is_abstract: is_abstract,
             )
           )
         end
@@ -1664,7 +1677,8 @@ module CrystalGPT5
         end
 
         # Phase 32: Modified to support both class and struct
-        private def parse_class(is_struct : Bool = false) : ExprId
+        # Phase 36: Modified to support abstract modifier
+        private def parse_class(is_struct : Bool = false, is_abstract : Bool = false) : ExprId
           class_token = current_token
           advance
           skip_trivia
@@ -1717,6 +1731,8 @@ module CrystalGPT5
                   parse_enum
                 when Token::Kind::Alias
                   parse_alias
+                when Token::Kind::Abstract
+                  parse_abstract
                 else
                   # Phase 5B: Use parse_statement for assignments
                   parse_statement
@@ -1750,6 +1766,7 @@ module CrystalGPT5
               class_body: body_ids,
               class_super_name: super_name_token.try(&.slice),
               class_is_struct: is_struct,
+              class_is_abstract: is_abstract,
             )
           )
         end
@@ -1759,6 +1776,26 @@ module CrystalGPT5
         # Struct is syntactically identical to class, but represents a value type
         private def parse_struct : ExprId
           parse_class(is_struct: true)
+        end
+
+        # Phase 36: Parse abstract modifier
+        # Grammar: abstract class Name ... end | abstract def method_name
+        private def parse_abstract : ExprId
+          abstract_token = current_token
+          advance
+          skip_trivia
+
+          case current_token.kind
+          when Token::Kind::Class
+            parse_class(is_abstract: true)
+          when Token::Kind::Struct
+            parse_class(is_struct: true, is_abstract: true)
+          when Token::Kind::Def
+            parse_def(is_abstract: true)
+          else
+            emit_unexpected(current_token)
+            PREFIX_ERROR
+          end
         end
 
         # Phase 33: Parse enum definition
@@ -1941,6 +1978,8 @@ module CrystalGPT5
                   parse_enum
                 when Token::Kind::Alias
                   parse_alias
+                when Token::Kind::Abstract
+                  parse_abstract
                 else
                   parse_statement
                 end

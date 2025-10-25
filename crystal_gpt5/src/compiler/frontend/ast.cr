@@ -262,6 +262,8 @@ module CrystalGPT5
         getter class_body : Array(ExprId)?
         getter class_super_name : Slice(UInt8)?
         getter class_is_struct : Bool?  # Phase 32: true for struct, false/nil for class
+        getter class_is_abstract : Bool?  # Phase 36: true for abstract class
+        getter def_is_abstract : Bool?  # Phase 36: true for abstract method
         getter if_condition : ExprId?
         getter if_then : Array(ExprId)?
         getter if_elsifs : Array(ElsifBranch)?
@@ -335,6 +337,8 @@ module CrystalGPT5
           @class_body : Array(ExprId)? = nil,
           @class_super_name : Slice(UInt8)? = nil,
           @class_is_struct : Bool? = nil,
+          @class_is_abstract : Bool? = nil,
+          @def_is_abstract : Bool? = nil,
           @if_condition : ExprId? = nil,
           @if_then : Array(ExprId)? = nil,
           @if_elsifs : Array(ElsifBranch)? = nil,

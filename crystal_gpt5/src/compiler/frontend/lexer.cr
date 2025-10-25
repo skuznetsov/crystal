@@ -143,6 +143,7 @@ module CrystalGPT5
           when "struct" then Token::Kind::Struct  # Phase 32
           when "enum" then Token::Kind::Enum  # Phase 33
           when "alias" then Token::Kind::Alias  # Phase 34
+          when "abstract" then Token::Kind::Abstract  # Phase 36
           else
             Token::Kind::Identifier
           end

@@ -61,6 +61,7 @@ module CrystalGPT5
           Struct  # Phase 32: struct definition
           Enum  # Phase 33: enum definition
           Alias  # Phase 34: type alias
+          Abstract  # Phase 36: abstract modifier
 
           # Arithmetic operators
           Plus        # +
