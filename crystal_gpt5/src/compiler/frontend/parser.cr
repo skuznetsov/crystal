@@ -44,6 +44,8 @@ module CrystalGPT5
                   parse_class
                 when Token::Kind::Module
                   parse_module
+                when Token::Kind::Struct
+                  parse_struct
                 else
                   PREFIX_ERROR
                 end
@@ -229,7 +231,7 @@ module CrystalGPT5
 
         private def definition_start?
           token = current_token
-          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct
         end
 
         private def parse_macro_definition : ExprId
@@ -1629,7 +1631,8 @@ module CrystalGPT5
           stmt
         end
 
-        private def parse_class : ExprId
+        # Phase 32: Modified to support both class and struct
+        private def parse_class(is_struct : Bool = false) : ExprId
           class_token = current_token
           advance
           skip_trivia
@@ -1676,6 +1679,8 @@ module CrystalGPT5
                   parse_class
                 when Token::Kind::Module
                   parse_module
+                when Token::Kind::Struct
+                  parse_struct
                 else
                   # Phase 5B: Use parse_statement for assignments
                   parse_statement
@@ -1697,15 +1702,27 @@ module CrystalGPT5
           else
             class_token.span
           end
+
+          # Phase 32: Choose kind based on is_struct flag
+          kind = is_struct ? ExpressionNode::Kind::Struct : ExpressionNode::Kind::Class
+
           @arena.add(
             ExpressionNode.new(
-              ExpressionNode::Kind::Class,
+              kind,
               class_span,
               class_name: name_token.slice,
               class_body: body_ids,
               class_super_name: super_name_token.try(&.slice),
+              class_is_struct: is_struct,
             )
           )
+        end
+
+        # Phase 32: Parse struct definition
+        # Grammar: struct Name < Parent ... end
+        # Struct is syntactically identical to class, but represents a value type
+        private def parse_struct : ExprId
+          parse_class(is_struct: true)
         end
 
         # Phase 31: Parse module definition

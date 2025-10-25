@@ -211,6 +211,7 @@ module CrystalGPT5
           Module  # Phase 31: module definition
           Include  # Phase 31: include module into class/module
           Extend  # Phase 31: extend module into class/module
+          Struct  # Phase 32: struct definition (value type)
         end
 
         getter kind : Kind
@@ -235,6 +236,7 @@ module CrystalGPT5
         getter class_name : Slice(UInt8)?
         getter class_body : Array(ExprId)?
         getter class_super_name : Slice(UInt8)?
+        getter class_is_struct : Bool?  # Phase 32: true for struct, false/nil for class
         getter if_condition : ExprId?
         getter if_then : Array(ExprId)?
         getter if_elsifs : Array(ElsifBranch)?
@@ -300,6 +302,7 @@ module CrystalGPT5
           @class_name : Slice(UInt8)? = nil,
           @class_body : Array(ExprId)? = nil,
           @class_super_name : Slice(UInt8)? = nil,
+          @class_is_struct : Bool? = nil,
           @if_condition : ExprId? = nil,
           @if_then : Array(ExprId)? = nil,
           @if_elsifs : Array(ElsifBranch)? = nil,

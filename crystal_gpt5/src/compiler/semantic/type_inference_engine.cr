@@ -164,6 +164,10 @@ module CrystalGPT5
           when .extend?
             # Phase 31: Extend module
             infer_extend(node)
+          when .struct?
+            # Phase 32: Struct definition (value type)
+            # At parsing stage, handled identically to class
+            infer_class(node, expr_id)
           when .grouping?
             # Grouping expressions: (expr)
             # Type is the type of the wrapped expression

@@ -58,6 +58,7 @@ module CrystalGPT5
           Module  # Phase 31: module definition
           Include  # Phase 31: include module
           Extend  # Phase 31: extend module
+          Struct  # Phase 32: struct definition
 
           # Arithmetic operators
           Plus        # +
