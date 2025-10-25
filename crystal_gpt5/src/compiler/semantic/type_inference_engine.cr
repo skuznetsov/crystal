@@ -137,6 +137,9 @@ module CrystalGPT5
           when .sizeof?
             # Phase 41: Sizeof expressions
             infer_sizeof(node, expr_id)
+          when .pointerof?
+            # Phase 42: Pointerof expressions
+            infer_pointerof(node, expr_id)
           when .block?
             # Phase 10: Block literals
             infer_block(node, expr_id)
@@ -1017,6 +1020,25 @@ module CrystalGPT5
 
           # sizeof always returns Int32 (number of bytes)
           @context.int32_type
+        end
+
+        # Phase 42: pointerof (pointer to variable/expression)
+        private def infer_pointerof(node, expr_id : ExprId) : Type
+          # pointerof returns a pointer to a variable or expression
+          # In a full implementation:
+          # - pointerof(x) returns Pointer(T) where T is the type of x
+          # - pointerof(@ivar) returns pointer to instance variable
+          # - pointerof(expr) returns pointer to expression's result
+
+          # For now, infer types of arguments and return nil as placeholder
+          if args = node.pointerof_args
+            args.each do |arg_expr_id|
+              infer_expression(arg_expr_id)
+            end
+          end
+
+          # Return nil_type as placeholder (full implementation would return Pointer(T))
+          @context.nil_type
         end
 
         # ============================================================
