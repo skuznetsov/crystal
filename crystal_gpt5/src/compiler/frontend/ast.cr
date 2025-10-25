@@ -249,6 +249,7 @@ module CrystalGPT5
           Alias  # Phase 34: type alias
           Constant  # Phase 35: constant declaration
           Lib  # Phase 38: lib (C bindings)
+          As  # Phase 44: type cast (value.as(Type))
         end
 
         getter kind : Kind
@@ -331,6 +332,8 @@ module CrystalGPT5
         getter alias_value : Slice(UInt8)?  # Phase 34: aliased type
         getter constant_name : Slice(UInt8)?  # Phase 35: constant name
         getter constant_value : ExprId?  # Phase 35: constant value expression
+        getter as_value : ExprId?  # Phase 44: expression being cast
+        getter as_target_type : Slice(UInt8)?  # Phase 44: target type for cast
 
         def initialize(
           @kind : Kind,
@@ -412,6 +415,8 @@ module CrystalGPT5
           @alias_value : Slice(UInt8)? = nil,
           @constant_name : Slice(UInt8)? = nil,
           @constant_value : ExprId? = nil,
+          @as_value : ExprId? = nil,
+          @as_target_type : Slice(UInt8)? = nil,
         )
         end
 

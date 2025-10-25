@@ -69,6 +69,7 @@ module CrystalGPT5
           Private  # Phase 37: private visibility
           Protected  # Phase 37: protected visibility
           Lib  # Phase 38: lib (C bindings)
+          As   # Phase 44: type cast (value.as(Type))
 
           # Arithmetic operators
           Plus        # +

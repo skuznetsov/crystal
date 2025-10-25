@@ -3483,6 +3483,12 @@ module CrystalGPT5
           advance
           skip_trivia
           member_token = current_token
+
+          # Phase 44: Check for .as(Type) type cast
+          if member_token.kind == Token::Kind::As
+            return parse_as_cast(receiver, dot, member_token)
+          end
+
           if member_token.kind == Token::Kind::Identifier
             spans = [] of Span
             spans << node_span(receiver)
@@ -3503,6 +3509,58 @@ module CrystalGPT5
             emit_unexpected(member_token)
             receiver
           end
+        end
+
+        # Phase 44: Parse type cast (.as(Type))
+        private def parse_as_cast(receiver : ExprId, dot : Token, as_token : Token) : ExprId
+          advance  # Skip 'as' keyword
+          skip_trivia
+
+          # Expect opening parenthesis
+          unless current_token.kind == Token::Kind::LParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          lparen = current_token
+          advance
+          skip_trivia
+
+          # Parse type (for now, just identifier - can be expanded for complex types)
+          type_token = current_token
+          unless type_token.kind == Token::Kind::Identifier
+            emit_unexpected(type_token)
+            return PREFIX_ERROR
+          end
+          target_type = type_token.slice
+          advance
+          skip_trivia
+
+          # Expect closing parenthesis
+          unless current_token.kind == Token::Kind::RParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          rparen = current_token
+          advance
+
+          # Create As node
+          spans = [] of Span
+          spans << node_span(receiver)
+          spans << dot.span
+          spans << as_token.span
+          spans << lparen.span
+          spans << type_token.span
+          spans << rparen.span
+          as_span = Span.cover_all(spans)
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::As,
+              as_span,
+              as_value: receiver,
+              as_target_type: target_type,
+            )
+          )
         end
 
         private def expect_operator(kind : Token::Kind)

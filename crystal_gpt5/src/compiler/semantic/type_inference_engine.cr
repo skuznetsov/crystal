@@ -140,6 +140,9 @@ module CrystalGPT5
           when .pointerof?
             # Phase 42: Pointerof expressions
             infer_pointerof(node, expr_id)
+          when ExpressionNode::Kind::As
+            # Phase 44: Type cast expressions (can't use .as? due to keyword collision)
+            infer_as(node, expr_id)
           when .block?
             # Phase 10: Block literals
             infer_block(node, expr_id)
@@ -1038,6 +1041,24 @@ module CrystalGPT5
           end
 
           # Return nil_type as placeholder (full implementation would return Pointer(T))
+          @context.nil_type
+        end
+
+        # Phase 44: as keyword (type cast)
+        private def infer_as(node, expr_id : ExprId) : Type
+          # Type cast: value.as(Type)
+          # In a full implementation:
+          # - Infer type of value being cast
+          # - Look up target type in type registry
+          # - Verify cast is valid (runtime or compile-time)
+          # - Return target type
+
+          # For now, infer type of value and return nil as placeholder
+          if value_expr = node.as_value
+            infer_expression(value_expr)
+          end
+
+          # Return nil_type as placeholder (full implementation would return target type)
           @context.nil_type
         end
 
