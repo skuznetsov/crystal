@@ -251,6 +251,7 @@ module CrystalGPT5
           Lib  # Phase 38: lib (C bindings)
           As  # Phase 44: type cast (value.as(Type))
           AsQuestion  # Phase 45: safe cast (value.as?(Type))
+          IsA  # Phase 46: type check (value.is_a?(Type))
         end
 
         getter kind : Kind
@@ -337,6 +338,8 @@ module CrystalGPT5
         getter as_target_type : Slice(UInt8)?  # Phase 44: target type for cast
         getter as_question_value : ExprId?  # Phase 45: expression being safely cast
         getter as_question_target_type : Slice(UInt8)?  # Phase 45: target type for safe cast
+        getter is_a_value : ExprId?  # Phase 46: expression being type-checked
+        getter is_a_target_type : Slice(UInt8)?  # Phase 46: target type for type check
 
         def initialize(
           @kind : Kind,
@@ -422,6 +425,8 @@ module CrystalGPT5
           @as_target_type : Slice(UInt8)? = nil,
           @as_question_value : ExprId? = nil,
           @as_question_target_type : Slice(UInt8)? = nil,
+          @is_a_value : ExprId? = nil,
+          @is_a_target_type : Slice(UInt8)? = nil,
         )
         end
 

@@ -3494,6 +3494,14 @@ module CrystalGPT5
             return parse_as_safe_cast(receiver, dot, member_token)
           end
 
+          # Phase 46: Check for .is_a?(Type) type check
+          if member_token.kind == Token::Kind::Identifier
+            member_text = String.new(member_token.slice)
+            if member_text == "is_a?"
+              return parse_is_a(receiver, dot, member_token)
+            end
+          end
+
           if member_token.kind == Token::Kind::Identifier
             spans = [] of Span
             spans << node_span(receiver)
@@ -3616,6 +3624,58 @@ module CrystalGPT5
               as_question_span,
               as_question_value: receiver,
               as_question_target_type: target_type,
+            )
+          )
+        end
+
+        # Phase 46: Parse type check (.is_a?(Type))
+        private def parse_is_a(receiver : ExprId, dot : Token, is_a_token : Token) : ExprId
+          advance  # Skip 'is_a?' identifier
+          skip_trivia
+
+          # Expect opening parenthesis
+          unless current_token.kind == Token::Kind::LParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          lparen = current_token
+          advance
+          skip_trivia
+
+          # Parse type (for now, just identifier - can be expanded for complex types)
+          type_token = current_token
+          unless type_token.kind == Token::Kind::Identifier
+            emit_unexpected(type_token)
+            return PREFIX_ERROR
+          end
+          target_type = type_token.slice
+          advance
+          skip_trivia
+
+          # Expect closing parenthesis
+          unless current_token.kind == Token::Kind::RParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          rparen = current_token
+          advance
+
+          # Create IsA node
+          spans = [] of Span
+          spans << node_span(receiver)
+          spans << dot.span
+          spans << is_a_token.span
+          spans << lparen.span
+          spans << type_token.span
+          spans << rparen.span
+          is_a_span = Span.cover_all(spans)
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::IsA,
+              is_a_span,
+              is_a_value: receiver,
+              is_a_target_type: target_type,
             )
           )
         end

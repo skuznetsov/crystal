@@ -146,6 +146,9 @@ module CrystalGPT5
           when ExpressionNode::Kind::AsQuestion
             # Phase 45: Safe cast expressions (nilable)
             infer_as_question(node, expr_id)
+          when ExpressionNode::Kind::IsA
+            # Phase 46: Type check expressions (returns Bool)
+            infer_is_a(node, expr_id)
           when .block?
             # Phase 10: Block literals
             infer_block(node, expr_id)
@@ -1082,6 +1085,26 @@ module CrystalGPT5
 
           # Return nil_type as placeholder (full implementation would return target_type | Nil)
           @context.nil_type
+        end
+
+        # Phase 46: is_a? keyword (type check - returns Bool)
+        private def infer_is_a(node, expr_id : ExprId) : Type
+          # Type check: value.is_a?(Type)
+          # Returns Bool (true if value is instance of Type, false otherwise)
+          # In a full implementation:
+          # - Infer type of value being checked
+          # - Look up target type in type registry
+          # - Return Bool type
+          # - Unlike .as, this doesn't cast, just checks
+          # - Can enable type narrowing in conditional branches
+
+          # For now, infer type of value and return bool type
+          if value_expr = node.is_a_value
+            infer_expression(value_expr)
+          end
+
+          # Return Bool type (is_a? always returns boolean)
+          @context.bool_type
         end
 
         # ============================================================
