@@ -250,6 +250,7 @@ module CrystalGPT5
           Constant  # Phase 35: constant declaration
           Lib  # Phase 38: lib (C bindings)
           As  # Phase 44: type cast (value.as(Type))
+          AsQuestion  # Phase 45: safe cast (value.as?(Type))
         end
 
         getter kind : Kind
@@ -334,6 +335,8 @@ module CrystalGPT5
         getter constant_value : ExprId?  # Phase 35: constant value expression
         getter as_value : ExprId?  # Phase 44: expression being cast
         getter as_target_type : Slice(UInt8)?  # Phase 44: target type for cast
+        getter as_question_value : ExprId?  # Phase 45: expression being safely cast
+        getter as_question_target_type : Slice(UInt8)?  # Phase 45: target type for safe cast
 
         def initialize(
           @kind : Kind,
@@ -417,6 +420,8 @@ module CrystalGPT5
           @constant_value : ExprId? = nil,
           @as_value : ExprId? = nil,
           @as_target_type : Slice(UInt8)? = nil,
+          @as_question_value : ExprId? = nil,
+          @as_question_target_type : Slice(UInt8)? = nil,
         )
         end
 

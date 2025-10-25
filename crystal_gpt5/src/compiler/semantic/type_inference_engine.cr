@@ -143,6 +143,9 @@ module CrystalGPT5
           when ExpressionNode::Kind::As
             # Phase 44: Type cast expressions (can't use .as? due to keyword collision)
             infer_as(node, expr_id)
+          when ExpressionNode::Kind::AsQuestion
+            # Phase 45: Safe cast expressions (nilable)
+            infer_as_question(node, expr_id)
           when .block?
             # Phase 10: Block literals
             infer_block(node, expr_id)
@@ -1059,6 +1062,25 @@ module CrystalGPT5
           end
 
           # Return nil_type as placeholder (full implementation would return target type)
+          @context.nil_type
+        end
+
+        # Phase 45: as? keyword (safe cast - nilable)
+        private def infer_as_question(node, expr_id : ExprId) : Type
+          # Safe cast: value.as?(Type)
+          # Returns Type? (nilable) instead of Type
+          # In a full implementation:
+          # - Infer type of value being cast
+          # - Look up target type in type registry
+          # - Return Union(target_type, Nil) - nilable version
+          # - Unlike .as, this doesn't panic on invalid cast, returns nil
+
+          # For now, infer type of value and return nil as placeholder
+          if value_expr = node.as_question_value
+            infer_expression(value_expr)
+          end
+
+          # Return nil_type as placeholder (full implementation would return target_type | Nil)
           @context.nil_type
         end
 

@@ -70,6 +70,7 @@ module CrystalGPT5
           Protected  # Phase 37: protected visibility
           Lib  # Phase 38: lib (C bindings)
           As   # Phase 44: type cast (value.as(Type))
+          AsQuestion  # Phase 45: safe cast (value.as?(Type))
 
           # Arithmetic operators
           Plus        # +
