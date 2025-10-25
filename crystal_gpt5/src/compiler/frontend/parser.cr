@@ -1082,7 +1082,8 @@ module CrystalGPT5
         # Phase 6: Handle postfix if modifier
         # Grammar: <statement> if <condition>
         # Phase 26: Parse postfix if/unless modifiers
-        # Supports: stmt if condition, stmt unless condition
+        # Phase 27: Parse postfix while/until modifiers
+        # Supports: stmt if condition, stmt unless condition, stmt while condition, stmt until condition
         private def parse_postfix_if_modifier(stmt : ExprId) : ExprId
           skip_trivia
           token = current_token
@@ -1133,6 +1134,54 @@ module CrystalGPT5
                 if_condition: condition,  # Reuse if_condition field
                 if_then: [stmt],          # Reuse if_then field
                 if_else: [] of ExprId     # Reuse if_else field (empty)
+              )
+            )
+          end
+
+          # Phase 27: Check for postfix while
+          if token.kind == Token::Kind::While
+            advance  # consume 'while'
+            skip_trivia
+
+            # Parse condition
+            condition = parse_expression(0)
+            return PREFIX_ERROR if condition.invalid?
+
+            # Wrap statement in a while node
+            stmt_span = node_span(stmt)
+            condition_span = node_span(condition)
+            while_span = stmt_span.cover(condition_span)
+
+            return @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::While,
+                while_span,
+                while_condition: condition,
+                while_body: [stmt]
+              )
+            )
+          end
+
+          # Phase 27: Check for postfix until
+          if token.kind == Token::Kind::Until
+            advance  # consume 'until'
+            skip_trivia
+
+            # Parse condition
+            condition = parse_expression(0)
+            return PREFIX_ERROR if condition.invalid?
+
+            # Wrap statement in an until node
+            stmt_span = node_span(stmt)
+            condition_span = node_span(condition)
+            until_span = stmt_span.cover(condition_span)
+
+            return @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Until,
+                until_span,
+                while_condition: condition,  # Reuse while_condition field
+                while_body: [stmt]           # Reuse while_body field
               )
             )
           end
