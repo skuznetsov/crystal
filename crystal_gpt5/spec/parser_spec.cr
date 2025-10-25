@@ -49,7 +49,8 @@ bar")
     root = arena[program.roots.first]
     root.kind.should eq(ExprNode::Kind::Index)
 
-    call_node = arena[root.callee.not_nil!]
+    # Index uses 'left' field, not 'callee'
+    call_node = arena[root.left.not_nil!]
     call_node.kind.should eq(ExprNode::Kind::Call)
 
     member = arena[call_node.callee.not_nil!]
