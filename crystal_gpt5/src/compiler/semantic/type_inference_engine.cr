@@ -99,6 +99,9 @@ module CrystalGPT5
             infer_index(node, expr_id)
           when .if?
             infer_if(node)
+          when .unless?
+            # Phase 24: unless condition
+            infer_unless(node)
           when .while?
             infer_while(node)
           when .assign?
@@ -576,6 +579,54 @@ module CrystalGPT5
           # Create union type of all branches: then + elsifs + else
           all_types = [then_type] + elsif_types + [else_type]
           union_of(all_types)
+        end
+
+        # Phase 24: Type inference for unless (similar to if but without elsif)
+        private def infer_unless(node) : Type
+          # Infer condition type
+          condition_id = node.if_condition
+          return @context.nil_type unless condition_id
+
+          condition_type = infer_expression(condition_id)
+
+          # Check condition is Bool
+          unless bool_type?(condition_type)
+            emit_error("Unless condition must be Bool, got #{condition_type}", condition_id)
+          end
+
+          # Infer then body (executed when condition is false)
+          then_type = if then_body = node.if_then
+            if then_body.size > 0
+              result_type = @context.nil_type
+              then_body.each do |expr_id|
+                result_type = infer_expression(expr_id)
+              end
+              result_type
+            else
+              @context.nil_type
+            end
+          else
+            @context.nil_type
+          end
+
+          # Infer else body (executed when condition is true)
+          else_type = if else_body = node.if_else
+            if else_body.size > 0
+              result_type = @context.nil_type
+              else_body.each do |expr_id|
+                result_type = infer_expression(expr_id)
+              end
+              result_type
+            else
+              @context.nil_type
+            end
+          else
+            # No else branch → implicit Nil
+            @context.nil_type
+          end
+
+          # Create union type of both branches: then + else
+          union_of([then_type, else_type])
         end
 
         private def infer_while(node) : Type

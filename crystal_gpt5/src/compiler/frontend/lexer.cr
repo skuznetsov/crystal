@@ -128,6 +128,8 @@ module CrystalGPT5
           when "when"   then Token::Kind::When
           when "break"  then Token::Kind::Break
           when "next"   then Token::Kind::Next
+          when "unless" then Token::Kind::Unless  # Phase 24
+          when "until"  then Token::Kind::Until   # Phase 25
           else
             Token::Kind::Identifier
           end

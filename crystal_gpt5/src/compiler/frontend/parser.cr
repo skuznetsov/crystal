@@ -519,6 +519,78 @@ module CrystalGPT5
           )
         end
 
+        # Phase 24: Parse unless expression (similar to if but without elsif)
+        private def parse_unless : ExprId
+          unless_token = current_token
+          advance
+          skip_trivia
+
+          # Parse condition
+          condition = parse_expression(0)
+          return PREFIX_ERROR if condition.invalid?
+
+          skip_trivia
+          # Optional "then" keyword
+          token = current_token
+          if token.kind == Token::Kind::Then
+            advance
+          end
+          consume_newlines
+
+          # Parse then body (executed when condition is false)
+          then_body = [] of ExprId
+          loop do
+            skip_trivia
+            token = current_token
+            break if token.kind == Token::Kind::Else || token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            expr = parse_statement
+            then_body << expr unless expr.invalid?
+            consume_newlines
+          end
+
+          # Parse optional else body (executed when condition is true)
+          else_body = nil
+          token = current_token
+          if token.kind == Token::Kind::Else
+            advance
+            consume_newlines
+
+            else_body = [] of ExprId
+            loop do
+              skip_trivia
+              token = current_token
+              break if token.kind == Token::Kind::End
+              break if token.kind == Token::Kind::EOF
+
+              expr = parse_statement
+              else_body << expr unless expr.invalid?
+              consume_newlines
+            end
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          unless_span = if end_token
+            unless_token.span.cover(end_token.span)
+          else
+            unless_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Unless,
+              unless_span,
+              if_condition: condition,      # Reuse if_condition field
+              if_then: then_body,            # Reuse if_then field
+              if_else: else_body,            # Reuse if_else field
+            )
+          )
+        end
+
         # Phase 11: Parse case/when expression
         # Grammar: case <value>
         #          when <cond1>, <cond2> [then]
@@ -1361,6 +1433,9 @@ module CrystalGPT5
             id
           when Token::Kind::If
             parse_if
+          when Token::Kind::Unless
+            # Phase 24: unless condition
+            parse_unless
           when Token::Kind::Case
             # Phase 11: case/when pattern matching
             parse_case

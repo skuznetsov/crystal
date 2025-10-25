@@ -128,7 +128,9 @@ module CrystalGPT5
           MemberAccess
           Grouping
           If
+          Unless  # Phase 24: unless condition
           While
+          Until   # Phase 25: until condition
           Assign
           MacroExpression
           MacroLiteral

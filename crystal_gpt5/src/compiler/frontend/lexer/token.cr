@@ -46,6 +46,8 @@ module CrystalGPT5
           When    # Phase 11
           Break   # Phase 12
           Next    # Phase 12
+          Unless  # Phase 24
+          Until   # Phase 25
 
           # Arithmetic operators
           Plus        # +
