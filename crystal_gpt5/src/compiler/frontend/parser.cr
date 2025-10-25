@@ -59,6 +59,9 @@ module CrystalGPT5
                 when Token::Kind::Protected
                   # Phase 37: protected def
                   parse_protected
+                when Token::Kind::Lib
+                  # Phase 38: lib (C bindings)
+                  parse_lib
                 else
                   PREFIX_ERROR
                 end
@@ -265,7 +268,7 @@ module CrystalGPT5
 
         private def definition_start?
           token = current_token
-          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Abstract || token.kind == Token::Kind::Private || token.kind == Token::Kind::Protected
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Abstract || token.kind == Token::Kind::Private || token.kind == Token::Kind::Protected || token.kind == Token::Kind::Lib
         end
 
         # Phase 35: Check if identifier is a constant (uppercase first letter)
@@ -1745,6 +1748,8 @@ module CrystalGPT5
                   parse_private
                 when Token::Kind::Protected
                   parse_protected
+                when Token::Kind::Lib
+                  parse_lib
                 else
                   # Phase 5B: Use parse_statement for assignments
                   parse_statement
@@ -1842,6 +1847,79 @@ module CrystalGPT5
             emit_unexpected(current_token)
             PREFIX_ERROR
           end
+        end
+
+        # Phase 38: Parse lib definition (C bindings)
+        # Grammar: lib Name ... end
+        private def parse_lib : ExprId
+          lib_token = current_token
+          advance
+          skip_trivia
+
+          name_token = current_token
+          unless name_token.kind == Token::Kind::Identifier
+            emit_unexpected(name_token)
+            return PREFIX_ERROR
+          end
+          advance
+
+          consume_newlines
+
+          body_ids = [] of ExprId
+          loop do
+            skip_trivia
+            token = current_token
+            break if token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            if definition_start?
+              expr = case current_token.kind
+                when Token::Kind::Def
+                  parse_def
+                when Token::Kind::Class
+                  parse_class
+                when Token::Kind::Module
+                  parse_module
+                when Token::Kind::Struct
+                  parse_struct
+                when Token::Kind::Enum
+                  parse_enum
+                when Token::Kind::Alias
+                  parse_alias
+                when Token::Kind::Abstract
+                  parse_abstract
+                when Token::Kind::Private
+                  parse_private
+                when Token::Kind::Protected
+                  parse_protected
+                else
+                  parse_statement
+                end
+            else
+              expr = parse_statement
+            end
+            body_ids << expr unless expr.invalid?
+            consume_newlines
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          lib_span = if end_token
+            lib_token.span.cover(end_token.span)
+          else
+            lib_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Lib,
+              lib_span,
+              lib_name: name_token.slice,
+              lib_body: body_ids,
+            )
+          )
         end
 
         # Phase 33: Parse enum definition
@@ -2030,6 +2108,8 @@ module CrystalGPT5
                   parse_private
                 when Token::Kind::Protected
                   parse_protected
+                when Token::Kind::Lib
+                  parse_lib
                 else
                   parse_statement
                 end

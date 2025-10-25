@@ -177,6 +177,9 @@ module CrystalGPT5
           when .constant?
             # Phase 35: Constant declaration
             infer_constant(node)
+          when .lib?
+            # Phase 38: Lib definition (C bindings)
+            infer_lib(node, expr_id)
           when .grouping?
             # Grouping expressions: (expr)
             # Type is the type of the wrapped expression
@@ -371,6 +374,22 @@ module CrystalGPT5
           # Type aliases are compile-time constructs with no runtime value
           # For now, we just acknowledge the alias exists and return Nil
           # In future, this would register the alias in a type registry
+          @context.nil_type
+        end
+
+        # Phase 38: Type inference for lib definition
+        private def infer_lib(node, expr_id : ExprId) : Type
+          # In a full implementation, we would:
+          # 1. Look up LibSymbol from symbol table
+          # 2. Save current lib context
+          # 3. Process lib body (fun, type declarations)
+          # 4. Restore previous context
+          # For now, just process the body
+          (node.lib_body || [] of ExprId).each do |body_expr_id|
+            infer_expression(body_expr_id)
+          end
+
+          # Lib definitions don't have value types
           @context.nil_type
         end
 

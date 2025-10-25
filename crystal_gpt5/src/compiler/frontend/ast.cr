@@ -244,6 +244,7 @@ module CrystalGPT5
           Enum  # Phase 33: enum definition (enumerated type)
           Alias  # Phase 34: type alias
           Constant  # Phase 35: constant declaration
+          Lib  # Phase 38: lib (C bindings)
         end
 
         getter kind : Kind
@@ -313,6 +314,8 @@ module CrystalGPT5
         getter module_body : Array(ExprId)?  # Phase 31: module body
         getter include_name : Slice(UInt8)?  # Phase 31: include module name
         getter extend_name : Slice(UInt8)?  # Phase 31: extend module name
+        getter lib_name : Slice(UInt8)?  # Phase 38: lib name
+        getter lib_body : Array(ExprId)?  # Phase 38: lib body
         getter enum_name : Slice(UInt8)?  # Phase 33: enum name
         getter enum_base_type : Slice(UInt8)?  # Phase 33: enum base type (: Int32)
         getter enum_members : Array(EnumMember)?  # Phase 33: enum members
@@ -388,6 +391,8 @@ module CrystalGPT5
           @module_body : Array(ExprId)? = nil,
           @include_name : Slice(UInt8)? = nil,
           @extend_name : Slice(UInt8)? = nil,
+          @lib_name : Slice(UInt8)? = nil,
+          @lib_body : Array(ExprId)? = nil,
           @enum_name : Slice(UInt8)? = nil,
           @enum_base_type : Slice(UInt8)? = nil,
           @enum_members : Array(EnumMember)? = nil,

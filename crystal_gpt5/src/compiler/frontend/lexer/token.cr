@@ -64,6 +64,7 @@ module CrystalGPT5
           Abstract  # Phase 36: abstract modifier
           Private  # Phase 37: private visibility
           Protected  # Phase 37: protected visibility
+          Lib  # Phase 38: lib (C bindings)
 
           # Arithmetic operators
           Plus        # +
