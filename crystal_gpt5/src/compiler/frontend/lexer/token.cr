@@ -43,6 +43,7 @@ module CrystalGPT5
           Self    # Phase 7
           Super   # Phase 39: call parent method
           Typeof  # Phase 40: type introspection
+          Sizeof  # Phase 41: size in bytes
           Yield   # Phase 10
           Case    # Phase 11
           When    # Phase 11

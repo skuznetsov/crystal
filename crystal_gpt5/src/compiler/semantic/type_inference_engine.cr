@@ -134,6 +134,9 @@ module CrystalGPT5
           when .typeof?
             # Phase 40: Typeof expressions
             infer_typeof(node, expr_id)
+          when .sizeof?
+            # Phase 41: Sizeof expressions
+            infer_sizeof(node, expr_id)
           when .block?
             # Phase 10: Block literals
             infer_block(node, expr_id)
@@ -995,6 +998,25 @@ module CrystalGPT5
           end
 
           @context.nil_type
+        end
+
+        # Phase 41: Type inference for sizeof (size in bytes)
+        private def infer_sizeof(node, expr_id : ExprId) : Type
+          # sizeof returns the size of a type or expression in bytes
+          # In a full implementation:
+          # - sizeof(Int32) returns 4 (32 bits = 4 bytes)
+          # - sizeof(Type) returns the size of that type
+          # - sizeof(expr) returns the size of expr's type
+
+          # For now, infer types of arguments and return Int32
+          if args = node.sizeof_args
+            args.each do |arg_expr_id|
+              infer_expression(arg_expr_id)
+            end
+          end
+
+          # sizeof always returns Int32 (number of bytes)
+          @context.int32_type
         end
 
         # ============================================================

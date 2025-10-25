@@ -222,6 +222,7 @@ module CrystalGPT5
           Self    # Phase 7: self keyword
           Super   # Phase 39: super keyword (call parent method)
           Typeof  # Phase 40: typeof (type introspection)
+          Sizeof  # Phase 41: sizeof (size in bytes)
           StringInterpolation  # Phase 8: string interpolation
           ArrayLiteral  # Phase 9: array literals [1, 2, 3]
           Block  # Phase 10: block {|x| ... } or do |x| ... end
@@ -294,6 +295,7 @@ module CrystalGPT5
         getter yield_args : Array(ExprId)?  # Phase 10: yield arguments
         getter super_args : Array(ExprId)?  # Phase 39: super arguments
         getter typeof_args : Array(ExprId)?  # Phase 40: typeof arguments (expressions to get type of)
+        getter sizeof_args : Array(ExprId)?  # Phase 41: sizeof arguments (type or expression to get size of)
         getter case_value : ExprId?  # Phase 11: value to match against
         getter when_branches : Array(WhenBranch)?  # Phase 11: when branches
         getter case_else : Array(ExprId)?  # Phase 11: else clause
@@ -374,6 +376,7 @@ module CrystalGPT5
           @yield_args : Array(ExprId)? = nil,
           @super_args : Array(ExprId)? = nil,
           @typeof_args : Array(ExprId)? = nil,
+          @sizeof_args : Array(ExprId)? = nil,
           @case_value : ExprId? = nil,
           @when_branches : Array(WhenBranch)? = nil,
           @case_else : Array(ExprId)? = nil,

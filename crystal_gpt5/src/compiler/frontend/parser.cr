@@ -1562,6 +1562,53 @@ module CrystalGPT5
           )
         end
 
+        # Phase 41: Parse sizeof (size in bytes)
+        # Grammar: sizeof(expr) | sizeof(expr1, expr2, ...)
+        private def parse_sizeof : ExprId
+          sizeof_token = current_token
+          advance
+          skip_trivia
+
+          # Expect opening parenthesis
+          unless current_token.kind == Token::Kind::LParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume (
+          skip_trivia
+
+          args = [] of ExprId
+
+          # Parse at least one argument
+          loop do
+            arg = parse_expression(0)
+            return PREFIX_ERROR if arg.invalid?
+            args << arg
+
+            skip_trivia
+            break if current_token.kind != Token::Kind::Comma
+
+            advance  # consume comma
+            skip_trivia
+          end
+
+          # Expect closing parenthesis
+          unless current_token.kind == Token::Kind::RParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          rparen_token = current_token
+          advance
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Sizeof,
+              sizeof_token.span.cover(rparen_token.span),
+              sizeof_args: args
+            )
+          )
+        end
+
         # Phase 10: Parse block
         # Grammar: { |params| body } or do |params| body end
         private def parse_block : ExprId
@@ -2606,6 +2653,9 @@ module CrystalGPT5
           when Token::Kind::Typeof
             # Phase 40: typeof (type introspection)
             parse_typeof
+          when Token::Kind::Sizeof
+            # Phase 41: sizeof (size in bytes)
+            parse_sizeof
           when Token::Kind::If
             parse_if
           when Token::Kind::Unless
