@@ -2612,6 +2612,10 @@ module CrystalGPT5
               # Phase 10: Block with do/end syntax
               left = attach_block_to_call(left)
               next
+            when Token::Kind::AmpDot
+              # Phase 47: Safe navigation (&.)
+              left = parse_safe_navigation(left)
+              next
             when Token::Kind::Operator
               # Check for operators not yet converted to enum (e.g., ".")
               case token_text(token)
@@ -3678,6 +3682,38 @@ module CrystalGPT5
               is_a_target_type: target_type,
             )
           )
+        end
+
+        # Phase 47: Parse safe navigation (&.)
+        private def parse_safe_navigation(receiver : ExprId) : ExprId
+          amp_dot = current_token
+          advance  # Skip '&.'
+          skip_trivia
+
+          member_token = current_token
+
+          # Member must be identifier
+          if member_token.kind == Token::Kind::Identifier
+            spans = [] of Span
+            spans << node_span(receiver)
+            spans << amp_dot.span
+            spans << member_token.span
+            safe_nav_span = Span.cover_all(spans)
+
+            node = @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::SafeNavigation,
+                safe_nav_span,
+                left: receiver,
+                member: member_token.slice,
+              )
+            )
+            advance
+            node
+          else
+            emit_unexpected(member_token)
+            receiver
+          end
         end
 
         private def expect_operator(kind : Token::Kind)

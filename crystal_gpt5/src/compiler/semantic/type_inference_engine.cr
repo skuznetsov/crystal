@@ -149,6 +149,9 @@ module CrystalGPT5
           when ExpressionNode::Kind::IsA
             # Phase 46: Type check expressions (returns Bool)
             infer_is_a(node, expr_id)
+          when ExpressionNode::Kind::SafeNavigation
+            # Phase 47: Safe navigation expressions (returns nilable)
+            infer_safe_navigation(node, expr_id)
           when .block?
             # Phase 10: Block literals
             infer_block(node, expr_id)
@@ -1105,6 +1108,26 @@ module CrystalGPT5
 
           # Return Bool type (is_a? always returns boolean)
           @context.bool_type
+        end
+
+        # Phase 47: &. safe navigation operator (returns nilable)
+        private def infer_safe_navigation(node, expr_id : ExprId) : Type
+          # Safe navigation: receiver&.member
+          # Returns member_type | Nil (nilable)
+          # If receiver is nil, returns nil without calling method
+          # Otherwise, calls method and returns its result
+          # In a full implementation:
+          # - Infer type of receiver
+          # - Look up member in receiver's type
+          # - Return Union(member_type, Nil) - nilable version
+
+          # For now, infer receiver type and return nil as placeholder
+          if receiver_expr = node.left
+            infer_expression(receiver_expr)
+          end
+
+          # Return nil_type as placeholder (full implementation would return member_type | Nil)
+          @context.nil_type
         end
 
         # ============================================================

@@ -110,6 +110,9 @@ module CrystalGPT5
           Caret       # ^ (bitwise XOR)
           Tilde       # ~ (bitwise NOT)
 
+          # Navigation operators
+          AmpDot      # &. (Phase 47: safe navigation)
+
           # Grouping and delimiters
           LParen      # (
           RParen      # )

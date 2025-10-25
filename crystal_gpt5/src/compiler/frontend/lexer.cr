@@ -470,9 +470,13 @@ module CrystalGPT5
               Token::Kind::Not
             end
           when '&'.ord.to_u8
+            # Check for &. (safe navigation)
+            if @offset < @rope.size && current_byte == '.'.ord.to_u8
+              advance  # consume '.'
+              Token::Kind::AmpDot
             # Check for &&
-            if @offset < @rope.size && current_byte == '&'.ord.to_u8
-              advance
+            elsif @offset < @rope.size && current_byte == '&'.ord.to_u8
+              advance  # consume '&'
               Token::Kind::AndAnd
             else
               # Phase 21: Bitwise AND

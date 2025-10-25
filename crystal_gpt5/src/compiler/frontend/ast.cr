@@ -207,6 +207,7 @@ module CrystalGPT5
           Call
           Index
           MemberAccess
+          SafeNavigation  # Phase 47: safe navigation (&.)
           Grouping
           If
           Unless  # Phase 24: unless condition
