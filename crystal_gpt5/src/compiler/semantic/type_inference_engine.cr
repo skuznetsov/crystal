@@ -171,6 +171,9 @@ module CrystalGPT5
           when .enum?
             # Phase 33: Enum definition (enumerated type)
             infer_enum(node)
+          when .alias?
+            # Phase 34: Type alias definition
+            infer_alias(node)
           when .grouping?
             # Grouping expressions: (expr)
             # Type is the type of the wrapped expression
@@ -357,6 +360,14 @@ module CrystalGPT5
           end
 
           # Enum definitions don't have value types
+          @context.nil_type
+        end
+
+        private def infer_alias(node) : Type
+          # Phase 34: Type alias definition
+          # Type aliases are compile-time constructs with no runtime value
+          # For now, we just acknowledge the alias exists and return Nil
+          # In future, this would register the alias in a type registry
           @context.nil_type
         end
 

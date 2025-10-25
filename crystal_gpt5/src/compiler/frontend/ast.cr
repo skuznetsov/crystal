@@ -235,6 +235,7 @@ module CrystalGPT5
           Extend  # Phase 31: extend module into class/module
           Struct  # Phase 32: struct definition (value type)
           Enum  # Phase 33: enum definition (enumerated type)
+          Alias  # Phase 34: type alias
         end
 
         getter kind : Kind
@@ -304,6 +305,8 @@ module CrystalGPT5
         getter enum_name : Slice(UInt8)?  # Phase 33: enum name
         getter enum_base_type : Slice(UInt8)?  # Phase 33: enum base type (: Int32)
         getter enum_members : Array(EnumMember)?  # Phase 33: enum members
+        getter alias_name : Slice(UInt8)?  # Phase 34: alias name
+        getter alias_value : Slice(UInt8)?  # Phase 34: aliased type
 
         def initialize(
           @kind : Kind,
@@ -372,6 +375,8 @@ module CrystalGPT5
           @enum_name : Slice(UInt8)? = nil,
           @enum_base_type : Slice(UInt8)? = nil,
           @enum_members : Array(EnumMember)? = nil,
+          @alias_name : Slice(UInt8)? = nil,
+          @alias_value : Slice(UInt8)? = nil,
         )
         end
 

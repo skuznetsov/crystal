@@ -48,6 +48,8 @@ module CrystalGPT5
                   parse_struct
                 when Token::Kind::Enum
                   parse_enum
+                when Token::Kind::Alias
+                  parse_alias
                 else
                   PREFIX_ERROR
                 end
@@ -233,7 +235,7 @@ module CrystalGPT5
 
         private def definition_start?
           token = current_token
-          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias
         end
 
         private def parse_macro_definition : ExprId
@@ -1685,6 +1687,8 @@ module CrystalGPT5
                   parse_struct
                 when Token::Kind::Enum
                   parse_enum
+                when Token::Kind::Alias
+                  parse_alias
                 else
                   # Phase 5B: Use parse_statement for assignments
                   parse_statement
@@ -1828,6 +1832,50 @@ module CrystalGPT5
           )
         end
 
+        # Phase 34: Parse alias definition
+        # Grammar: alias Name = Type
+        private def parse_alias : ExprId
+          alias_token = current_token
+          advance
+          skip_trivia
+
+          # Parse alias name
+          name_token = current_token
+          unless name_token.kind == Token::Kind::Identifier
+            emit_unexpected(name_token)
+            return PREFIX_ERROR
+          end
+          advance
+          skip_trivia
+
+          # Expect '='
+          unless current_token.kind == Token::Kind::Eq
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance
+          skip_trivia
+
+          # Parse type (for now, just identifier - can be expanded later for generic types)
+          type_token = current_token
+          unless type_token.kind == Token::Kind::Identifier
+            emit_unexpected(type_token)
+            return PREFIX_ERROR
+          end
+          advance
+
+          alias_span = alias_token.span.cover(type_token.span)
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Alias,
+              alias_span,
+              alias_name: name_token.slice,
+              alias_value: type_token.slice,
+            )
+          )
+        end
+
         # Phase 31: Parse module definition
         # Grammar: module Name ... end
         private def parse_module : ExprId
@@ -1859,6 +1907,12 @@ module CrystalGPT5
                   parse_class
                 when Token::Kind::Module
                   parse_module
+                when Token::Kind::Struct
+                  parse_struct
+                when Token::Kind::Enum
+                  parse_enum
+                when Token::Kind::Alias
+                  parse_alias
                 else
                   parse_statement
                 end
