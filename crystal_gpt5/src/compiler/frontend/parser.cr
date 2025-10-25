@@ -1081,6 +1081,8 @@ module CrystalGPT5
 
         # Phase 6: Handle postfix if modifier
         # Grammar: <statement> if <condition>
+        # Phase 26: Parse postfix if/unless modifiers
+        # Supports: stmt if condition, stmt unless condition
         private def parse_postfix_if_modifier(stmt : ExprId) : ExprId
           skip_trivia
           token = current_token
@@ -1110,7 +1112,32 @@ module CrystalGPT5
             )
           end
 
-          # No postfix if, return statement as-is
+          # Phase 26: Check for postfix unless
+          if token.kind == Token::Kind::Unless
+            advance  # consume 'unless'
+            skip_trivia
+
+            # Parse condition
+            condition = parse_expression(0)
+            return PREFIX_ERROR if condition.invalid?
+
+            # Wrap statement in an unless node
+            stmt_span = node_span(stmt)
+            condition_span = node_span(condition)
+            unless_span = stmt_span.cover(condition_span)
+
+            return @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Unless,
+                unless_span,
+                if_condition: condition,  # Reuse if_condition field
+                if_then: [stmt],          # Reuse if_then field
+                if_else: [] of ExprId     # Reuse if_else field (empty)
+              )
+            )
+          end
+
+          # No postfix modifier, return statement as-is
           stmt
         end
 
