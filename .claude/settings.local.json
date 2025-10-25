@@ -46,7 +46,8 @@
       "Bash(CRYSTAL_CACHE_DIR=./.crystal-cache crystal spec spec/semantic/type_inference_spec.cr)",
       "Bash(git add -A)",
       "Bash(crystal spec:*)",
-      "Bash(crystal:*)"
+      "Bash(crystal:*)",
+      "Bash(CRYSTAL_CACHE_DIR=./.crystal-cache crystal spec:*)"
     ],
     "deny": [],
     "ask": []

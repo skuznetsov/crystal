@@ -2194,12 +2194,16 @@ module CrystalGPT5
 
         private def consume_trim_marker?(marker : Char = '-')
           token = current_token
-          # Check for trim marker: "-" can be either Minus or Operator
-          # "~" is always Operator (not tokenized as specific kind)
+          # Check for trim marker
+          # "-" can be Minus token (Phase 18)
+          # "~" can be Tilde token (Phase 21)
           is_trim = case marker
           when '-'
             token.kind == Token::Kind::Minus ||
               (token.kind == Token::Kind::Operator && token_text(token) == "-")
+          when '~'
+            token.kind == Token::Kind::Tilde ||
+              (token.kind == Token::Kind::Operator && token_text(token) == "~")
           else
             token.kind == Token::Kind::Operator && token_text(token) == marker.to_s
           end
@@ -2239,14 +2243,16 @@ module CrystalGPT5
           current = current_token
           return false unless current.kind == Token::Kind::LBrace
           peek = peek_token
-          peek.kind == Token::Kind::Operator && token_text(peek) == "%"
+          # Phase 18: % changed from Operator to Percent token
+          peek.kind == Token::Kind::Percent
         end
 
         private def macro_control_left_trim?
           second = peek_token(1)
           third = peek_token(2)
-          second.kind == Token::Kind::Operator && token_text(second) == "%" &&
-            third.kind == Token::Kind::Operator && token_text(third) == "-"
+          # Phase 18: % changed from Operator to Percent token
+          second.kind == Token::Kind::Percent &&
+            (third.kind == Token::Kind::Minus || (third.kind == Token::Kind::Operator && token_text(third) == "-"))
         end
 
         private def macro_terminator_reached?(token : Token)
@@ -2269,6 +2275,21 @@ module CrystalGPT5
           # Special case for "-": can be Minus or Operator
           if value == "-"
             return true if token.kind == Token::Kind::Minus
+          end
+          # Phase 18: Special case for "%": now Percent token
+          if value == "%"
+            return true if token.kind == Token::Kind::Percent
+          end
+          # Phase 15: Special cases for "{" and "}" (now LBrace/RBrace tokens)
+          if value == "{"
+            return true if token.kind == Token::Kind::LBrace
+          end
+          if value == "}"
+            return true if token.kind == Token::Kind::RBrace
+          end
+          # Phase 21: Special case for "~": now Tilde token (bitwise NOT)
+          if value == "~"
+            return true if token.kind == Token::Kind::Tilde
           end
           # Generic check for Operator tokens
           token.kind == Token::Kind::Operator && token_text(token) == value
@@ -2344,8 +2365,9 @@ module CrystalGPT5
 
         private def parse_macro_control_piece
           start_token = current_token
-          expect_operator("{")
-          expect_operator("%")
+          # Phase 15/18: { is LBrace, % is Percent token
+          expect_operator(Token::Kind::LBrace)
+          expect_operator(Token::Kind::Percent)
           trim_left = consume_trim_marker?
           skip_macro_whitespace
 
@@ -2377,8 +2399,9 @@ module CrystalGPT5
             trim_right = true
           end
 
-          expect_operator("%")
-          expect_operator("}")
+          # Phase 15/18: % is Percent, } is RBrace
+          expect_operator(Token::Kind::Percent)
+          expect_operator(Token::Kind::RBrace)
           end_token = previous_token
 
           newline_escape = consume_macro_newline_escape?
@@ -2454,8 +2477,9 @@ module CrystalGPT5
 
         private def parse_macro_expression_piece
           start_token = current_token
-          expect_operator("{")
-          expect_operator("{")
+          # Phase 15: { is LBrace token
+          expect_operator(Token::Kind::LBrace)
+          expect_operator(Token::Kind::LBrace)
           left_trim = consume_trim_marker?('-') || consume_trim_marker?('~')
           skip_macro_whitespace
           expr = with_macro_terminator(:expression) { parse_expression(0) }
@@ -2468,8 +2492,9 @@ module CrystalGPT5
           end
           advance if right_trim
 
-          expect_operator("}")
-          expect_operator("}")
+          # Phase 15: } is RBrace token
+          expect_operator(Token::Kind::RBrace)
+          expect_operator(Token::Kind::RBrace)
           closing_span = previous_token.try(&.span)
 
           newline_escape = consume_macro_newline_escape?
