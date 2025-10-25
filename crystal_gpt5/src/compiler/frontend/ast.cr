@@ -220,6 +220,7 @@ module CrystalGPT5
           Class
           Return  # Phase 6: return statements
           Self    # Phase 7: self keyword
+          Super   # Phase 39: super keyword (call parent method)
           StringInterpolation  # Phase 8: string interpolation
           ArrayLiteral  # Phase 9: array literals [1, 2, 3]
           Block  # Phase 10: block {|x| ... } or do |x| ... end
@@ -290,6 +291,7 @@ module CrystalGPT5
         getter block_body : Array(ExprId)?  # Phase 10: block body
         getter call_block : ExprId?  # Phase 10: block attached to call
         getter yield_args : Array(ExprId)?  # Phase 10: yield arguments
+        getter super_args : Array(ExprId)?  # Phase 39: super arguments
         getter case_value : ExprId?  # Phase 11: value to match against
         getter when_branches : Array(WhenBranch)?  # Phase 11: when branches
         getter case_else : Array(ExprId)?  # Phase 11: else clause
@@ -368,6 +370,7 @@ module CrystalGPT5
           @block_body : Array(ExprId)? = nil,
           @call_block : ExprId? = nil,
           @yield_args : Array(ExprId)? = nil,
+          @super_args : Array(ExprId)? = nil,
           @case_value : ExprId? = nil,
           @when_branches : Array(WhenBranch)? = nil,
           @case_else : Array(ExprId)? = nil,

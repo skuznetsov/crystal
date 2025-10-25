@@ -91,6 +91,12 @@ module CrystalGPT5
             return parse_postfix_if_modifier(stmt)
           end
 
+          # Phase 39: super statements
+          if current_token.kind == Token::Kind::Super
+            stmt = parse_super
+            return parse_postfix_if_modifier(stmt)
+          end
+
           # Phase 12: break statements
           if current_token.kind == Token::Kind::Break
             stmt = parse_break
@@ -1435,6 +1441,75 @@ module CrystalGPT5
                 ExpressionNode::Kind::Yield,
                 yield_span,
                 yield_args: args
+              )
+            )
+          end
+        end
+
+        # Phase 39: Parse super (call parent method)
+        # Grammar: super | super() | super(arg1, arg2, ...)
+        private def parse_super : ExprId
+          super_token = current_token
+          advance
+          skip_trivia
+
+          # Check if there are parentheses
+          token = current_token
+          if token.kind == Token::Kind::LParen
+            # Explicit argument list: super() or super(args)
+            advance  # consume (
+            skip_trivia
+
+            args = [] of ExprId
+
+            # Check for empty parens: super()
+            if current_token.kind == Token::Kind::RParen
+              rparen_token = current_token
+              advance  # consume )
+              return @arena.add(
+                ExpressionNode.new(
+                  ExpressionNode::Kind::Super,
+                  super_token.span.cover(rparen_token.span),
+                  super_args: args  # Empty array = explicit no args
+                )
+              )
+            end
+
+            # Parse arguments
+            loop do
+              arg = parse_expression(0)
+              return PREFIX_ERROR if arg.invalid?
+              args << arg
+
+              skip_trivia
+              break if current_token.kind != Token::Kind::Comma
+
+              advance  # consume comma
+              skip_trivia
+            end
+
+            # Expect closing paren
+            unless current_token.kind == Token::Kind::RParen
+              emit_unexpected(current_token)
+              return PREFIX_ERROR
+            end
+            rparen_token = current_token
+            advance
+
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Super,
+                super_token.span.cover(rparen_token.span),
+                super_args: args
+              )
+            )
+          else
+            # No parentheses: super (implicit - pass all method args)
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Super,
+                super_token.span,
+                super_args: nil  # nil = implicit args (pass all)
               )
             )
           end

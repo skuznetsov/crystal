@@ -41,6 +41,7 @@ module CrystalGPT5
           Nil
           Return  # Phase 6
           Self    # Phase 7
+          Super   # Phase 39: call parent method
           Yield   # Phase 10
           Case    # Phase 11
           When    # Phase 11

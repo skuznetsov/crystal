@@ -128,6 +128,9 @@ module CrystalGPT5
             infer_return(node, expr_id)
           when .self?
             infer_self(node, expr_id)
+          when .super?
+            # Phase 39: Super expressions
+            infer_super(node, expr_id)
           when .block?
             # Phase 10: Block literals
             infer_block(node, expr_id)
@@ -947,6 +950,26 @@ module CrystalGPT5
             # self outside class context (shouldn't happen in valid code)
             @context.nil_type
           end
+        end
+
+        # Phase 39: Type inference for super (call parent method)
+        private def infer_super(node, expr_id : ExprId) : Type
+          # In a full implementation, we would:
+          # 1. Look up the current method name
+          # 2. Look up the parent class's method with same name
+          # 3. Type check the arguments
+          # 4. Return the parent method's return type
+
+          # For now, infer types of provided arguments
+          if args = node.super_args
+            args.each do |arg_expr_id|
+              infer_expression(arg_expr_id)
+            end
+          end
+
+          # Return Nil for now (in full implementation, would return parent method's return type)
+          # If super_args is nil, it means implicit args (pass all method args)
+          @context.nil_type
         end
 
         # ============================================================
