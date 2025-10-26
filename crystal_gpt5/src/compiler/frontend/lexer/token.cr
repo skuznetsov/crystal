@@ -25,6 +25,7 @@ module CrystalGPT5
           String
           StringInterpolation  # Phase 8: "text #{expr} text"
           Symbol  # Phase 16: :symbol
+          Char  # Phase 56: character literal 'a'
 
           # Keywords
           If

@@ -2777,6 +2777,11 @@ module CrystalGPT5
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::String, token.span, literal: token.slice))
             advance
             id
+          when Token::Kind::Char
+            # Phase 56: Character literals
+            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Char, token.span, literal: token.slice))
+            advance
+            id
           when Token::Kind::StringInterpolation
             # Phase 8: String interpolation
             parse_string_interpolation(token)

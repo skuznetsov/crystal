@@ -200,6 +200,7 @@ module CrystalGPT5
           InstanceVarDecl  # @var : Type (Phase 5C)
           Number
           String
+          Char  # Phase 56: character literal 'a'
           Bool
           Nil
           Unary

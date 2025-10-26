@@ -41,6 +41,9 @@ module CrystalGPT5
             lex_number
           when byte == DOUBLE_QUOTE
             lex_string
+          when byte == SINGLE_QUOTE
+            # Phase 56: Character literals
+            lex_char
           when byte == HASH
             lex_comment
           else
@@ -519,6 +522,75 @@ module CrystalGPT5
           )
         end
 
+        # Phase 56: Character literals ('a', '\n', etc.)
+        private def lex_char
+          start_offset, start_line, start_column = capture_position
+          advance  # Skip opening '
+
+          # Character literals must have exactly one character or escape sequence
+          if @offset >= @rope.size
+            # TODO: Error - empty character literal
+            return Token.new(Token::Kind::Char, Slice(UInt8).new(0), build_span(start_offset, start_line, start_column))
+          end
+
+          # Check if it's an escape sequence
+          if current_byte == '\\'.ord.to_u8 && @offset + 1 < @rope.size
+            # Process escape sequence
+            buffer = IO::Memory.new
+            advance  # Skip backslash
+
+            case current_byte
+            when 'n'.ord.to_u8
+              buffer.write_byte '\n'.ord.to_u8
+            when 't'.ord.to_u8
+              buffer.write_byte '\t'.ord.to_u8
+            when 'r'.ord.to_u8
+              buffer.write_byte '\r'.ord.to_u8
+            when '\\'.ord.to_u8
+              buffer.write_byte '\\'.ord.to_u8
+            when '\''.ord.to_u8
+              buffer.write_byte '\''.ord.to_u8
+            when '0'.ord.to_u8
+              buffer.write_byte '\0'.ord.to_u8
+            else
+              # Unknown escape - keep as is
+              buffer.write_byte '\\'.ord.to_u8
+              buffer.write_byte current_byte
+            end
+            advance
+
+            # Expect closing '
+            if @offset < @rope.size && current_byte == SINGLE_QUOTE
+              advance
+            end
+
+            # Store processed character
+            processed_bytes = buffer.to_slice
+            @processed_strings << processed_bytes
+
+            return Token.new(
+              Token::Kind::Char,
+              processed_bytes,
+              build_span(start_offset, start_line, start_column)
+            )
+          else
+            # Simple character - no escape
+            from = @offset
+            advance  # Consume the character
+
+            # Expect closing '
+            if @offset < @rope.size && current_byte == SINGLE_QUOTE
+              advance
+            end
+
+            return Token.new(
+              Token::Kind::Char,
+              @rope.bytes[from...from + 1],
+              build_span(start_offset, start_line, start_column)
+            )
+          end
+        end
+
         private def lex_comment
           start_offset, start_line, start_column = capture_position
           from = @offset
@@ -821,6 +893,7 @@ module CrystalGPT5
         TAB          = 0x09_u8
         NEWLINE      = 0x0A_u8
         DOUBLE_QUOTE = '"'.ord.to_u8
+        SINGLE_QUOTE = '\''.ord.to_u8  # Phase 56: character literals
         HASH         = '#'.ord.to_u8
         UNDERSCORE   = '_'.ord.to_u8
         QUESTION     = '?'.ord.to_u8
