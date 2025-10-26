@@ -201,6 +201,7 @@ module CrystalGPT5
           Number
           String
           Char  # Phase 56: character literal 'a'
+          Regex  # Phase 57: regex literal /pattern/flags
           Bool
           Nil
           Unary

@@ -5,12 +5,15 @@ module CrystalGPT5
   module Compiler
     module Frontend
       class Lexer
+        @last_token_kind : Token::Kind?  # Phase 57: for regex vs division disambiguation
+
         def initialize(source : String)
           @rope = Rope.new(source)
           @offset = 0
           @line = 1
           @column = 1
           @processed_strings = [] of Bytes  # Phase 54: storage for escape-processed strings
+          @last_token_kind = nil  # Phase 57: for regex vs division disambiguation
         end
 
         def each_token(&block : Token ->)
@@ -25,7 +28,7 @@ module CrystalGPT5
 
           byte = current_byte
 
-          case
+          token = case
           when whitespace?(byte)
             lex_whitespace
           when byte == NEWLINE
@@ -49,6 +52,14 @@ module CrystalGPT5
           else
             lex_operator
           end
+
+          # Phase 57: Track last significant token for regex vs division disambiguation
+          # Whitespace/Newline are not significant for this purpose
+          unless token.kind == Token::Kind::Whitespace || token.kind == Token::Kind::Newline
+            @last_token_kind = token.kind
+          end
+
+          token
         end
 
         private def eof_token
@@ -522,6 +533,74 @@ module CrystalGPT5
           )
         end
 
+        # Phase 57: Check if '/' can be start of regex literal based on context
+        private def can_be_regex? : Bool
+          # Regex can appear after operators, keywords, delimiters, or at start
+          # Regex CANNOT appear after identifiers, numbers, closing brackets, or literals
+          case @last_token_kind
+          when nil
+            # Beginning of input
+            true
+          when Token::Kind::Identifier, Token::Kind::Number, Token::Kind::String,
+               Token::Kind::Char, Token::Kind::Symbol, Token::Kind::InstanceVar,
+               Token::Kind::RParen, Token::Kind::RBracket, Token::Kind::RBrace,
+               Token::Kind::True, Token::Kind::False, Token::Kind::Nil,
+               Token::Kind::Self, Token::Kind::Regex
+            # After these, '/' is division
+            false
+          else
+            # After operators, keywords, delimiters - '/' can be regex
+            true
+          end
+        end
+
+        # Phase 57: Regex literals (/pattern/flags)
+        private def lex_regex
+          start_offset, start_line, start_column = capture_position
+          advance  # Skip opening /
+
+          # Read pattern until closing / (handling \/ escape)
+          buffer = IO::Memory.new
+
+          while @offset < @rope.size && current_byte != '/'.ord.to_u8
+            if current_byte == '\\'.ord.to_u8 && @offset + 1 < @rope.size
+              # Escape sequence - preserve it for regex engine
+              buffer.write_byte current_byte
+              advance
+              buffer.write_byte current_byte
+              advance
+            else
+              buffer.write_byte current_byte
+              advance
+            end
+          end
+
+          # Skip closing /
+          if @offset < @rope.size && current_byte == '/'.ord.to_u8
+            advance
+          end
+
+          # Read optional flags (i, m, x, s, etc.)
+          # Include flags in the buffer as well
+          if @offset < @rope.size && ascii_letter?(current_byte)
+            buffer.write_byte '/'.ord.to_u8  # Separator between pattern and flags
+            while @offset < @rope.size && ascii_letter?(current_byte)
+              buffer.write_byte current_byte
+              advance
+            end
+          end
+
+          # Store pattern + flags together
+          processed_bytes = buffer.to_slice
+          @processed_strings << processed_bytes
+
+          Token.new(
+            Token::Kind::Regex,
+            processed_bytes,
+            build_span(start_offset, start_line, start_column)
+          )
+        end
+
         # Phase 56: Character literals ('a', '\n', etc.)
         private def lex_char
           start_offset, start_line, start_column = capture_position
@@ -610,6 +689,12 @@ module CrystalGPT5
 
           # Read first character
           first = current_byte
+
+          # Phase 57: Check if '/' could be start of regex literal
+          if first == '/'.ord.to_u8 && can_be_regex?
+            return lex_regex
+          end
+
           advance
 
           # Determine token kind based on operator
