@@ -108,13 +108,17 @@ module CrystalGPT5
         getter span : Span              # Full "x : Int32" span
         getter name_span : Span         # Just "x" for rename
         getter type_span : Span?        # Just "Int32" for hover (optional)
+        getter is_splat : Bool          # Phase 68: *args (single splat)
+        getter is_double_splat : Bool   # Phase 68: **kwargs (double splat)
 
         def initialize(
           @name : String,
           @type_annotation : String? = nil,
           @span : Span = Span.new(0, 0, 0, 0, 0, 0),
           @name_span : Span = Span.new(0, 0, 0, 0, 0, 0),
-          @type_span : Span? = nil
+          @type_span : Span? = nil,
+          @is_splat : Bool = false,
+          @is_double_splat : Bool = false
         )
         end
       end

@@ -524,6 +524,23 @@ module CrystalGPT5
           skip_trivia
           unless operator_token?(current_token, Token::Kind::RParen)
             loop do
+              # Phase 68: Check for splat operators (* or **)
+              is_splat = false
+              is_double_splat = false
+              splat_token = nil
+
+              if current_token.kind == Token::Kind::StarStar
+                is_double_splat = true
+                splat_token = current_token
+                advance
+                skip_trivia
+              elsif current_token.kind == Token::Kind::Star
+                is_splat = true
+                splat_token = current_token
+                advance
+                skip_trivia
+              end
+
               # Parse parameter name
               name_token = current_token
               unless name_token.kind == Token::Kind::Identifier
@@ -532,7 +549,7 @@ module CrystalGPT5
               end
               param_name = token_text(name_token)
               param_name_span = name_token.span
-              param_start_span = name_token.span
+              param_start_span = splat_token ? splat_token.span : name_token.span
               advance
               skip_trivia
 
@@ -567,7 +584,9 @@ module CrystalGPT5
                 type_annotation,
                 param_span,
                 param_name_span,
-                param_type_span
+                param_type_span,
+                is_splat,
+                is_double_splat
               )
 
               break unless operator_token?(current_token, Token::Kind::Comma)
