@@ -241,6 +241,7 @@ module CrystalGPT5
           Ternary  # Phase 23: ternary operator (cond ? true : false)
           Begin  # Phase 28: begin/end blocks
           Raise  # Phase 29: raise exception
+          Require  # Phase 65: require (import file/library)
           Getter  # Phase 30: getter macro
           Setter  # Phase 30: setter macro
           Property  # Phase 30: property macro (getter + setter)
@@ -327,6 +328,7 @@ module CrystalGPT5
         getter rescue_clauses : Array(RescueClause)?  # Phase 29: rescue handlers
         getter ensure_body : Array(ExprId)?  # Phase 29: ensure block body
         getter raise_value : ExprId?  # Phase 29: expression to raise
+        getter require_path : ExprId?  # Phase 65: path to require (string literal or expression)
         getter accessor_specs : Array(AccessorSpec)?  # Phase 30: getter/setter/property specifications
         getter module_name : Slice(UInt8)?  # Phase 31: module name
         getter module_body : Array(ExprId)?  # Phase 31: module body
@@ -420,6 +422,7 @@ module CrystalGPT5
           @rescue_clauses : Array(RescueClause)? = nil,
           @ensure_body : Array(ExprId)? = nil,
           @raise_value : ExprId? = nil,
+          @require_path : ExprId? = nil,
           @accessor_specs : Array(AccessorSpec)? = nil,
           @module_name : Slice(UInt8)? = nil,
           @module_body : Array(ExprId)? = nil,

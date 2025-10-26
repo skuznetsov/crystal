@@ -113,6 +113,9 @@ module CrystalGPT5
           when .raise?
             # Phase 29: raise exception
             infer_raise(node)
+          when .require?
+            # Phase 65: require statement
+            infer_require(node)
           when .getter?
             # Phase 30: getter macro
             infer_accessor(node)
@@ -906,6 +909,18 @@ module CrystalGPT5
           end
 
           # Raise never returns, but we use Nil as type
+          @context.nil_type
+        end
+
+        # Phase 65: Type inference for require statement
+        private def infer_require(node) : Type
+          # Infer the require path expression (typically a string literal)
+          if require_path = node.require_path
+            infer_expression(require_path)
+          end
+
+          # Require statements are executed at compile-time for imports
+          # They don't have a runtime value, so return Nil type
           @context.nil_type
         end
 

@@ -1105,6 +1105,38 @@ module CrystalGPT5
           end
         end
 
+        # Phase 65: Parse require (import file/library)
+        # Grammar: require "path" | require "./local" | require expr
+        # Require MUST have a path argument (unlike raise which can be bare)
+        private def parse_require : ExprId
+          require_token = current_token
+          advance
+          skip_trivia
+
+          # Require must have a path (string literal or expression)
+          token = current_token
+          if token.kind.in?(Token::Kind::Newline, Token::Kind::EOF, Token::Kind::End, Token::Kind::Else, Token::Kind::Elsif)
+            # Missing path - syntax error
+            emit_unexpected(token)
+            return PREFIX_ERROR
+          end
+
+          # Parse path expression (typically a string literal)
+          path = parse_expression(0)
+          return PREFIX_ERROR if path.invalid?
+
+          path_span = node_span(path)
+          require_span = require_token.span.cover(path_span)
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Require,
+              require_span,
+              require_path: path
+            )
+          )
+        end
+
         # Phase 30: Parse getter macro (PRODUCTION-READY)
         # Grammar: getter name [: Type] [= value] [, name2 [: Type2] [= value2], ...]
         # Examples:
@@ -2817,6 +2849,9 @@ module CrystalGPT5
           when Token::Kind::Raise
             # Phase 29: raise exception
             parse_raise
+          when Token::Kind::Require
+            # Phase 65: require statement
+            parse_require
           when Token::Kind::Getter
             # Phase 30: getter macro
             parse_getter

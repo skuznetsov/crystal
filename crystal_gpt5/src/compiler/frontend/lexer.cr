@@ -153,6 +153,7 @@ module CrystalGPT5
           when "rescue" then Token::Kind::Rescue  # Phase 29
           when "ensure" then Token::Kind::Ensure  # Phase 29
           when "raise"  then Token::Kind::Raise   # Phase 29
+          when "require" then Token::Kind::Require  # Phase 65
           when "getter" then Token::Kind::Getter  # Phase 30
           when "setter" then Token::Kind::Setter  # Phase 30
           when "property" then Token::Kind::Property  # Phase 30
