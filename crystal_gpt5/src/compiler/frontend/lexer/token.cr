@@ -135,6 +135,8 @@ module CrystalGPT5
           SlashEq     # /= (Phase 20: compound assignment)
           PercentEq   # %= (Phase 20: compound assignment)
           StarStarEq  # **= (Phase 20: compound assignment)
+          OrOrEq      # ||= (Phase 51: logical or compound assignment)
+          AndAndEq    # &&= (Phase 51: logical and compound assignment)
 
           # Other operators (keep for now, will migrate gradually)
           Operator    # Generic fallback for unhandled operators

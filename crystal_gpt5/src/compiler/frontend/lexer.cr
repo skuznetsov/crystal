@@ -486,19 +486,31 @@ module CrystalGPT5
             if @offset < @rope.size && current_byte == '.'.ord.to_u8
               advance  # consume '.'
               Token::Kind::AmpDot
-            # Check for &&
+            # Check for &&= and &&
             elsif @offset < @rope.size && current_byte == '&'.ord.to_u8
-              advance  # consume '&'
-              Token::Kind::AndAnd
+              advance  # consume second '&'
+              # Check for &&= (Phase 51)
+              if @offset < @rope.size && current_byte == '='.ord.to_u8
+                advance  # consume '='
+                Token::Kind::AndAndEq
+              else
+                Token::Kind::AndAnd
+              end
             else
               # Phase 21: Bitwise AND
               Token::Kind::Amp
             end
           when '|'.ord.to_u8
-            # Check for ||
+            # Check for ||= and ||
             if @offset < @rope.size && current_byte == '|'.ord.to_u8
-              advance
-              Token::Kind::OrOr
+              advance  # consume second '|'
+              # Check for ||= (Phase 51)
+              if @offset < @rope.size && current_byte == '='.ord.to_u8
+                advance  # consume '='
+                Token::Kind::OrOrEq
+              else
+                Token::Kind::OrOr
+              end
             else
               # Phase 21: Bitwise OR
               Token::Kind::Pipe
