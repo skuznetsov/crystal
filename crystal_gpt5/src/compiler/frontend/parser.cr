@@ -3824,31 +3824,88 @@ module CrystalGPT5
           ))
         end
 
+        # Phase 72: Parse method call with arguments (positional and/or named)
+        # Examples:
+        #   foo()             → no args
+        #   foo(1, 2)         → positional args
+        #   foo(x: 1, y: 2)   → named args
+        #   foo(1, y: 2)      → mixed (positional first, then named)
         private def parse_parenthesized_call(callee : ExprId) : ExprId
           lparen = current_token
           advance
-          args = [] of ExprId
           skip_trivia
+
+          args = [] of ExprId
+          named_args = [] of NamedArgument
+
+          # Empty call: foo()
           unless current_token.kind == Token::Kind::RParen
             loop do
-              arg = parse_expression(0)
-              args << arg unless arg.invalid?
+              # Parse first expression/identifier
+              arg_expr = parse_expression(0)
+              return PREFIX_ERROR if arg_expr.invalid?
               skip_trivia
+
+              # Check if this is named argument (identifier followed by colon)
+              if current_token.kind == Token::Kind::Colon
+                arg_node = @arena[arg_expr]
+                if arg_node.kind == ExpressionNode::Kind::Identifier
+                  # Named argument: name: value
+                  name = String.new(arg_node.literal.not_nil!)
+                  name_span = arg_node.span
+
+                  advance  # consume ':'
+                  skip_trivia
+
+                  # Parse value expression
+                  value_expr = parse_expression(0)
+                  return PREFIX_ERROR if value_expr.invalid?
+                  value_span = @arena[value_expr].span
+
+                  # Create NamedArgument
+                  arg_span = name_span.cover(value_span)
+                  named_args << NamedArgument.new(name, value_expr, arg_span, name_span, value_span)
+                  skip_trivia
+                else
+                  # Expression followed by colon is invalid
+                  emit_unexpected(current_token)
+                  return PREFIX_ERROR
+                end
+              else
+                # Positional argument
+                args << arg_expr
+              end
+
               break unless current_token.kind == Token::Kind::Comma
-              advance
+              advance  # consume comma
               skip_trivia
+
+              # Handle trailing comma: foo(x: 1, y: 2,)
+              break if current_token.kind == Token::Kind::RParen
             end
           end
+
           expect_operator(Token::Kind::RParen)
+
+          # Calculate span
           spans = [] of Span
           spans << lparen.span
           spans << node_span(callee)
           args.each { |arg| spans << node_span(arg) }
+          named_args.each { |na| spans << na.span }
           if closing_span = previous_token.try(&.span)
             spans << closing_span
           end
           call_span = Span.cover_all(spans)
-          @arena.add(ExpressionNode.new(ExpressionNode::Kind::Call, call_span, callee: callee, args: args))
+
+          # Create Call node with both positional and named args
+          @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::Call,
+            call_span,
+            callee: callee,
+            args: args.empty? ? nil : args,
+            named_args: named_args.empty? ? nil : named_args
+          ))
         end
 
         private def parse_index(target : ExprId) : ExprId

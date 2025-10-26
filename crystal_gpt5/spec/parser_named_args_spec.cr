@@ -1,0 +1,258 @@
+require "spec"
+
+require "../src/compiler/frontend/parser"
+
+describe "CrystalGPT5::Compiler::Frontend::Parser" do
+  describe "Phase 72: Named arguments at call site (PRODUCTION-READY)" do
+    it "parses method call with single named argument" do
+      source = "foo(x: 10)"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+
+      named_args = call.named_args.not_nil!
+      named_args.size.should eq(1)
+      named_args[0].name.should eq("x")
+    end
+
+    it "parses method call with multiple named arguments" do
+      source = "foo(x: 10, y: 20)"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      named_args = call.named_args.not_nil!
+      named_args.size.should eq(2)
+      named_args[0].name.should eq("x")
+      named_args[1].name.should eq("y")
+    end
+
+    it "parses method call with named arguments and expressions" do
+      source = "foo(x: 1 + 1, y: 2 * 2)"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      named_args = call.named_args.not_nil!
+      named_args.size.should eq(2)
+
+      # Values are expressions
+      value1 = arena[named_args[0].value]
+      value1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+    end
+
+    it "parses method call with only positional arguments" do
+      source = "foo(10, 20)"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      args = call.args.not_nil!
+      args.size.should eq(2)
+      call.named_args.should be_nil
+    end
+
+    it "parses method call with mixed positional and named arguments" do
+      source = "foo(10, y: 20)"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      args = call.args.not_nil!
+      args.size.should eq(1)
+
+      named_args = call.named_args.not_nil!
+      named_args.size.should eq(1)
+      named_args[0].name.should eq("y")
+    end
+
+    it "parses method call with multiple positional then named" do
+      source = "foo(1, 2, x: 3, y: 4)"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      args = call.args.not_nil!
+      args.size.should eq(2)
+
+      named_args = call.named_args.not_nil!
+      named_args.size.should eq(2)
+      named_args[0].name.should eq("x")
+      named_args[1].name.should eq("y")
+    end
+
+    it "parses empty method call" do
+      source = "foo()"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      call.args.should be_nil
+      call.named_args.should be_nil
+    end
+
+    it "parses named arguments with string values" do
+      source = "foo(name: \"Alice\", greeting: \"Hello\")"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      named_args = call.named_args.not_nil!
+      named_args.size.should eq(2)
+
+      value1 = arena[named_args[0].value]
+      value1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+    end
+
+    it "parses named arguments with array values" do
+      source = "foo(items: [1, 2, 3])"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      named_args = call.named_args.not_nil!
+      named_args.size.should eq(1)
+
+      value = arena[named_args[0].value]
+      value.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+    end
+
+    it "parses named arguments with identifier values" do
+      source = "foo(x: y, a: b)"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      named_args = call.named_args.not_nil!
+      named_args.size.should eq(2)
+
+      value1 = arena[named_args[0].value]
+      value1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+    end
+
+    it "parses member access with named arguments" do
+      source = "obj.method(x: 10)"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+
+      callee = arena[call.callee.not_nil!]
+      callee.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+
+      named_args = call.named_args.not_nil!
+      named_args.size.should eq(1)
+      named_args[0].name.should eq("x")
+    end
+
+    it "parses named arguments with nil and boolean values" do
+      source = "foo(flag: true, value: nil)"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      named_args = call.named_args.not_nil!
+      named_args.size.should eq(2)
+
+      value1 = arena[named_args[0].value]
+      value1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Bool)
+
+      value2 = arena[named_args[1].value]
+      value2.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Nil)
+    end
+
+    it "parses nested calls with named arguments" do
+      source = "outer(inner(x: 1), y: 2)"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      outer_call = arena[program.roots[0]]
+      outer_call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+
+      # outer has positional arg (inner call) and named arg
+      outer_args = outer_call.args.not_nil!
+      outer_args.size.should eq(1)
+
+      inner_call = arena[outer_args[0]]
+      inner_call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+
+      inner_named_args = inner_call.named_args.not_nil!
+      inner_named_args.size.should eq(1)
+      inner_named_args[0].name.should eq("x")
+
+      outer_named_args = outer_call.named_args.not_nil!
+      outer_named_args.size.should eq(1)
+      outer_named_args[0].name.should eq("y")
+    end
+
+    it "parses named arguments with trailing comma" do
+      source = "foo(x: 10, y: 20,)"
+
+      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
+      program = parser.parse_program
+
+      program.roots.size.should eq(1)
+      arena = program.arena
+
+      call = arena[program.roots[0]]
+      named_args = call.named_args.not_nil!
+      named_args.size.should eq(2)
+    end
+  end
+end

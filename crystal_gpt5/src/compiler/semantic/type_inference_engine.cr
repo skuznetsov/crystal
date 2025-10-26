@@ -1542,6 +1542,13 @@ module CrystalGPT5
             end
           end
 
+          # Phase 72: Infer named argument value types
+          if named_args = node.named_args
+            named_args.each do |named_arg|
+              infer_expression(named_arg.value)
+            end
+          end
+
           # Phase 4B.4: Special case for union types - compute union return type
           if receiver_type.is_a?(UnionType)
             if return_type = compute_union_method_return_type(receiver_type, method_name, arg_types)

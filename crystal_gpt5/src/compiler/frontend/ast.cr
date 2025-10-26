@@ -153,6 +153,32 @@ module CrystalGPT5
         end
       end
 
+      # Represents a named argument in method call (name: value)
+      #
+      # Phase 72: Named arguments at call site
+      # For foo(x: 10, y: 20):
+      # - name: Argument name as identifier ("x", "y")
+      # - value: Expression for the argument value
+      # - name_span: Just name for navigation
+      # - value_span: Just value for hover
+      # - span: Full "name: value" span
+      struct NamedArgument
+        getter name : String
+        getter value : ExprId
+        getter span : Span              # Full "name: value" span
+        getter name_span : Span         # Just "name"
+        getter value_span : Span        # Just value expression
+
+        def initialize(
+          @name : String,
+          @value : ExprId,
+          @span : Span,
+          @name_span : Span,
+          @value_span : Span
+        )
+        end
+      end
+
       # Represents an accessor specification (getter/setter/property)
       #
       # Phase 30: Accessor macros (PRODUCTION-READY)
@@ -308,6 +334,7 @@ module CrystalGPT5
         getter right : ExprId?
         getter callee : ExprId?
         getter args : Array(ExprId)?
+        getter named_args : Array(NamedArgument)?  # Phase 72: named arguments (x: 10, y: 20)
         getter member : Slice(UInt8)?
         getter macro_expr : ExprId?
         getter macro_name : Slice(UInt8)?
@@ -408,6 +435,7 @@ module CrystalGPT5
           @right : ExprId? = nil,
           @callee : ExprId? = nil,
           @args : Array(ExprId)? = nil,
+          @named_args : Array(NamedArgument)? = nil,
           @member : Slice(UInt8)? = nil,
           @macro_expr : ExprId? = nil,
           @macro_name : Slice(UInt8)? = nil,
