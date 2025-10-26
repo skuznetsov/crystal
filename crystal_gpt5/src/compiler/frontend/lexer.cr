@@ -239,6 +239,19 @@ module CrystalGPT5
           start_offset, start_line, start_column = capture_position
           from = @offset
 
+          # Phase 53: Check for hex (0x), binary (0b), or octal (0o) prefix
+          if current_byte == '0'.ord.to_u8 && @offset + 1 < @rope.size
+            next_byte = @rope.bytes[@offset + 1]
+            case next_byte
+            when 'x'.ord.to_u8, 'X'.ord.to_u8
+              return lex_hex_number(start_offset, start_line, start_column, from)
+            when 'b'.ord.to_u8, 'B'.ord.to_u8
+              return lex_binary_number(start_offset, start_line, start_column, from)
+            when 'o'.ord.to_u8, 'O'.ord.to_u8
+              return lex_octal_number(start_offset, start_line, start_column, from)
+            end
+          end
+
           # Read integer part
           while @offset < @rope.size && ascii_number?(current_byte)
             advance
@@ -294,6 +307,108 @@ module CrystalGPT5
             build_span(start_offset, start_line, start_column),
             number_kind: number_kind
           )
+        end
+
+        # Phase 53: Hexadecimal number literals (0xFF, 0x1A2B)
+        private def lex_hex_number(start_offset : Int32, start_line : Int32, start_column : Int32, from : Int32)
+          advance  # Skip '0'
+          advance  # Skip 'x' or 'X'
+
+          # Read hex digits
+          while @offset < @rope.size && hex_digit?(current_byte)
+            advance
+          end
+
+          # Check for suffix (_i32, _i64, _f64)
+          number_kind = lex_number_suffix
+
+          # Infer NumberKind if not explicitly specified
+          number_kind ||= NumberKind::I32
+
+          Token.new(
+            Token::Kind::Number,
+            @rope.bytes[from...@offset],
+            build_span(start_offset, start_line, start_column),
+            number_kind: number_kind
+          )
+        end
+
+        # Phase 53: Binary number literals (0b1010, 0B1111)
+        private def lex_binary_number(start_offset : Int32, start_line : Int32, start_column : Int32, from : Int32)
+          advance  # Skip '0'
+          advance  # Skip 'b' or 'B'
+
+          # Read binary digits
+          while @offset < @rope.size && binary_digit?(current_byte)
+            advance
+          end
+
+          # Check for suffix (_i32, _i64, _f64)
+          number_kind = lex_number_suffix
+
+          # Infer NumberKind if not explicitly specified
+          number_kind ||= NumberKind::I32
+
+          Token.new(
+            Token::Kind::Number,
+            @rope.bytes[from...@offset],
+            build_span(start_offset, start_line, start_column),
+            number_kind: number_kind
+          )
+        end
+
+        # Phase 53: Octal number literals (0o755, 0O644)
+        private def lex_octal_number(start_offset : Int32, start_line : Int32, start_column : Int32, from : Int32)
+          advance  # Skip '0'
+          advance  # Skip 'o' or 'O'
+
+          # Read octal digits
+          while @offset < @rope.size && octal_digit?(current_byte)
+            advance
+          end
+
+          # Check for suffix (_i32, _i64, _f64)
+          number_kind = lex_number_suffix
+
+          # Infer NumberKind if not explicitly specified
+          number_kind ||= NumberKind::I32
+
+          Token.new(
+            Token::Kind::Number,
+            @rope.bytes[from...@offset],
+            build_span(start_offset, start_line, start_column),
+            number_kind: number_kind
+          )
+        end
+
+        # Phase 53: Extract number suffix parsing to helper
+        private def lex_number_suffix : NumberKind?
+          if @offset < @rope.size && current_byte == '_'.ord.to_u8
+            suffix_start = @offset
+            advance  # consume '_'
+
+            # Read suffix characters
+            suffix_from = @offset
+            while @offset < @rope.size && (ascii_letter?(current_byte) || ascii_number?(current_byte))
+              advance
+            end
+
+            suffix = String.new(@rope.bytes[suffix_from...@offset])
+            number_kind = case suffix
+            when "i32" then NumberKind::I32
+            when "i64" then NumberKind::I64
+            when "f64" then NumberKind::F64
+            else
+              # Unknown suffix - ignore and treat as separate token
+              # Reset to before underscore
+              @offset = suffix_start
+              nil
+            end
+
+            return number_kind
+          end
+
+          nil
         end
 
         private def lex_string
@@ -603,6 +718,21 @@ module CrystalGPT5
 
         private def ascii_number?(byte : UInt8) : Bool
           byte >= '0'.ord && byte <= '9'.ord
+        end
+
+        # Phase 53: Hexadecimal digit check (0-9, a-f, A-F)
+        private def hex_digit?(byte : UInt8) : Bool
+          ascii_number?(byte) || (byte >= 'a'.ord && byte <= 'f'.ord) || (byte >= 'A'.ord && byte <= 'F'.ord)
+        end
+
+        # Phase 53: Binary digit check (0-1)
+        private def binary_digit?(byte : UInt8) : Bool
+          byte == '0'.ord || byte == '1'.ord
+        end
+
+        # Phase 53: Octal digit check (0-7)
+        private def octal_digit?(byte : UInt8) : Bool
+          byte >= '0'.ord && byte <= '7'.ord
         end
 
         SPACE        = 0x20_u8
