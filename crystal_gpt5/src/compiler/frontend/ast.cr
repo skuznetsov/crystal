@@ -105,18 +105,22 @@ module CrystalGPT5
       struct Parameter
         getter name : String
         getter type_annotation : String?
-        getter span : Span              # Full "x : Int32" span
+        getter default_value : ExprId?  # Phase 71: default parameter value
+        getter span : Span              # Full "x : Int32 = 5" span
         getter name_span : Span         # Just "x" for rename
         getter type_span : Span?        # Just "Int32" for hover (optional)
+        getter default_span : Span?     # Phase 71: Just default value span
         getter is_splat : Bool          # Phase 68: *args (single splat)
         getter is_double_splat : Bool   # Phase 68: **kwargs (double splat)
 
         def initialize(
           @name : String,
           @type_annotation : String? = nil,
+          @default_value : ExprId? = nil,
           @span : Span = Span.new(0, 0, 0, 0, 0, 0),
           @name_span : Span = Span.new(0, 0, 0, 0, 0, 0),
           @type_span : Span? = nil,
+          @default_span : Span? = nil,
           @is_splat : Bool = false,
           @is_double_splat : Bool = false
         )

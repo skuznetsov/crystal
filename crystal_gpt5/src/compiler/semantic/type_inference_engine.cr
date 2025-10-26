@@ -328,6 +328,15 @@ module CrystalGPT5
 
         # Phase 6: Process method definitions and their bodies
         private def infer_def(node, expr_id : ExprId) : Type
+          # Phase 71: Process default parameter values
+          if params = node.def_params
+            params.each do |param|
+              if default_value = param.default_value
+                infer_expression(default_value)
+              end
+            end
+          end
+
           # Process method body
           (node.def_body || [] of ExprId).each do |body_expr_id|
             infer_expression(body_expr_id)

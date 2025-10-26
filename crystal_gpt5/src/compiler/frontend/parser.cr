@@ -401,6 +401,7 @@ module CrystalGPT5
           advance
 
           params = parse_method_params
+          return PREFIX_ERROR if params.is_a?(ExprId)  # Phase 71: Handle error from default value parsing
 
           # Parse optional return type annotation: : ReturnType
           return_type = nil
@@ -483,6 +484,7 @@ module CrystalGPT5
 
           # Parse parameters (same as def)
           params = parse_method_params
+          return PREFIX_ERROR if params.is_a?(ExprId)  # Phase 71: Handle error from default value parsing
 
           # Parse optional return type annotation: : ReturnType
           return_type = nil
@@ -572,8 +574,24 @@ module CrystalGPT5
                 end
               end
 
+              # Phase 71: Parse optional default value: = expression
+              default_value = nil
+              default_value_span = nil
+              if operator_token?(current_token, Token::Kind::Eq)
+                advance  # consume '='
+                skip_trivia
+
+                # Parse default value expression
+                default_value = parse_expression(0)
+                return PREFIX_ERROR if default_value.invalid?
+                default_value_span = @arena[default_value].span
+                skip_trivia
+              end
+
               # Calculate full parameter span
-              param_span = if param_type_span
+              param_span = if default_value_span
+                param_start_span.cover(default_value_span)
+              elsif param_type_span
                 param_start_span.cover(param_type_span)
               else
                 param_start_span
@@ -582,9 +600,11 @@ module CrystalGPT5
               params << Parameter.new(
                 param_name,
                 type_annotation,
+                default_value,
                 param_span,
                 param_name_span,
                 param_type_span,
+                default_value_span,
                 is_splat,
                 is_double_splat
               )
@@ -1895,9 +1915,11 @@ module CrystalGPT5
               params << Parameter.new(
                 param_name,
                 nil,              # no type annotation
+                nil,              # no default value
                 param_span,       # full span = name span for now
                 param_name_span,  # name span
-                nil               # no type span
+                nil,              # no type span
+                nil               # no default span
               )
 
               # Check for comma or closing |
