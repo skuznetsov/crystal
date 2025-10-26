@@ -276,6 +276,7 @@ module CrystalGPT5
           While
           Until   # Phase 25: until condition
           Assign
+          MultipleAssign  # Phase 73: multiple assignment (a, b = 1, 2)
           MacroExpression
           MacroLiteral
           MacroDef
@@ -360,6 +361,7 @@ module CrystalGPT5
         getter while_body : Array(ExprId)?
         getter assign_target : ExprId?
         getter assign_value : ExprId?
+        getter assign_targets : Array(ExprId)?  # Phase 73: multiple assignment targets (a, b, c)
         getter ivar_decl_type : Slice(UInt8)?  # Phase 5C: @var : Type
         getter return_value : ExprId?  # Phase 6: return statements
         getter string_pieces : Array(StringPiece)?  # Phase 8: string interpolation
@@ -461,6 +463,7 @@ module CrystalGPT5
           @while_body : Array(ExprId)? = nil,
           @assign_target : ExprId? = nil,
           @assign_value : ExprId? = nil,
+          @assign_targets : Array(ExprId)? = nil,
           @ivar_decl_type : Slice(UInt8)? = nil,
           @return_value : ExprId? = nil,
           @string_pieces : Array(StringPiece)? = nil,

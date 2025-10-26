@@ -133,6 +133,8 @@ module CrystalGPT5
             infer_accessor(node)
           when .assign?
             infer_assign(node, expr_id)
+          when .multiple_assign?
+            infer_multiple_assign(node, expr_id)
           when .return?
             infer_return(node, expr_id)
           when .self?
@@ -1062,6 +1064,30 @@ module CrystalGPT5
 
           # Assignments return the value type in Crystal
           # Type will be set by infer_expression
+          value_type
+        end
+
+        # Phase 73: Multiple assignment (a, b = 1, 2)
+        private def infer_multiple_assign(node, expr_id : ExprId) : Type
+          # Get targets and value
+          targets = node.assign_targets
+          value_id = node.assign_value
+
+          return @context.nil_type unless targets && value_id
+
+          # Infer value type (typically a tuple)
+          value_type = infer_expression(value_id)
+
+          # For each target, store the value type
+          # Future: Extract individual types from tuple
+          targets.each do |target_id|
+            target_node = @program.arena[target_id]
+            if target_name = target_node.literal_string
+              @assignments[target_name] = value_type
+            end
+          end
+
+          # Multiple assignment returns the value type
           value_type
         end
 

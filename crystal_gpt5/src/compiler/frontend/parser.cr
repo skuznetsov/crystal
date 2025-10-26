@@ -128,6 +128,80 @@ module CrystalGPT5
           skip_trivia
           token = current_token
 
+          # Phase 73: Check for multiple assignment: a, b = ...
+          if token.kind == Token::Kind::Comma
+            # Parse remaining targets
+            targets = [left]
+            loop do
+              advance  # consume comma
+              skip_trivia
+
+              target = parse_expression(0)
+              return PREFIX_ERROR if target.invalid?
+              targets << target
+
+              skip_trivia
+              break unless current_token.kind == Token::Kind::Comma
+            end
+
+            # Expect =
+            unless current_token.kind == Token::Kind::Eq
+              emit_unexpected(current_token)
+              return PREFIX_ERROR
+            end
+            advance  # consume =
+            skip_trivia
+
+            # Parse right side (tuple literal or comma-separated expressions)
+            first_value = parse_expression(0)
+            return PREFIX_ERROR if first_value.invalid?
+            skip_trivia
+
+            # Check if right side has multiple values (implicit tuple)
+            value = if current_token.kind == Token::Kind::Comma
+              # Multiple values: 1, 2, 3 → create implicit tuple
+              values = [first_value]
+              loop do
+                advance  # consume comma
+                skip_trivia
+
+                val = parse_expression(0)
+                return PREFIX_ERROR if val.invalid?
+                values << val
+
+                skip_trivia
+                break unless current_token.kind == Token::Kind::Comma
+              end
+
+              # Create implicit TupleLiteral node
+              first_val_span = @arena[values[0]].span
+              last_val_span = @arena[values.last].span
+              tuple_span = first_val_span.cover(last_val_span)
+
+              @arena.add(ExpressionNode.new(
+                ExpressionNode::Kind::TupleLiteral,
+                tuple_span,
+                tuple_elements: values
+              ))
+            else
+              # Single value or explicit tuple
+              first_value
+            end
+
+            # Calculate span
+            first_target_span = @arena[targets[0]].span
+            value_span = @arena[value].span
+            multi_assign_span = first_target_span.cover(value_span)
+
+            # Create MultipleAssign node
+            return @arena.add(ExpressionNode.new(
+              ExpressionNode::Kind::MultipleAssign,
+              multi_assign_span,
+              assign_targets: targets,
+              assign_value: value
+            ))
+          end
+
           # Phase 66: Check for type declaration: identifier : Type (without =)
           if operator_token?(token, Token::Kind::Colon)
             left_node = @arena[left]
