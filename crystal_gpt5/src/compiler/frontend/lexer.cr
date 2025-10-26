@@ -166,6 +166,7 @@ module CrystalGPT5
           when "private" then Token::Kind::Private  # Phase 37
           when "protected" then Token::Kind::Protected  # Phase 37
           when "lib" then Token::Kind::Lib  # Phase 38
+          when "fun" then Token::Kind::Fun  # Phase 64
           when "as" then Token::Kind::As  # Phase 44
           when "as?" then Token::Kind::AsQuestion  # Phase 45
           else

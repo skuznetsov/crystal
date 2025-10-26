@@ -252,6 +252,7 @@ module CrystalGPT5
           Alias  # Phase 34: type alias
           Constant  # Phase 35: constant declaration
           Lib  # Phase 38: lib (C bindings)
+          Fun  # Phase 64: fun (C function declaration)
           As  # Phase 44: type cast (value.as(Type))
           AsQuestion  # Phase 45: safe cast (value.as?(Type))
           IsA  # Phase 46: type check (value.is_a?(Type))

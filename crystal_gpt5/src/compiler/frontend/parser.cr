@@ -40,6 +40,8 @@ module CrystalGPT5
               node = case current_token.kind
                 when Token::Kind::Def
                   parse_def
+                when Token::Kind::Fun
+                  parse_fun
                 when Token::Kind::Class
                   parse_class
                 when Token::Kind::Module
@@ -290,7 +292,7 @@ module CrystalGPT5
 
         private def definition_start?
           token = current_token
-          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Abstract || token.kind == Token::Kind::Private || token.kind == Token::Kind::Protected || token.kind == Token::Kind::Lib
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Abstract || token.kind == Token::Kind::Private || token.kind == Token::Kind::Protected || token.kind == Token::Kind::Lib || token.kind == Token::Kind::Fun
         end
 
         # Phase 35: Check if identifier is a constant (uppercase first letter)
@@ -419,6 +421,56 @@ module CrystalGPT5
               def_body: body_ids,
               def_is_abstract: is_abstract,
               def_visibility: visibility,
+            )
+          )
+        end
+
+        # Phase 64: Parse fun (C function declaration)
+        # Grammar: fun name(params) : ReturnType
+        # No body - external linkage
+        private def parse_fun : ExprId
+          fun_token = current_token
+          advance
+          skip_trivia
+
+          # Parse function name
+          name_token = current_token
+          unless name_token.kind == Token::Kind::Identifier
+            emit_unexpected(name_token)
+            return PREFIX_ERROR
+          end
+          advance
+
+          # Parse parameters (same as def)
+          params = parse_method_params
+
+          # Parse optional return type annotation: : ReturnType
+          return_type = nil
+          skip_trivia
+          if operator_token?(current_token, Token::Kind::Colon)
+            advance  # consume ':'
+            skip_trivia
+
+            # Parse return type (identifier or path)
+            type_token = current_token
+            if type_token.kind == Token::Kind::Identifier
+              return_type = type_token.slice
+              advance
+            else
+              emit_unexpected(type_token)
+            end
+          end
+
+          # Fun declarations have no body (external linkage)
+          fun_span = fun_token.span.cover(current_token.span)
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Fun,
+              fun_span,
+              def_name: name_token.slice,
+              def_params: params,
+              def_return_type: return_type,
+              def_body: nil,  # No body for fun
             )
           )
         end
@@ -1968,6 +2020,8 @@ module CrystalGPT5
               expr = case current_token.kind
                 when Token::Kind::Def
                   parse_def
+                when Token::Kind::Fun
+                  parse_fun
                 when Token::Kind::Class
                   parse_class
                 when Token::Kind::Module
@@ -2113,6 +2167,8 @@ module CrystalGPT5
               expr = case current_token.kind
                 when Token::Kind::Def
                   parse_def
+                when Token::Kind::Fun
+                  parse_fun
                 when Token::Kind::Class
                   parse_class
                 when Token::Kind::Module
@@ -2333,6 +2389,8 @@ module CrystalGPT5
               expr = case current_token.kind
                 when Token::Kind::Def
                   parse_def
+                when Token::Kind::Fun
+                  parse_fun
                 when Token::Kind::Class
                   parse_class
                 when Token::Kind::Module

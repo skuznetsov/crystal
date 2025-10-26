@@ -213,6 +213,9 @@ module CrystalGPT5
           when .lib?
             # Phase 38: Lib definition (C bindings)
             infer_lib(node, expr_id)
+          when .fun?
+            # Phase 64: Fun declaration (C function)
+            infer_fun(node)
           when .grouping?
             # Grouping expressions: (expr)
             # Type is the type of the wrapped expression
@@ -423,6 +426,24 @@ module CrystalGPT5
           end
 
           # Lib definitions don't have value types
+          @context.nil_type
+        end
+
+        # Phase 64: Type inference for fun declaration (C function)
+        private def infer_fun(node) : Type
+          # Fun declarations are external C functions with no body
+          # They specify:
+          # - def_name: function name
+          # - def_params: parameters (typed)
+          # - def_return_type: return type annotation
+          # - def_body: nil (no implementation)
+          #
+          # In a full implementation, we would:
+          # 1. Register the function signature in the current lib context
+          # 2. Resolve parameter types and return type
+          # 3. Make the function available for calls
+          #
+          # For now, fun declarations have no runtime value (they're declarations)
           @context.nil_type
         end
 
