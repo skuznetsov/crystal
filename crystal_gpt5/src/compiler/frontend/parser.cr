@@ -1933,6 +1933,10 @@ module CrystalGPT5
           end
           advance
 
+          # Phase 61: Parse optional type parameters: (T, K, V)
+          skip_trivia
+          type_params = parse_type_parameters
+
           # Parse optional superclass: < SuperClass
           skip_trivia
           super_name_token = nil
@@ -2016,6 +2020,7 @@ module CrystalGPT5
               class_super_name: super_name_token.try(&.slice),
               class_is_struct: is_struct,
               class_is_abstract: is_abstract,
+              class_type_params: type_params,  # Phase 61: Generic type parameters
             )
           )
         end
@@ -2311,6 +2316,10 @@ module CrystalGPT5
           end
           advance
 
+          # Phase 61: Parse optional type parameters: (T, K, V)
+          skip_trivia
+          type_params = parse_type_parameters
+
           consume_newlines
 
           body_ids = [] of ExprId
@@ -2368,6 +2377,7 @@ module CrystalGPT5
               module_span,
               module_name: name_token.slice,
               module_body: body_ids,
+              module_type_params: type_params,  # Phase 61: Generic type parameters
             )
           )
         end
@@ -3768,6 +3778,55 @@ module CrystalGPT5
               responds_to_method_name: method_name_expr,
             )
           )
+        end
+
+        # Phase 61: Parse type parameters for generic class/struct/module definitions
+        # Example: class Box(T, K, V) -> ["T", "K", "V"]
+        private def parse_type_parameters : Array(Slice(UInt8))?
+          # Check if type parameters present: (
+          unless current_token.kind == Token::Kind::LParen
+            return nil  # No type parameters
+          end
+
+          advance  # Skip (
+          skip_trivia
+
+          type_params = [] of Slice(UInt8)
+
+          # Parse comma-separated type parameter names
+          loop do
+            # Each type parameter must be an uppercase identifier
+            unless current_token.kind == Token::Kind::Identifier
+              emit_unexpected(current_token)
+              return nil
+            end
+
+            # Type parameter names should be uppercase (T, K, V, etc.)
+            # For now, accept any identifier
+            type_params << current_token.slice
+            advance
+            skip_trivia
+
+            # Check for comma or closing paren
+            if current_token.kind == Token::Kind::Comma
+              advance  # Skip comma
+              skip_trivia
+            elsif current_token.kind == Token::Kind::RParen
+              break  # End of parameters
+            else
+              emit_unexpected(current_token)
+              return nil
+            end
+          end
+
+          # Expect closing parenthesis
+          unless current_token.kind == Token::Kind::RParen
+            emit_unexpected(current_token)
+            return nil
+          end
+          advance  # Skip )
+
+          type_params
         end
 
         # Phase 60: Parse generic type instantiation (Box(Int32), Hash(String, Int32))
