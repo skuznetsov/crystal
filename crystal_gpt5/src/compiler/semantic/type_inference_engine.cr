@@ -194,6 +194,9 @@ module CrystalGPT5
           when .tuple_literal?
             # Phase 15: Tuple literals
             infer_tuple_literal(node, expr_id)
+          when .named_tuple_literal?
+            # Phase 70: Named tuple literals
+            infer_named_tuple_literal(node, expr_id)
           when .ternary?
             # Phase 23: Ternary operator
             infer_ternary(node, expr_id)
@@ -2113,6 +2116,33 @@ module CrystalGPT5
           # Create Tuple(T1, T2, ..., Tn) type
           tuple_type = TupleType.new(element_types)
           tuple_type
+        end
+
+        # PHASE 70: Named Tuple Literals
+        # ============================================================
+
+        private def infer_named_tuple_literal(node, expr_id : ExprId) : Type
+          # Named tuple: {name: "Alice", age: 30}
+          # Type: NamedTuple(name: String, age: Int32)
+          entries = node.named_tuple_entries
+
+          # Empty named tuple (shouldn't happen with current parser, but handle)
+          if entries.nil? || entries.empty?
+            # Empty named tuple is valid in Crystal
+            return @context.nil_type  # Placeholder for future NamedTupleType with no fields
+          end
+
+          # Infer type of each value
+          # For full type system, we'd create:
+          # NamedTupleType with fields: [(key, value_type), ...]
+          # For now, just infer all values
+          entries.each do |entry|
+            infer_expression(entry.value)
+          end
+
+          # Return placeholder type
+          # Future: return NamedTupleType.new(entries.map { |e| {e.key, infer_expression(e.value)} })
+          @context.nil_type
         end
 
         # Phase 23: Infer type of ternary operator

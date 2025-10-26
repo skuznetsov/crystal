@@ -3271,12 +3271,14 @@ module CrystalGPT5
           ))
         end
 
-        # Phase 14/15: Disambiguate hash vs tuple literal
+        # Phase 14/15/70: Disambiguate hash vs tuple vs named tuple literal
         # Hash: {"key" => value} or {} of K => V
         # Tuple: {1, 2, 3} or {value} or {value,}
+        # Named Tuple: {name: "value", age: 30}
         #
         # Strategy: Look ahead after first element
         # - If we see "=>" → hash
+        # - If we see ":" and first_elem is identifier → named tuple
         # - If we see "," or "}" → tuple
         # - Empty "{}" → hash (existing behavior)
         private def parse_hash_or_tuple : ExprId
@@ -3290,7 +3292,7 @@ module CrystalGPT5
             return parse_hash_literal_from_lbrace(lbrace)
           end
 
-          # Parse first element (key for hash, value for tuple)
+          # Parse first element (key for hash/named tuple, value for tuple)
           first_elem = parse_expression(0)
           return PREFIX_ERROR if first_elem.invalid?
           skip_trivia
@@ -3300,6 +3302,17 @@ module CrystalGPT5
           when Token::Kind::Arrow
             # "=>" → this is a hash
             return parse_hash_literal_continued(lbrace, first_elem)
+          when Token::Kind::Colon
+            # ":" → check if first_elem is identifier for named tuple
+            first_node = @arena[first_elem]
+            if first_node.kind == ExpressionNode::Kind::Identifier
+              # identifier: value → named tuple
+              return parse_named_tuple_literal_continued(lbrace, first_elem)
+            else
+              # non-identifier: value → error
+              emit_unexpected(current_token)
+              return PREFIX_ERROR
+            end
           when Token::Kind::Comma, Token::Kind::RBrace
             # "," or "}" → this is a tuple
             return parse_tuple_literal_continued(lbrace, first_elem)
@@ -3354,6 +3367,111 @@ module CrystalGPT5
             ExpressionNode::Kind::TupleLiteral,
             tuple_span,
             tuple_elements: elements
+          ))
+        end
+
+        # Phase 70: Continue parsing named tuple literal after first key
+        private def parse_named_tuple_literal_continued(lbrace : Token, first_key_expr : ExprId) : ExprId
+          entries = [] of NamedTupleEntry
+
+          # Get first key from first_key_expr (we know it's Identifier)
+          first_key_node = @arena[first_key_expr]
+          first_key = String.new(first_key_node.literal.not_nil!)
+          first_key_span = first_key_node.span
+
+          # Expect colon
+          unless current_token.kind == Token::Kind::Colon
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume :
+          skip_trivia
+
+          # Parse first value
+          first_value = parse_expression(0)
+          return PREFIX_ERROR if first_value.invalid?
+          first_value_span = @arena[first_value].span
+          skip_trivia
+
+          # Create first entry
+          first_entry_span = first_key_span.cover(first_value_span)
+          entries << NamedTupleEntry.new(
+            first_key,
+            first_value,
+            first_entry_span,
+            first_key_span,
+            first_value_span
+          )
+
+          # Parse remaining entries
+          loop do
+            case current_token.kind
+            when Token::Kind::RBrace
+              # End of named tuple
+              break
+            when Token::Kind::Comma
+              advance  # consume comma
+              skip_trivia
+
+              # Allow trailing comma
+              if current_token.kind == Token::Kind::RBrace
+                break
+              end
+
+              # Parse key (must be identifier)
+              key_token = current_token
+              unless key_token.kind == Token::Kind::Identifier
+                emit_unexpected(key_token)
+                return PREFIX_ERROR
+              end
+              key = token_text(key_token)
+              key_span = key_token.span
+              advance
+              skip_trivia
+
+              # Expect colon
+              unless current_token.kind == Token::Kind::Colon
+                emit_unexpected(current_token)
+                return PREFIX_ERROR
+              end
+              advance  # consume :
+              skip_trivia
+
+              # Parse value
+              value = parse_expression(0)
+              return PREFIX_ERROR if value.invalid?
+              value_span = @arena[value].span
+              skip_trivia
+
+              # Create entry
+              entry_span = key_span.cover(value_span)
+              entries << NamedTupleEntry.new(
+                key,
+                value,
+                entry_span,
+                key_span,
+                value_span
+              )
+            else
+              emit_unexpected(current_token)
+              return PREFIX_ERROR
+            end
+          end
+
+          # Expect closing brace
+          unless current_token.kind == Token::Kind::RBrace
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+
+          closing_brace = current_token
+          advance
+
+          named_tuple_span = lbrace.span.cover(closing_brace.span)
+          @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::NamedTupleLiteral,
+            named_tuple_span,
+            named_tuple_entries: entries
           ))
         end
 

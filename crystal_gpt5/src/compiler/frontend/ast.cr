@@ -123,6 +123,32 @@ module CrystalGPT5
         end
       end
 
+      # Represents a named tuple entry (key: value pair)
+      #
+      # Phase 70: Named tuple literals
+      # For {name: "Alice", age: 30}:
+      # - key: Entry key as identifier ("name", "age")
+      # - value: Expression for the value
+      # - key_span: Just key for navigation
+      # - value_span: Just value for hover
+      # - span: Full "key: value" span
+      struct NamedTupleEntry
+        getter key : String
+        getter value : ExprId
+        getter span : Span              # Full "key: value" span
+        getter key_span : Span          # Just "key"
+        getter value_span : Span        # Just value expression
+
+        def initialize(
+          @key : String,
+          @value : ExprId,
+          @span : Span,
+          @key_span : Span,
+          @value_span : Span
+        )
+        end
+      end
+
       # Represents an accessor specification (getter/setter/property)
       #
       # Phase 30: Accessor macros (PRODUCTION-READY)
@@ -241,6 +267,7 @@ module CrystalGPT5
           Range  # Phase 13: range literals (1..10, 1...10)
           HashLiteral  # Phase 14: hash literals {"k"=>v}
           TupleLiteral  # Phase 15: tuple literals {1, 2, 3}
+          NamedTupleLiteral  # Phase 70: named tuple literals {name: "value"}
           Symbol  # Phase 16: symbol literals :hello
           Ternary  # Phase 23: ternary operator (cond ? true : false)
           Begin  # Phase 28: begin/end blocks
@@ -327,6 +354,7 @@ module CrystalGPT5
         getter hash_of_key_type : Slice(UInt8)?  # Phase 14: explicit key type for {} of K => V
         getter hash_of_value_type : Slice(UInt8)?  # Phase 14: explicit value type for {} of K => V
         getter tuple_elements : Array(ExprId)?  # Phase 15: tuple literal elements
+        getter named_tuple_entries : Array(NamedTupleEntry)?  # Phase 70: named tuple entries
         getter ternary_condition : ExprId?  # Phase 23: ternary condition
         getter ternary_true_branch : ExprId?  # Phase 23: ternary true branch
         getter ternary_false_branch : ExprId?  # Phase 23: ternary false branch
@@ -425,6 +453,7 @@ module CrystalGPT5
           @hash_of_key_type : Slice(UInt8)? = nil,
           @hash_of_value_type : Slice(UInt8)? = nil,
           @tuple_elements : Array(ExprId)? = nil,
+          @named_tuple_entries : Array(NamedTupleEntry)? = nil,
           @ternary_condition : ExprId? = nil,
           @ternary_true_branch : ExprId? = nil,
           @ternary_false_branch : ExprId? = nil,
