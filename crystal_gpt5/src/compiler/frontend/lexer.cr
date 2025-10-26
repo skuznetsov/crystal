@@ -506,6 +506,32 @@ module CrystalGPT5
                 buffer.write_byte '"'.ord.to_u8
               when '0'.ord.to_u8
                 buffer.write_byte '\0'.ord.to_u8
+              when 'u'.ord.to_u8
+                # Phase 58: Unicode escapes \uXXXX or \u{XXXX}
+                advance
+                if current_byte == '{'.ord.to_u8
+                  # Variable length \u{X...XXXXXX}
+                  advance  # Skip '{'
+                  codepoint = parse_unicode_hex_digits('}'.ord.to_u8)
+                  if codepoint
+                    write_utf8(buffer, codepoint)
+                  else
+                    # Invalid Unicode escape - keep as is
+                    buffer.write_byte '\\'.ord.to_u8
+                    buffer.write_byte 'u'.ord.to_u8
+                  end
+                else
+                  # Fixed length \uXXXX (4 hex digits)
+                  codepoint = parse_unicode_hex_fixed(4)
+                  if codepoint
+                    write_utf8(buffer, codepoint)
+                  else
+                    # Invalid Unicode escape - keep as is
+                    buffer.write_byte '\\'.ord.to_u8
+                    buffer.write_byte 'u'.ord.to_u8
+                  end
+                end
+                next  # Don't advance again, helper methods already did
               else
                 # Unknown escape - keep as is
                 buffer.write_byte '\\'.ord.to_u8
@@ -631,6 +657,46 @@ module CrystalGPT5
               buffer.write_byte '\''.ord.to_u8
             when '0'.ord.to_u8
               buffer.write_byte '\0'.ord.to_u8
+            when 'u'.ord.to_u8
+              # Phase 58: Unicode escapes \uXXXX or \u{XXXX}
+              advance
+              if current_byte == '{'.ord.to_u8
+                # Variable length \u{X...XXXXXX}
+                advance  # Skip '{'
+                codepoint = parse_unicode_hex_digits('}'.ord.to_u8)
+                if codepoint
+                  write_utf8(buffer, codepoint)
+                else
+                  # Invalid Unicode escape - keep as is
+                  buffer.write_byte '\\'.ord.to_u8
+                  buffer.write_byte 'u'.ord.to_u8
+                end
+              else
+                # Fixed length \uXXXX (4 hex digits)
+                codepoint = parse_unicode_hex_fixed(4)
+                if codepoint
+                  write_utf8(buffer, codepoint)
+                else
+                  # Invalid Unicode escape - keep as is
+                  buffer.write_byte '\\'.ord.to_u8
+                  buffer.write_byte 'u'.ord.to_u8
+                end
+              end
+              # Don't advance again - helper methods already did
+              # Jump directly to closing quote check
+              if @offset < @rope.size && current_byte == SINGLE_QUOTE
+                advance
+              end
+
+              # Store processed character
+              processed_bytes = buffer.to_slice
+              @processed_strings << processed_bytes
+
+              return Token.new(
+                Token::Kind::Char,
+                processed_bytes,
+                build_span(start_offset, start_line, start_column)
+              )
             else
               # Unknown escape - keep as is
               buffer.write_byte '\\'.ord.to_u8
@@ -972,6 +1038,89 @@ module CrystalGPT5
         # Phase 53: Octal digit check (0-7)
         private def octal_digit?(byte : UInt8) : Bool
           byte >= '0'.ord && byte <= '7'.ord
+        end
+
+        # Phase 58: Convert hex digit to numeric value (0-15)
+        private def hex_value(byte : UInt8) : Int32
+          if byte >= '0'.ord && byte <= '9'.ord
+            byte.to_i32 - '0'.ord.to_i32
+          elsif byte >= 'a'.ord && byte <= 'f'.ord
+            byte.to_i32 - 'a'.ord.to_i32 + 10
+          elsif byte >= 'A'.ord && byte <= 'F'.ord
+            byte.to_i32 - 'A'.ord.to_i32 + 10
+          else
+            0
+          end
+        end
+
+        # Phase 58: Parse variable length Unicode hex digits (1-6 digits) until terminator
+        # Returns codepoint or nil if invalid
+        private def parse_unicode_hex_digits(terminator : UInt8) : Int32?
+          codepoint = 0
+          digit_count = 0
+
+          while @offset < @rope.size && digit_count < 6
+            if current_byte == terminator
+              advance  # Skip terminator
+              return digit_count > 0 ? codepoint : nil
+            end
+
+            unless hex_digit?(current_byte)
+              return nil  # Invalid hex digit
+            end
+
+            codepoint = codepoint * 16 + hex_value(current_byte)
+            digit_count += 1
+            advance
+          end
+
+          # Should have found terminator
+          if @offset < @rope.size && current_byte == terminator
+            advance
+            digit_count > 0 ? codepoint : nil
+          else
+            nil  # Missing terminator or too many digits
+          end
+        end
+
+        # Phase 58: Parse fixed count of Unicode hex digits
+        # Returns codepoint or nil if invalid
+        private def parse_unicode_hex_fixed(count : Int32) : Int32?
+          codepoint = 0
+
+          count.times do
+            return nil if @offset >= @rope.size
+            return nil unless hex_digit?(current_byte)
+
+            codepoint = codepoint * 16 + hex_value(current_byte)
+            advance
+          end
+
+          codepoint
+        end
+
+        # Phase 58: Write Unicode codepoint as UTF-8 to buffer
+        private def write_utf8(buffer : IO::Memory, codepoint : Int32)
+          if codepoint < 0x80
+            # 1-byte sequence (ASCII)
+            buffer.write_byte codepoint.to_u8
+          elsif codepoint < 0x800
+            # 2-byte sequence
+            buffer.write_byte (0xC0 | (codepoint >> 6)).to_u8
+            buffer.write_byte (0x80 | (codepoint & 0x3F)).to_u8
+          elsif codepoint < 0x10000
+            # 3-byte sequence
+            buffer.write_byte (0xE0 | (codepoint >> 12)).to_u8
+            buffer.write_byte (0x80 | ((codepoint >> 6) & 0x3F)).to_u8
+            buffer.write_byte (0x80 | (codepoint & 0x3F)).to_u8
+          elsif codepoint < 0x110000
+            # 4-byte sequence
+            buffer.write_byte (0xF0 | (codepoint >> 18)).to_u8
+            buffer.write_byte (0x80 | ((codepoint >> 12) & 0x3F)).to_u8
+            buffer.write_byte (0x80 | ((codepoint >> 6) & 0x3F)).to_u8
+            buffer.write_byte (0x80 | (codepoint & 0x3F)).to_u8
+          end
+          # If codepoint is out of range, write nothing (silently ignore)
         end
 
         SPACE        = 0x20_u8
