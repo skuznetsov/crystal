@@ -2642,6 +2642,10 @@ module CrystalGPT5
               # Phase 47: Safe navigation (&.)
               left = parse_safe_navigation(left)
               next
+            when Token::Kind::ColonColon
+              # Phase 63: Path expression (::)
+              left = parse_path(left)
+              next
             when Token::Kind::Operator
               # Check for operators not yet converted to enum (e.g., ".")
               case token_text(token)
@@ -2816,6 +2820,9 @@ module CrystalGPT5
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Symbol, token.span, literal: token.slice))
             advance
             id
+          when Token::Kind::ColonColon
+            # Phase 63: Absolute path (::TopLevel)
+            parse_absolute_path
           when Token::Kind::Plus, Token::Kind::Minus, Token::Kind::Not, Token::Kind::Tilde
             # Unary operators (Phase 21: added Tilde for bitwise NOT)
             op = token
@@ -3576,6 +3583,75 @@ module CrystalGPT5
             emit_unexpected(member_token)
             receiver
           end
+        end
+
+        # Phase 63: Parse path expression (Foo::Bar)
+        private def parse_path(left : ExprId) : ExprId
+          colon_colon = current_token
+          advance
+          skip_trivia
+
+          # Parse right side - must be identifier
+          right_token = current_token
+          unless right_token.kind == Token::Kind::Identifier
+            emit_unexpected(right_token)
+            return left
+          end
+
+          right_id = @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Identifier,
+              right_token.span,
+              literal: right_token.slice,
+            )
+          )
+          advance
+
+          # Create Path node
+          path_span = cover_optional_spans(node_span(left), colon_colon.span, node_span(right_id))
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Path,
+              path_span,
+              left: left,
+              right: right_id,
+            )
+          )
+        end
+
+        # Phase 63: Parse absolute path (::TopLevel)
+        # Absolute paths start with :: and have no left side
+        private def parse_absolute_path : ExprId
+          colon_colon = current_token
+          advance
+          skip_trivia
+
+          # Parse identifier after ::
+          identifier_token = current_token
+          unless identifier_token.kind == Token::Kind::Identifier
+            emit_unexpected(identifier_token)
+            return PREFIX_ERROR
+          end
+
+          right_id = @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Identifier,
+              identifier_token.span,
+              literal: identifier_token.slice,
+            )
+          )
+          advance
+
+          # Create Path node with nil left (indicates absolute path)
+          path_span = colon_colon.span.cover(node_span(right_id))
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Path,
+              path_span,
+              left: nil,  # No left side = absolute path
+              right: right_id,
+            )
+          )
         end
 
         # Phase 44: Parse type cast (.as(Type))

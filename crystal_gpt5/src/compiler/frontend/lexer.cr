@@ -220,8 +220,18 @@ module CrystalGPT5
           start_offset, start_line, start_column = capture_position
           from = @offset
 
-          # Consume :
+          # Consume first :
           advance
+
+          # Phase 63: Check if :: (path expression)
+          if @offset < @rope.size && current_byte == ':'.ord.to_u8
+            advance
+            return Token.new(
+              Token::Kind::ColonColon,
+              @rope.bytes[from...@offset],
+              build_span(start_offset, start_line, start_column)
+            )
+          end
 
           # Check if followed by identifier start
           if @offset >= @rope.size || !identifier_start?(current_byte)

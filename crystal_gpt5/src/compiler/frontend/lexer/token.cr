@@ -116,6 +116,7 @@ module CrystalGPT5
 
           # Navigation operators
           AmpDot      # &. (Phase 47: safe navigation)
+          ColonColon  # :: (Phase 63: path expression)
 
           # Grouping and delimiters
           LParen      # (

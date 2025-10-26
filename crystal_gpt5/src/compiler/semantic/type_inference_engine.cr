@@ -155,6 +155,9 @@ module CrystalGPT5
           when ExpressionNode::Kind::Generic
             # Phase 60: Generic type instantiation
             infer_generic(node, expr_id)
+          when ExpressionNode::Kind::Path
+            # Phase 63: Path expressions (Foo::Bar)
+            infer_path(node, expr_id)
           when ExpressionNode::Kind::SafeNavigation
             # Phase 47: Safe navigation expressions (returns nilable)
             infer_safe_navigation(node, expr_id)
@@ -1179,6 +1182,34 @@ module CrystalGPT5
 
           # Return placeholder type (nil_type for now)
           # Future: return specialized generic type like Box<Int32>
+          @context.nil_type
+        end
+
+        # Phase 63: Type inference for path expressions (Foo::Bar)
+        private def infer_path(node, expr_id : ExprId) : Type
+          # Path expression: navigating nested types/modules
+          # Examples: HTTP::Server, Foo::Bar::Baz, ::TopLevel
+          #
+          # In a full implementation:
+          # - Resolve left side to namespace/type
+          # - Look up right identifier within that namespace
+          # - Return the resolved type
+          # - Handle absolute paths (left = nil)
+          #
+          # For now, infer left (if present) and right, return placeholder
+
+          # Infer left side (if not absolute path)
+          if left_expr = node.left
+            infer_expression(left_expr)
+          end
+
+          # Infer right side
+          if right_expr = node.right
+            infer_expression(right_expr)
+          end
+
+          # Return placeholder type (nil_type for now)
+          # Future: return resolved type from namespace lookup
           @context.nil_type
         end
 

@@ -257,6 +257,7 @@ module CrystalGPT5
           IsA  # Phase 46: type check (value.is_a?(Type))
           RespondsTo  # Phase 49: method check (value.responds_to?(:method))
           Generic  # Phase 60: generic type instantiation (Box(Int32))
+          Path  # Phase 63: path expression (Foo::Bar)
         end
 
         getter kind : Kind
