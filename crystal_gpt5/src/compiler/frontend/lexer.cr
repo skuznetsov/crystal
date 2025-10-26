@@ -504,8 +504,6 @@ module CrystalGPT5
                 buffer.write_byte '\\'.ord.to_u8
               when '"'.ord.to_u8
                 buffer.write_byte '"'.ord.to_u8
-              when '0'.ord.to_u8
-                buffer.write_byte '\0'.ord.to_u8
               when 'u'.ord.to_u8
                 # Phase 58: Unicode escapes \uXXXX or \u{XXXX}
                 advance
@@ -545,9 +543,22 @@ module CrystalGPT5
                 end
                 next  # Don't advance again, helper methods already did
               else
-                # Unknown escape - keep as is
-                buffer.write_byte '\\'.ord.to_u8
-                buffer.write_byte current_byte
+                # Phase 62: Check for octal escapes \NNN (1-3 octal digits)
+                if octal_digit?(current_byte)
+                  byte_value = parse_octal_fixed(3)
+                  if byte_value
+                    buffer.write_byte byte_value.to_u8
+                  else
+                    # Should not happen if octal_digit? returned true
+                    buffer.write_byte '\\'.ord.to_u8
+                    buffer.write_byte current_byte
+                  end
+                  next  # Don't advance again, parse_octal_fixed already did
+                else
+                  # Unknown escape - keep as is
+                  buffer.write_byte '\\'.ord.to_u8
+                  buffer.write_byte current_byte
+                end
               end
               advance
             else
@@ -667,8 +678,6 @@ module CrystalGPT5
               buffer.write_byte '\\'.ord.to_u8
             when '\''.ord.to_u8
               buffer.write_byte '\''.ord.to_u8
-            when '0'.ord.to_u8
-              buffer.write_byte '\0'.ord.to_u8
             when 'u'.ord.to_u8
               # Phase 58: Unicode escapes \uXXXX or \u{XXXX}
               advance
@@ -736,9 +745,36 @@ module CrystalGPT5
                 build_span(start_offset, start_line, start_column)
               )
             else
-              # Unknown escape - keep as is
-              buffer.write_byte '\\'.ord.to_u8
-              buffer.write_byte current_byte
+              # Phase 62: Check for octal escapes \NNN (1-3 octal digits)
+              if octal_digit?(current_byte)
+                byte_value = parse_octal_fixed(3)
+                if byte_value
+                  buffer.write_byte byte_value.to_u8
+                else
+                  # Should not happen if octal_digit? returned true
+                  buffer.write_byte '\\'.ord.to_u8
+                  buffer.write_byte current_byte
+                end
+                # Don't advance again - helper method already did
+                # Jump directly to closing quote check
+                if @offset < @rope.size && current_byte == SINGLE_QUOTE
+                  advance
+                end
+
+                # Store processed character
+                processed_bytes = buffer.to_slice
+                @processed_strings << processed_bytes
+
+                return Token.new(
+                  Token::Kind::Char,
+                  processed_bytes,
+                  build_span(start_offset, start_line, start_column)
+                )
+              else
+                # Unknown escape - keep as is
+                buffer.write_byte '\\'.ord.to_u8
+                buffer.write_byte current_byte
+              end
             end
             advance
 
@@ -1135,6 +1171,23 @@ module CrystalGPT5
           end
 
           codepoint
+        end
+
+        # Phase 62: Parse 1-3 octal digits (\NNN format)
+        # Returns byte value (0-255) or nil if invalid
+        private def parse_octal_fixed(max_count : Int32) : Int32?
+          value = 0
+          count = 0
+
+          while count < max_count && @offset < @rope.size && octal_digit?(current_byte)
+            digit_value = current_byte.to_i32 - '0'.ord.to_i32
+            value = value * 8 + digit_value
+            count += 1
+            advance
+          end
+
+          # Return nil if no digits found, otherwise return value
+          count > 0 ? value : nil
         end
 
         # Phase 58: Write Unicode codepoint as UTF-8 to buffer
