@@ -253,9 +253,14 @@ module CrystalGPT5
             end
           end
 
-          # Read integer part
-          while @offset < @rope.size && ascii_number?(current_byte)
+          # Phase 55: Read integer part (with underscore separators)
+          while @offset < @rope.size && (ascii_number?(current_byte) || current_byte == UNDERSCORE)
             advance
+          end
+
+          # Phase 55: Skip trailing underscores (so suffix parser can see them)
+          while @offset > from && @rope.bytes[@offset - 1] == UNDERSCORE
+            @offset -= 1
           end
 
           # Check for decimal point (float)
@@ -265,9 +270,13 @@ module CrystalGPT5
             if @offset + 1 < @rope.size && ascii_number?(@rope.bytes[@offset + 1])
               has_decimal = true
               advance  # consume '.'
-              # Read fractional part
-              while @offset < @rope.size && ascii_number?(current_byte)
+              # Phase 55: Read fractional part (with underscore separators)
+              while @offset < @rope.size && (ascii_number?(current_byte) || current_byte == UNDERSCORE)
                 advance
+              end
+              # Phase 55: Skip trailing underscores (so suffix parser can see them)
+              while @offset > from && @rope.bytes[@offset - 1] == UNDERSCORE
+                @offset -= 1
               end
             end
           end
@@ -315,9 +324,14 @@ module CrystalGPT5
           advance  # Skip '0'
           advance  # Skip 'x' or 'X'
 
-          # Read hex digits
-          while @offset < @rope.size && hex_digit?(current_byte)
+          # Phase 55: Read hex digits (with underscore separators)
+          while @offset < @rope.size && (hex_digit?(current_byte) || current_byte == UNDERSCORE)
             advance
+          end
+
+          # Phase 55: Skip trailing underscores (so suffix parser can see them)
+          while @offset > from && @rope.bytes[@offset - 1] == UNDERSCORE
+            @offset -= 1
           end
 
           # Check for suffix (_i32, _i64, _f64)
@@ -339,9 +353,14 @@ module CrystalGPT5
           advance  # Skip '0'
           advance  # Skip 'b' or 'B'
 
-          # Read binary digits
-          while @offset < @rope.size && binary_digit?(current_byte)
+          # Phase 55: Read binary digits (with underscore separators)
+          while @offset < @rope.size && (binary_digit?(current_byte) || current_byte == UNDERSCORE)
             advance
+          end
+
+          # Phase 55: Skip trailing underscores (so suffix parser can see them)
+          while @offset > from && @rope.bytes[@offset - 1] == UNDERSCORE
+            @offset -= 1
           end
 
           # Check for suffix (_i32, _i64, _f64)
@@ -363,9 +382,14 @@ module CrystalGPT5
           advance  # Skip '0'
           advance  # Skip 'o' or 'O'
 
-          # Read octal digits
-          while @offset < @rope.size && octal_digit?(current_byte)
+          # Phase 55: Read octal digits (with underscore separators)
+          while @offset < @rope.size && (octal_digit?(current_byte) || current_byte == UNDERSCORE)
             advance
+          end
+
+          # Phase 55: Skip trailing underscores (so suffix parser can see them)
+          while @offset > from && @rope.bytes[@offset - 1] == UNDERSCORE
+            @offset -= 1
           end
 
           # Check for suffix (_i32, _i64, _f64)
