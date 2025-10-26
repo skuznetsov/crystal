@@ -4110,6 +4110,7 @@ module CrystalGPT5
           Token::Kind::Greater   => 7,   # Greater than
           Token::Kind::LessEq    => 7,   # Less or equal
           Token::Kind::GreaterEq => 7,   # Greater or equal
+          Token::Kind::Spaceship => 7,   # Three-way comparison (Phase 48)
           Token::Kind::Plus      => 10,  # Addition
           Token::Kind::Minus     => 10,  # Subtraction
           Token::Kind::LShift    => 10,  # Left shift / array push (Phase 9)

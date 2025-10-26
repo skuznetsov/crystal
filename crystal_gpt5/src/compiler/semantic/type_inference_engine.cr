@@ -536,6 +536,21 @@ module CrystalGPT5
               @context.bool_type
             end
 
+          when "<=>"
+            # Phase 48: Spaceship operator (three-way comparison)
+            # Returns Int32: -1 (less), 0 (equal), or 1 (greater)
+            # Try method lookup first
+            if method = lookup_method(left_type, op, [right_type])
+              if ann = method.return_annotation
+                parse_type_name(ann)
+              else
+                @context.int32_type
+              end
+            else
+              # Fallback: spaceship operator → Int32
+              @context.int32_type
+            end
+
           when "&&", "||"
             # Logical operators
             unless bool_type?(left_type) && bool_type?(right_type)

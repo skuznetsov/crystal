@@ -413,15 +413,21 @@ module CrystalGPT5
           when '}'.ord.to_u8
             Token::Kind::RBrace
           when '<'.ord.to_u8
-            # Check for << or <=
+            # Check for <<, <=>, or <=
             if @offset < @rope.size
               next_byte = current_byte
               if next_byte == '<'.ord.to_u8
                 advance
                 Token::Kind::LShift
               elsif next_byte == '='.ord.to_u8
-                advance
-                Token::Kind::LessEq
+                # Check for <=>
+                advance  # consume '='
+                if @offset < @rope.size && current_byte == '>'.ord.to_u8
+                  advance  # consume '>'
+                  Token::Kind::Spaceship  # Phase 48
+                else
+                  Token::Kind::LessEq
+                end
               else
                 Token::Kind::Less
               end

@@ -87,6 +87,7 @@ module CrystalGPT5
           GreaterEq   # >=
           EqEq        # ==
           NotEq       # !=
+          Spaceship   # <=> (Phase 48: three-way comparison)
 
           # Shift/append operators
           LShift      # << (Phase 9: array push / left shift)
