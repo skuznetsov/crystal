@@ -86,6 +86,7 @@ module CrystalGPT5
           LessEq      # <=
           GreaterEq   # >=
           EqEq        # ==
+          EqEqEq      # === (Phase 50: case equality)
           NotEq       # !=
           Spaceship   # <=> (Phase 48: three-way comparison)
 

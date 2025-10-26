@@ -4154,6 +4154,7 @@ module CrystalGPT5
           Token::Kind::Caret     => 6,   # Bitwise XOR (Phase 21)
           Token::Kind::Amp       => 6,   # Bitwise AND (Phase 21)
           Token::Kind::EqEq      => 7,   # Equality
+          Token::Kind::EqEqEq    => 7,   # Case equality (Phase 50)
           Token::Kind::NotEq     => 7,   # Inequality
           Token::Kind::Less      => 7,   # Less than
           Token::Kind::Greater   => 7,   # Greater than

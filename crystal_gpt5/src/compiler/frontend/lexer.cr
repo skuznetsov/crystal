@@ -451,15 +451,21 @@ module CrystalGPT5
               Token::Kind::Greater
             end
           when '='.ord.to_u8
-            # Check for => and ==
+            # Check for =>, ===, and ==
             if @offset < @rope.size
               next_byte = current_byte
               if next_byte == '>'.ord.to_u8
                 advance
                 Token::Kind::Arrow  # =>
               elsif next_byte == '='.ord.to_u8
-                advance
-                Token::Kind::EqEq  # ==
+                # Check for === (Phase 50)
+                advance  # consume second '='
+                if @offset < @rope.size && current_byte == '='.ord.to_u8
+                  advance  # consume third '='
+                  Token::Kind::EqEqEq  # ===
+                else
+                  Token::Kind::EqEq  # ==
+                end
               else
                 Token::Kind::Eq  # =
               end
