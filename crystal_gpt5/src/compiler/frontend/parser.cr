@@ -3499,10 +3499,13 @@ module CrystalGPT5
           end
 
           # Phase 46: Check for .is_a?(Type) type check
+          # Phase 49: Check for .responds_to?(:method) method check
           if member_token.kind == Token::Kind::Identifier
             member_text = String.new(member_token.slice)
             if member_text == "is_a?"
               return parse_is_a(receiver, dot, member_token)
+            elsif member_text == "responds_to?"
+              return parse_responds_to(receiver, dot, member_token)
             end
           end
 
@@ -3680,6 +3683,52 @@ module CrystalGPT5
               is_a_span,
               is_a_value: receiver,
               is_a_target_type: target_type,
+            )
+          )
+        end
+
+        # Phase 49: Parse method check (.responds_to?(:method))
+        private def parse_responds_to(receiver : ExprId, dot : Token, responds_to_token : Token) : ExprId
+          advance  # Skip 'responds_to?' identifier
+          skip_trivia
+
+          # Expect opening parenthesis
+          unless current_token.kind == Token::Kind::LParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          lparen = current_token
+          advance
+          skip_trivia
+
+          # Parse method name (Symbol or String expression)
+          method_name_expr = parse_expression(0)
+          skip_trivia
+
+          # Expect closing parenthesis
+          unless current_token.kind == Token::Kind::RParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          rparen = current_token
+          advance
+
+          # Create RespondsTo node
+          spans = [] of Span
+          spans << node_span(receiver)
+          spans << dot.span
+          spans << responds_to_token.span
+          spans << lparen.span
+          spans << node_span(method_name_expr)
+          spans << rparen.span
+          responds_to_span = Span.cover_all(spans)
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::RespondsTo,
+              responds_to_span,
+              responds_to_value: receiver,
+              responds_to_method_name: method_name_expr,
             )
           )
         end

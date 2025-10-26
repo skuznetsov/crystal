@@ -253,6 +253,7 @@ module CrystalGPT5
           As  # Phase 44: type cast (value.as(Type))
           AsQuestion  # Phase 45: safe cast (value.as?(Type))
           IsA  # Phase 46: type check (value.is_a?(Type))
+          RespondsTo  # Phase 49: method check (value.responds_to?(:method))
         end
 
         getter kind : Kind
@@ -341,6 +342,8 @@ module CrystalGPT5
         getter as_question_target_type : Slice(UInt8)?  # Phase 45: target type for safe cast
         getter is_a_value : ExprId?  # Phase 46: expression being type-checked
         getter is_a_target_type : Slice(UInt8)?  # Phase 46: target type for type check
+        getter responds_to_value : ExprId?  # Phase 49: expression being checked for method
+        getter responds_to_method_name : ExprId?  # Phase 49: method name (Symbol or String)
 
         def initialize(
           @kind : Kind,
@@ -428,6 +431,8 @@ module CrystalGPT5
           @as_question_target_type : Slice(UInt8)? = nil,
           @is_a_value : ExprId? = nil,
           @is_a_target_type : Slice(UInt8)? = nil,
+          @responds_to_value : ExprId? = nil,
+          @responds_to_method_name : ExprId? = nil,
         )
         end
 

@@ -149,6 +149,9 @@ module CrystalGPT5
           when ExpressionNode::Kind::IsA
             # Phase 46: Type check expressions (returns Bool)
             infer_is_a(node, expr_id)
+          when ExpressionNode::Kind::RespondsTo
+            # Phase 49: Method check expressions (returns Bool)
+            infer_responds_to(node, expr_id)
           when ExpressionNode::Kind::SafeNavigation
             # Phase 47: Safe navigation expressions (returns nilable)
             infer_safe_navigation(node, expr_id)
@@ -1122,6 +1125,30 @@ module CrystalGPT5
           end
 
           # Return Bool type (is_a? always returns boolean)
+          @context.bool_type
+        end
+
+        # Phase 49: responds_to? method (method check - returns Bool)
+        private def infer_responds_to(node, expr_id : ExprId) : Type
+          # Method check: value.responds_to?(:method_name)
+          # Returns Bool (true if value has method, false otherwise)
+          # In a full implementation:
+          # - Infer type of value being checked
+          # - Extract method name from Symbol/String argument
+          # - Look up method in value's type
+          # - Return Bool based on whether method exists
+          # - Unlike .is_a?, this checks for method availability
+
+          # For now, infer type of value and method name, return bool type
+          if value_expr = node.responds_to_value
+            infer_expression(value_expr)
+          end
+
+          if method_name_expr = node.responds_to_method_name
+            infer_expression(method_name_expr)
+          end
+
+          # Return Bool type (responds_to? always returns boolean)
           @context.bool_type
         end
 
