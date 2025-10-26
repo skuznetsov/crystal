@@ -128,6 +128,46 @@ module CrystalGPT5
           skip_trivia
           token = current_token
 
+          # Phase 66: Check for type declaration: identifier : Type (without =)
+          if operator_token?(token, Token::Kind::Colon)
+            left_node = @arena[left]
+            if left_node.kind == ExpressionNode::Kind::Identifier
+              # Lookahead to check if it's `: Type` or `: Type =`
+              colon_token = token
+              advance  # consume ':'
+              skip_trivia
+
+              # Parse type identifier
+              type_token = current_token
+              unless type_token.kind == Token::Kind::Identifier
+                emit_unexpected(type_token)
+                return PREFIX_ERROR
+              end
+              advance
+              skip_trivia
+
+              # Check if followed by = (that would be type-annotated assignment, handle differently)
+              if current_token.kind == Token::Kind::Eq
+                # This is actually `x : Type = value` - let assignment logic handle it
+                # We need to backtrack or handle specially
+                # For now, emit error (will handle type-annotated assignment separately)
+                emit_unexpected(current_token)
+                return PREFIX_ERROR
+              end
+
+              # It's a standalone type declaration: x : Type
+              type_decl_span = left_node.span.cover(type_token.span)
+              return @arena.add(
+                ExpressionNode.new(
+                  ExpressionNode::Kind::TypeDeclaration,
+                  type_decl_span,
+                  type_decl_name: left_node.literal,
+                  type_decl_type: type_token.slice,
+                )
+              )
+            end
+          end
+
           # Check for assignment: identifier = value or compound assignment (+=, -=, etc.)
           if token.kind == Token::Kind::Eq ||
              token.kind == Token::Kind::PlusEq ||

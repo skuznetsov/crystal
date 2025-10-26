@@ -116,6 +116,9 @@ module CrystalGPT5
           when .require?
             # Phase 65: require statement
             infer_require(node)
+          when .type_declaration?
+            # Phase 66: type declaration
+            infer_type_declaration(node)
           when .getter?
             # Phase 30: getter macro
             infer_accessor(node)
@@ -921,6 +924,20 @@ module CrystalGPT5
 
           # Require statements are executed at compile-time for imports
           # They don't have a runtime value, so return Nil type
+          @context.nil_type
+        end
+
+        # Phase 66: Type inference for type declaration
+        private def infer_type_declaration(node) : Type
+          # Type declarations like `x : Int32` declare a variable with an explicit type
+          # but don't assign a value. They are compile-time type annotations.
+          #
+          # In a full implementation:
+          # - Register the variable name with its declared type in the scope
+          # - Use this type for subsequent references to the variable
+          # - Verify assignments match the declared type
+          #
+          # For now, type declarations have no runtime value (they're declarations)
           @context.nil_type
         end
 
