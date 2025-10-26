@@ -10,6 +10,7 @@ module CrystalGPT5
           @offset = 0
           @line = 1
           @column = 1
+          @processed_strings = [] of Bytes  # Phase 54: storage for escape-processed strings
         end
 
         def each_token(&block : Token ->)
@@ -416,23 +417,80 @@ module CrystalGPT5
           advance # opening quote
           from = @offset
           has_interpolation = false
+          has_escapes = false
 
-          # Scan string content, detecting interpolation
-          while @offset < @rope.size && current_byte != DOUBLE_QUOTE
-            # Check for interpolation marker #{
-            if current_byte == HASH && @offset + 1 < @rope.size && @rope.bytes[@offset + 1] == LEFT_BRACE
+          # Phase 54: Check if string contains escapes or interpolation
+          # First pass: detect escapes/interpolation
+          scan_offset = @offset
+          while scan_offset < @rope.size && @rope.bytes[scan_offset] != DOUBLE_QUOTE
+            byte = @rope.bytes[scan_offset]
+            if byte == HASH && scan_offset + 1 < @rope.size && @rope.bytes[scan_offset + 1] == LEFT_BRACE
               has_interpolation = true
+            elsif byte == '\\'.ord.to_u8
+              has_escapes = true
             end
-            advance
+            scan_offset += 1
+          end
+
+          # If no escapes, use original fast path
+          if !has_escapes
+            while @offset < @rope.size && current_byte != DOUBLE_QUOTE
+              advance
+            end
+            advance if @offset < @rope.size # closing quote
+
+            kind = has_interpolation ? Token::Kind::StringInterpolation : Token::Kind::String
+            return Token.new(
+              kind,
+              @rope.bytes[from...@offset - 1],
+              build_span(start_offset, start_line, start_column)
+            )
+          end
+
+          # Phase 54: Process escape sequences
+          processed = Bytes.new(scan_offset - from)  # Allocate with estimated size
+          buffer = IO::Memory.new
+
+          while @offset < @rope.size && current_byte != DOUBLE_QUOTE
+            if current_byte == '\\'.ord.to_u8 && @offset + 1 < @rope.size
+              # Escape sequence
+              advance  # Skip backslash
+              case current_byte
+              when 'n'.ord.to_u8
+                buffer.write_byte '\n'.ord.to_u8
+              when 't'.ord.to_u8
+                buffer.write_byte '\t'.ord.to_u8
+              when 'r'.ord.to_u8
+                buffer.write_byte '\r'.ord.to_u8
+              when '\\'.ord.to_u8
+                buffer.write_byte '\\'.ord.to_u8
+              when '"'.ord.to_u8
+                buffer.write_byte '"'.ord.to_u8
+              when '0'.ord.to_u8
+                buffer.write_byte '\0'.ord.to_u8
+              else
+                # Unknown escape - keep as is
+                buffer.write_byte '\\'.ord.to_u8
+                buffer.write_byte current_byte
+              end
+              advance
+            else
+              buffer.write_byte current_byte
+              advance
+            end
           end
 
           advance if @offset < @rope.size # closing quote
 
-          # Return appropriate token kind
+          # Store processed string
+          processed_bytes = buffer.to_slice
+          @processed_strings << processed_bytes
+
+          # Return token with processed string
           kind = has_interpolation ? Token::Kind::StringInterpolation : Token::Kind::String
           Token.new(
             kind,
-            @rope.bytes[from...@offset - 1],
+            processed_bytes,
             build_span(start_offset, start_line, start_column)
           )
         end
