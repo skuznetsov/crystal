@@ -152,6 +152,9 @@ module CrystalGPT5
           when ExpressionNode::Kind::RespondsTo
             # Phase 49: Method check expressions (returns Bool)
             infer_responds_to(node, expr_id)
+          when ExpressionNode::Kind::Generic
+            # Phase 60: Generic type instantiation
+            infer_generic(node, expr_id)
           when ExpressionNode::Kind::SafeNavigation
             # Phase 47: Safe navigation expressions (returns nilable)
             infer_safe_navigation(node, expr_id)
@@ -1151,6 +1154,32 @@ module CrystalGPT5
 
           # Return Bool type (responds_to? always returns boolean)
           @context.bool_type
+        end
+
+        # Phase 60: Generic type instantiation
+        private def infer_generic(node, expr_id : ExprId) : Type
+          # Generic instantiation: Box(Int32), Hash(String, Int32)
+          # Returns the specialized generic type
+          # In a full implementation:
+          # - Infer base type (Box, Array, Hash)
+          # - Infer each type argument
+          # - Create specialized generic instance type
+          # - Track type parameters for validation
+
+          # For now, infer base name and type arguments, return placeholder
+          if name_expr = node.generic_name
+            infer_expression(name_expr)
+          end
+
+          if type_args = node.generic_type_args
+            type_args.each do |arg|
+              infer_expression(arg)
+            end
+          end
+
+          # Return placeholder type (nil_type for now)
+          # Future: return specialized generic type like Box<Int32>
+          @context.nil_type
         end
 
         # Phase 47: &. safe navigation operator (returns nilable)

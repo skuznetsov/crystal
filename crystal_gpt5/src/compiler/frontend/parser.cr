@@ -2755,10 +2755,21 @@ module CrystalGPT5
             # Phase 30: property macro
             parse_property
           when Token::Kind::Identifier
-            # Regular identifier
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Identifier, token.span, literal: token.slice))
-            advance
-            id
+            # Phase 60: Check if this is a generic type instantiation
+            # Pattern: UppercaseIdentifier(Type1, Type2)
+            identifier_token = token
+            advance  # Move past identifier
+
+            # Check if uppercase identifier followed by (
+            if identifier_token.slice.size > 0 &&
+               identifier_token.slice[0] >= 'A'.ord && identifier_token.slice[0] <= 'Z'.ord &&
+               current_token.kind == Token::Kind::LParen
+              # This is generic instantiation: Box(Int32)
+              parse_generic_instantiation(identifier_token)
+            else
+              # Regular identifier
+              @arena.add(ExpressionNode.new(ExpressionNode::Kind::Identifier, identifier_token.span, literal: identifier_token.slice))
+            end
           when Token::Kind::InstanceVar
             # Instance variable (@var)
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::InstanceVar, token.span, literal: token.slice))
@@ -3755,6 +3766,82 @@ module CrystalGPT5
               responds_to_span,
               responds_to_value: receiver,
               responds_to_method_name: method_name_expr,
+            )
+          )
+        end
+
+        # Phase 60: Parse generic type instantiation (Box(Int32), Hash(String, Int32))
+        private def parse_generic_instantiation(name_token : Token) : ExprId
+          # name_token is the base type name (e.g., "Box", "Array", "Hash")
+          # current_token should be LParen
+
+          lparen = current_token
+          advance  # Skip '('
+          skip_trivia
+
+          # Parse type arguments (comma-separated identifiers)
+          type_args = [] of ExprId
+
+          unless current_token.kind == Token::Kind::RParen
+            loop do
+              # Each type argument is an identifier (for now - simple types only)
+              # Future: support nested generics like Array(Box(Int32))
+              if current_token.kind != Token::Kind::Identifier
+                emit_unexpected(current_token)
+                return PREFIX_ERROR
+              end
+
+              type_arg_token = current_token
+              type_arg = @arena.add(ExpressionNode.new(
+                ExpressionNode::Kind::Identifier,
+                type_arg_token.span,
+                literal: type_arg_token.slice
+              ))
+              type_args << type_arg
+              advance
+              skip_trivia
+
+              # Check for comma or closing paren
+              if current_token.kind == Token::Kind::Comma
+                advance  # Skip comma
+                skip_trivia
+              elsif current_token.kind == Token::Kind::RParen
+                break  # End of arguments
+              else
+                emit_unexpected(current_token)
+                return PREFIX_ERROR
+              end
+            end
+          end
+
+          # Expect closing parenthesis
+          unless current_token.kind == Token::Kind::RParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          rparen = current_token
+          advance
+
+          # Create base type name node
+          name_node = @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::Identifier,
+            name_token.span,
+            literal: name_token.slice
+          ))
+
+          # Calculate span covering entire generic expression
+          spans = [name_token.span, lparen.span]
+          type_args.each { |arg| spans << node_span(arg) }
+          spans << rparen.span
+          generic_span = Span.cover_all(spans)
+
+          # Create Generic node
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Generic,
+              generic_span,
+              generic_name: name_node,
+              generic_type_args: type_args,
             )
           )
         end

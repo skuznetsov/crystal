@@ -256,6 +256,7 @@ module CrystalGPT5
           AsQuestion  # Phase 45: safe cast (value.as?(Type))
           IsA  # Phase 46: type check (value.is_a?(Type))
           RespondsTo  # Phase 49: method check (value.responds_to?(:method))
+          Generic  # Phase 60: generic type instantiation (Box(Int32))
         end
 
         getter kind : Kind
@@ -346,6 +347,10 @@ module CrystalGPT5
         getter is_a_target_type : Slice(UInt8)?  # Phase 46: target type for type check
         getter responds_to_value : ExprId?  # Phase 49: expression being checked for method
         getter responds_to_method_name : ExprId?  # Phase 49: method name (Symbol or String)
+        getter generic_name : ExprId?  # Phase 60: base type name (Box in Box(Int32))
+        getter generic_type_args : Array(ExprId)?  # Phase 60: type arguments ([Int32] in Box(Int32))
+        getter class_type_params : Array(Slice(UInt8))?  # Phase 60: type parameters (["T", "K"] in class Box(T, K))
+        getter module_type_params : Array(Slice(UInt8))?  # Phase 60: type parameters for modules
 
         def initialize(
           @kind : Kind,
@@ -435,6 +440,10 @@ module CrystalGPT5
           @is_a_target_type : Slice(UInt8)? = nil,
           @responds_to_value : ExprId? = nil,
           @responds_to_method_name : ExprId? = nil,
+          @generic_name : ExprId? = nil,
+          @generic_type_args : Array(ExprId)? = nil,
+          @class_type_params : Array(Slice(UInt8))? = nil,
+          @module_type_params : Array(Slice(UInt8))? = nil,
         )
         end
 
