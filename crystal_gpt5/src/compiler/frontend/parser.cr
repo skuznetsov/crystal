@@ -135,7 +135,12 @@ module CrystalGPT5
              token.kind == Token::Kind::PercentEq ||
              token.kind == Token::Kind::StarStarEq ||
              token.kind == Token::Kind::OrOrEq ||
-             token.kind == Token::Kind::AndAndEq
+             token.kind == Token::Kind::AndAndEq ||
+             token.kind == Token::Kind::AmpEq ||
+             token.kind == Token::Kind::PipeEq ||
+             token.kind == Token::Kind::CaretEq ||
+             token.kind == Token::Kind::LShiftEq ||
+             token.kind == Token::Kind::RShiftEq
             # Phase 35: Check if this is a constant declaration (uppercase identifier + =)
             left_node = @arena[left]
             if token.kind == Token::Kind::Eq &&
@@ -176,9 +181,10 @@ module CrystalGPT5
             rhs = parse_expression(0)
             return PREFIX_ERROR if rhs.invalid?
 
-            # Phase 20/51: Desugar compound assignment
+            # Phase 20/51/52: Desugar compound assignment
             # x += 5  =>  x = x + 5
             # x ||= 5 =>  x = x || 5
+            # x &= 3  =>  x = x & 3
             value = if is_compound
               # Map compound token to operator
               operator = case assign_token.kind
@@ -190,6 +196,11 @@ module CrystalGPT5
               when Token::Kind::StarStarEq then "**"
               when Token::Kind::OrOrEq     then "||"  # Phase 51
               when Token::Kind::AndAndEq   then "&&"  # Phase 51
+              when Token::Kind::AmpEq      then "&"   # Phase 52
+              when Token::Kind::PipeEq     then "|"   # Phase 52
+              when Token::Kind::CaretEq    then "^"   # Phase 52
+              when Token::Kind::LShiftEq   then "<<"  # Phase 52
+              when Token::Kind::RShiftEq   then ">>"  # Phase 52
               else
                 ""
               end

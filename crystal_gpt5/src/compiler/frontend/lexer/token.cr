@@ -137,6 +137,11 @@ module CrystalGPT5
           StarStarEq  # **= (Phase 20: compound assignment)
           OrOrEq      # ||= (Phase 51: logical or compound assignment)
           AndAndEq    # &&= (Phase 51: logical and compound assignment)
+          AmpEq       # &= (Phase 52: bitwise AND compound assignment)
+          PipeEq      # |= (Phase 52: bitwise OR compound assignment)
+          CaretEq     # ^= (Phase 52: bitwise XOR compound assignment)
+          LShiftEq    # <<= (Phase 52: left shift compound assignment)
+          RShiftEq    # >>= (Phase 52: right shift compound assignment)
 
           # Other operators (keep for now, will migrate gradually)
           Operator    # Generic fallback for unhandled operators

@@ -413,12 +413,18 @@ module CrystalGPT5
           when '}'.ord.to_u8
             Token::Kind::RBrace
           when '<'.ord.to_u8
-            # Check for <<, <=>, or <=
+            # Check for <<=, <<, <=>, or <=
             if @offset < @rope.size
               next_byte = current_byte
               if next_byte == '<'.ord.to_u8
-                advance
-                Token::Kind::LShift
+                advance  # consume second '<'
+                # Check for <<= (Phase 52)
+                if @offset < @rope.size && current_byte == '='.ord.to_u8
+                  advance  # consume '='
+                  Token::Kind::LShiftEq
+                else
+                  Token::Kind::LShift
+                end
               elsif next_byte == '='.ord.to_u8
                 # Check for <=>
                 advance  # consume '='
@@ -435,12 +441,18 @@ module CrystalGPT5
               Token::Kind::Less
             end
           when '>'.ord.to_u8
-            # Check for >> or >=
+            # Check for >>=, >>, or >=
             if @offset < @rope.size
               next_byte = current_byte
               if next_byte == '>'.ord.to_u8
-                advance
-                Token::Kind::RShift  # Phase 22: Right shift
+                advance  # consume second '>'
+                # Check for >>= (Phase 52)
+                if @offset < @rope.size && current_byte == '='.ord.to_u8
+                  advance  # consume '='
+                  Token::Kind::RShiftEq
+                else
+                  Token::Kind::RShift  # Phase 22: Right shift
+                end
               elsif next_byte == '='.ord.to_u8
                 advance
                 Token::Kind::GreaterEq
@@ -497,8 +509,14 @@ module CrystalGPT5
                 Token::Kind::AndAnd
               end
             else
-              # Phase 21: Bitwise AND
-              Token::Kind::Amp
+              # Check for &= (Phase 52)
+              if @offset < @rope.size && current_byte == '='.ord.to_u8
+                advance  # consume '='
+                Token::Kind::AmpEq
+              else
+                # Phase 21: Bitwise AND
+                Token::Kind::Amp
+              end
             end
           when '|'.ord.to_u8
             # Check for ||= and ||
@@ -512,12 +530,24 @@ module CrystalGPT5
                 Token::Kind::OrOr
               end
             else
-              # Phase 21: Bitwise OR
-              Token::Kind::Pipe
+              # Check for |= (Phase 52)
+              if @offset < @rope.size && current_byte == '='.ord.to_u8
+                advance  # consume '='
+                Token::Kind::PipeEq
+              else
+                # Phase 21: Bitwise OR
+                Token::Kind::Pipe
+              end
             end
           when '^'.ord.to_u8
-            # Phase 21: Bitwise XOR
-            Token::Kind::Caret
+            # Check for ^= (Phase 52)
+            if @offset < @rope.size && current_byte == '='.ord.to_u8
+              advance  # consume '='
+              Token::Kind::CaretEq
+            else
+              # Phase 21: Bitwise XOR
+              Token::Kind::Caret
+            end
           when '~'.ord.to_u8
             # Phase 21: Bitwise NOT
             Token::Kind::Tilde
