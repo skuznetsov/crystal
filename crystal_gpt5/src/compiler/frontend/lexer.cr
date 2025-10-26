@@ -532,6 +532,18 @@ module CrystalGPT5
                   end
                 end
                 next  # Don't advance again, helper methods already did
+              when 'x'.ord.to_u8
+                # Phase 59: Hex escapes \xXX (2 hex digits)
+                advance
+                byte_value = parse_unicode_hex_fixed(2)
+                if byte_value
+                  buffer.write_byte byte_value.to_u8
+                else
+                  # Invalid hex escape - keep as is
+                  buffer.write_byte '\\'.ord.to_u8
+                  buffer.write_byte 'x'.ord.to_u8
+                end
+                next  # Don't advance again, helper methods already did
               else
                 # Unknown escape - keep as is
                 buffer.write_byte '\\'.ord.to_u8
@@ -683,6 +695,32 @@ module CrystalGPT5
                 end
               end
               # Don't advance again - helper methods already did
+              # Jump directly to closing quote check
+              if @offset < @rope.size && current_byte == SINGLE_QUOTE
+                advance
+              end
+
+              # Store processed character
+              processed_bytes = buffer.to_slice
+              @processed_strings << processed_bytes
+
+              return Token.new(
+                Token::Kind::Char,
+                processed_bytes,
+                build_span(start_offset, start_line, start_column)
+              )
+            when 'x'.ord.to_u8
+              # Phase 59: Hex escapes \xXX (2 hex digits)
+              advance
+              byte_value = parse_unicode_hex_fixed(2)
+              if byte_value
+                buffer.write_byte byte_value.to_u8
+              else
+                # Invalid hex escape - keep as is
+                buffer.write_byte '\\'.ord.to_u8
+                buffer.write_byte 'x'.ord.to_u8
+              end
+              # Don't advance again - helper method already did
               # Jump directly to closing quote check
               if @offset < @rope.size && current_byte == SINGLE_QUOTE
                 advance
