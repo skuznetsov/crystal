@@ -59,6 +59,7 @@ module CrystalGPT5
           Ensure  # Phase 29: exception handling
           Raise   # Phase 29: raise exception
           Require  # Phase 65: require (import file/library)
+          With  # Phase 67: with (context block)
           Getter  # Phase 30: getter macro
           Setter  # Phase 30: setter macro
           Property  # Phase 30: property macro

@@ -1145,6 +1145,53 @@ module CrystalGPT5
           end
         end
 
+        # Phase 67: Parse with (context block)
+        # Grammar: with receiver ... end
+        # Changes self context to receiver within the block
+        private def parse_with : ExprId
+          with_token = current_token
+          advance  # consume 'with'
+          skip_trivia
+
+          # Parse receiver expression
+          receiver = parse_expression(0)
+          return PREFIX_ERROR if receiver.invalid?
+
+          consume_newlines
+
+          # Parse body
+          body_ids = [] of ExprId
+          loop do
+            skip_trivia
+            token = current_token
+            break if token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            expr = parse_statement
+            body_ids << expr unless expr.invalid?
+            consume_newlines
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          with_span = if end_token
+            with_token.span.cover(end_token.span)
+          else
+            with_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::With,
+              with_span,
+              with_receiver: receiver,
+              with_body: body_ids,
+            )
+          )
+        end
+
         # Phase 65: Parse require (import file/library)
         # Grammar: require "path" | require "./local" | require expr
         # Require MUST have a path argument (unlike raise which can be bare)
@@ -2886,6 +2933,9 @@ module CrystalGPT5
           when Token::Kind::Begin
             # Phase 28: begin/end blocks
             parse_begin
+          when Token::Kind::With
+            # Phase 67: with (context block)
+            parse_with
           when Token::Kind::Raise
             # Phase 29: raise exception
             parse_raise

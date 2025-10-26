@@ -119,6 +119,9 @@ module CrystalGPT5
           when .type_declaration?
             # Phase 66: type declaration
             infer_type_declaration(node)
+          when .with?
+            # Phase 67: with context block
+            infer_with(node)
           when .getter?
             # Phase 30: getter macro
             infer_accessor(node)
@@ -939,6 +942,37 @@ module CrystalGPT5
           #
           # For now, type declarations have no runtime value (they're declarations)
           @context.nil_type
+        end
+
+        # Phase 67: Type inference for with context block
+        private def infer_with(node) : Type
+          # With block changes the self context to the receiver expression
+          # Example: with obj; method1; method2; end
+          # Inside the block, self = obj
+          #
+          # In a full implementation:
+          # - Infer the type of the receiver expression
+          # - Save current self context
+          # - Set self to receiver type
+          # - Process body with new self context
+          # - Restore previous self context
+          # - Return type of last expression in body (or nil if empty)
+
+          # Infer receiver expression
+          if receiver = node.with_receiver
+            infer_expression(receiver)
+          end
+
+          # Process body expressions
+          result_type = @context.nil_type
+          if body = node.with_body
+            body.each do |expr_id|
+              result_type = infer_expression(expr_id)
+            end
+          end
+
+          # Return type of last expression (or nil if no body)
+          result_type
         end
 
         # Phase 30: Type inference for accessor macros (getter/setter/property)

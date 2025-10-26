@@ -243,6 +243,7 @@ module CrystalGPT5
           Raise  # Phase 29: raise exception
           Require  # Phase 65: require (import file/library)
           TypeDeclaration  # Phase 66: type declaration (x : Type)
+          With  # Phase 67: with (context block)
           Getter  # Phase 30: getter macro
           Setter  # Phase 30: setter macro
           Property  # Phase 30: property macro (getter + setter)
@@ -332,6 +333,8 @@ module CrystalGPT5
         getter require_path : ExprId?  # Phase 65: path to require (string literal or expression)
         getter type_decl_name : Slice(UInt8)?  # Phase 66: variable name in type declaration
         getter type_decl_type : Slice(UInt8)?  # Phase 66: type name in type declaration
+        getter with_receiver : ExprId?  # Phase 67: receiver expression for with block
+        getter with_body : Array(ExprId)?  # Phase 67: body of with block
         getter accessor_specs : Array(AccessorSpec)?  # Phase 30: getter/setter/property specifications
         getter module_name : Slice(UInt8)?  # Phase 31: module name
         getter module_body : Array(ExprId)?  # Phase 31: module body
@@ -428,6 +431,8 @@ module CrystalGPT5
           @require_path : ExprId? = nil,
           @type_decl_name : Slice(UInt8)? = nil,
           @type_decl_type : Slice(UInt8)? = nil,
+          @with_receiver : ExprId? = nil,
+          @with_body : Array(ExprId)? = nil,
           @accessor_specs : Array(AccessorSpec)? = nil,
           @module_name : Slice(UInt8)? = nil,
           @module_body : Array(ExprId)? = nil,
