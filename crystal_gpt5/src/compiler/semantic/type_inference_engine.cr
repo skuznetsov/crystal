@@ -175,6 +175,9 @@ module CrystalGPT5
           when .block?
             # Phase 10: Block literals
             infer_block(node, expr_id)
+          when .proc_literal?
+            # Phase 74: Proc literals
+            infer_proc_literal(node, expr_id)
           when .yield?
             # Phase 10: Yield expressions
             infer_yield(node, expr_id)
@@ -1982,6 +1985,30 @@ module CrystalGPT5
           # TODO: In full implementation, yield should return the block's return type
           # (Type will be set by infer_expression)
           @context.nil_type
+        end
+
+        # Phase 74: Proc literal type inference
+        private def infer_proc_literal(node, expr_id : ExprId) : Type
+          # Infer parameter types (if annotated)
+          params = node.block_params || [] of Parameter
+
+          # Infer body type
+          body = node.block_body || [] of ExprId
+          body_type = if body.empty?
+            @context.nil_type
+          else
+            body.each { |stmt_id| infer_expression(stmt_id) }
+            infer_expression(body.last)
+          end
+
+          # If return type is annotated, use it
+          # Otherwise use inferred body type
+          # For now, we return a simple Proc type
+          # TODO: Full implementation should create Proc(Arg1, Arg2, ... -> ReturnType)
+
+          # Return a generic Proc type
+          # In a full implementation, this would be Proc(T1, T2 -> R)
+          @context.proc_type
         end
 
         # ============================================================

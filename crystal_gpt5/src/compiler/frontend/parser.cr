@@ -2055,6 +2055,155 @@ module CrystalGPT5
           ))
         end
 
+        # Phase 74: Parse proc literal: ->(x : Int32) : Int32 { x + 1 }
+        private def parse_proc_literal : ExprId
+          arrow_token = current_token
+          advance  # consume ->
+          skip_trivia
+
+          # Parse optional parameters: (x : Type, y : Type)
+          params = [] of Parameter
+          return_type : Slice(UInt8)? = nil
+
+          if current_token.kind == Token::Kind::LParen
+            advance  # consume (
+            skip_trivia
+
+            # Parse parameter list
+            unless current_token.kind == Token::Kind::RParen
+              loop do
+                name_token = current_token
+                unless name_token.kind == Token::Kind::Identifier
+                  emit_unexpected(name_token)
+                  return PREFIX_ERROR
+                end
+
+                param_name = token_text(name_token)
+                param_name_span = name_token.span
+                param_span = name_token.span
+                advance
+                skip_trivia
+
+                # Parse optional type annotation: : Type
+                type_annotation : String? = nil
+                type_span : Span? = nil
+                if current_token.kind == Token::Kind::Colon
+                  advance  # consume :
+                  skip_trivia
+
+                  type_token = current_token
+                  if type_token.kind == Token::Kind::Identifier
+                    type_annotation = String.new(type_token.slice)
+                    type_span = type_token.span
+                    param_span = param_span.cover(type_span)
+                    advance
+                    skip_trivia
+                  else
+                    emit_unexpected(type_token)
+                    return PREFIX_ERROR
+                  end
+                end
+
+                params << Parameter.new(
+                  param_name,
+                  type_annotation,
+                  nil,              # no default value
+                  param_span,
+                  param_name_span,
+                  type_span,
+                  nil               # no default span
+                )
+
+                # Check for comma or closing )
+                if current_token.kind == Token::Kind::Comma
+                  advance
+                  skip_trivia
+                elsif current_token.kind == Token::Kind::RParen
+                  break
+                else
+                  emit_unexpected(current_token)
+                  return PREFIX_ERROR
+                end
+              end
+            end
+
+            advance  # consume )
+            skip_trivia
+          end
+
+          # Parse optional return type: : ReturnType
+          if current_token.kind == Token::Kind::Colon
+            advance  # consume :
+            skip_trivia
+
+            return_type_token = current_token
+            if return_type_token.kind == Token::Kind::Identifier
+              return_type = return_type_token.slice
+              advance
+              skip_trivia
+            else
+              emit_unexpected(return_type_token)
+              return PREFIX_ERROR
+            end
+          end
+
+          # Parse body: { } or do...end
+          is_brace_form = current_token.kind == Token::Kind::LBrace
+          is_do_form = current_token.kind == Token::Kind::Do
+
+          unless is_brace_form || is_do_form
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+
+          start_token = current_token
+          advance  # consume { or do
+          skip_trivia
+
+          # Parse proc body
+          body = [] of ExprId
+          loop do
+            skip_trivia
+
+            # Skip newlines in proc body
+            while current_token.kind == Token::Kind::Newline
+              advance
+              skip_trivia
+            end
+
+            # Check for proc terminator
+            if is_brace_form
+              break if current_token.kind == Token::Kind::RBrace
+            else
+              break if current_token.kind == Token::Kind::End
+            end
+
+            break if current_token.kind == Token::Kind::EOF
+
+            stmt = parse_statement
+            return PREFIX_ERROR if stmt.invalid?
+            body << stmt
+          end
+
+          # Consume closing delimiter
+          end_token = current_token
+          unless (is_brace_form && current_token.kind == Token::Kind::RBrace) ||
+                 (!is_brace_form && current_token.kind == Token::Kind::End)
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance
+
+          proc_span = arrow_token.span.cover(end_token.span)
+          @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::ProcLiteral,
+            proc_span,
+            block_params: params,
+            block_body: body,
+            proc_return_type: return_type
+          ))
+        end
+
         # Phase 10: Attach block to method call
         private def attach_block_to_call(call_expr : ExprId) : ExprId
           # Parse the block
@@ -3138,6 +3287,9 @@ module CrystalGPT5
           when Token::Kind::LBrace
             # Phase 14/15: Hash or Tuple literal (disambiguated by presence of =>)
             parse_hash_or_tuple
+          when Token::Kind::ThinArrow
+            # Phase 74: Proc literal (->(x) { ... })
+            parse_proc_literal
           when Token::Kind::Operator
             # Generic fallback for unhandled operators (e.g., macro operators)
             op_text = token_text(token)

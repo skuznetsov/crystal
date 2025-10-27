@@ -28,6 +28,7 @@ module CrystalGPT5
         getter nil_type : PrimitiveType
         getter char_type : PrimitiveType
         getter symbol_type : PrimitiveType  # Phase 16
+        getter proc_type : PrimitiveType  # Phase 74
 
         def initialize
           @expression_types = {} of ExprId => Type
@@ -41,6 +42,7 @@ module CrystalGPT5
           @nil_type = PrimitiveType.new("Nil")
           @char_type = PrimitiveType.new("Char")
           @symbol_type = PrimitiveType.new("Symbol")  # Phase 16
+          @proc_type = PrimitiveType.new("Proc")  # Phase 74
         end
 
         # Records the inferred type for an expression

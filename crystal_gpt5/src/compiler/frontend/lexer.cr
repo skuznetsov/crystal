@@ -861,8 +861,11 @@ module CrystalGPT5
               Token::Kind::Plus
             end
           when '-'.ord.to_u8
-            # Check for -=
-            if @offset < @rope.size && current_byte == '='.ord.to_u8
+            # Check for -> or -=
+            if @offset < @rope.size && current_byte == '>'.ord.to_u8
+              advance
+              Token::Kind::ThinArrow  # Phase 74: Proc literal
+            elsif @offset < @rope.size && current_byte == '='.ord.to_u8
               advance
               Token::Kind::MinusEq  # Phase 20: Compound assignment
             else

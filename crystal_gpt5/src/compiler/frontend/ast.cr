@@ -291,6 +291,7 @@ module CrystalGPT5
           StringInterpolation  # Phase 8: string interpolation
           ArrayLiteral  # Phase 9: array literals [1, 2, 3]
           Block  # Phase 10: block {|x| ... } or do |x| ... end
+          ProcLiteral  # Phase 74: proc literal ->(x) { ... }
           Yield  # Phase 10: yield keyword
           Case  # Phase 11: case/when pattern matching
           Break  # Phase 12: break [value]
@@ -370,6 +371,7 @@ module CrystalGPT5
         getter block_params : Array(Parameter)?  # Phase 10: block parameters
         getter block_body : Array(ExprId)?  # Phase 10: block body
         getter call_block : ExprId?  # Phase 10: block attached to call
+        getter proc_return_type : Slice(UInt8)?  # Phase 74: proc return type annotation
         getter yield_args : Array(ExprId)?  # Phase 10: yield arguments
         getter super_args : Array(ExprId)?  # Phase 39: super arguments
         getter typeof_args : Array(ExprId)?  # Phase 40: typeof arguments (expressions to get type of)
@@ -472,6 +474,7 @@ module CrystalGPT5
           @block_params : Array(Parameter)? = nil,
           @block_body : Array(ExprId)? = nil,
           @call_block : ExprId? = nil,
+          @proc_return_type : Slice(UInt8)? = nil,
           @yield_args : Array(ExprId)? = nil,
           @super_args : Array(ExprId)? = nil,
           @typeof_args : Array(ExprId)? = nil,

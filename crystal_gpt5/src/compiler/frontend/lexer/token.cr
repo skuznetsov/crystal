@@ -106,6 +106,9 @@ module CrystalGPT5
           # Hash operators
           Arrow       # => (Phase 14: hash arrow)
 
+          # Proc literal (Phase 74)
+          ThinArrow   # -> (proc literal)
+
           # Logical operators
           AndAnd      # &&
           OrOr        # ||
