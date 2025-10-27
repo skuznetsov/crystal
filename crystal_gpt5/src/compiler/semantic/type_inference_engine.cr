@@ -175,6 +175,9 @@ module CrystalGPT5
           when .uninitialized?
             # Phase 85: Uninitialized expressions
             infer_uninitialized(node, expr_id)
+          when .offsetof?
+            # Phase 86: Offsetof expressions
+            infer_offsetof(node, expr_id)
           when ExpressionNode::Kind::As
             # Phase 44: Type cast expressions (can't use .as? due to keyword collision)
             infer_as(node, expr_id)
@@ -1328,6 +1331,26 @@ module CrystalGPT5
           end
 
           # Return nil_type as placeholder (full implementation would return the actual type)
+          @context.nil_type
+        end
+
+        private def infer_offsetof(node, expr_id : ExprId) : Type
+          # Phase 86: offsetof returns the byte offset of a field within a type
+          # offsetof(Type, :field) returns Int32 offset value
+          # In a full implementation:
+          # - Process type argument to get actual type
+          # - Process field argument (symbol or identifier)
+          # - Calculate field offset in bytes
+          # - Return Int32 type
+
+          # For now, infer both arguments and return nil_type as placeholder
+          if args = node.offsetof_args
+            args.each do |arg_expr_id|
+              infer_expression(arg_expr_id)
+            end
+          end
+
+          # Return nil_type as placeholder (full implementation would return Int32)
           @context.nil_type
         end
 

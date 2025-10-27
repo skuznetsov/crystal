@@ -2142,6 +2142,58 @@ module CrystalGPT5
           )
         end
 
+        # Phase 86: Parse offsetof (field offset in type)
+        # Grammar: offsetof(Type, :field)
+        private def parse_offsetof : ExprId
+          offsetof_token = current_token
+          advance
+          skip_trivia
+
+          # Expect opening parenthesis
+          unless current_token.kind == Token::Kind::LParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume (
+          skip_trivia
+
+          # Parse first argument (type)
+          type_arg = parse_expression(0)
+          return PREFIX_ERROR if type_arg.invalid?
+
+          skip_trivia
+
+          # Expect comma
+          unless current_token.kind == Token::Kind::Comma
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume comma
+          skip_trivia
+
+          # Parse second argument (field)
+          field_arg = parse_expression(0)
+          return PREFIX_ERROR if field_arg.invalid?
+
+          skip_trivia
+
+          # Expect closing parenthesis
+          unless current_token.kind == Token::Kind::RParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          rparen_token = current_token
+          advance
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Offsetof,
+              offsetof_token.span.cover(rparen_token.span),
+              offsetof_args: [type_arg, field_arg]
+            )
+          )
+        end
+
         # Phase 10: Parse block
         # Grammar: { |params| body } or do |params| body end
         private def parse_block : ExprId
@@ -3470,6 +3522,9 @@ module CrystalGPT5
           when Token::Kind::Uninitialized
             # Phase 85: uninitialized variable
             parse_uninitialized
+          when Token::Kind::Offsetof
+            # Phase 86: offset of field in type
+            parse_offsetof
           when Token::Kind::If
             parse_if
           when Token::Kind::Unless

@@ -148,6 +148,7 @@ module CrystalGPT5
           when "sizeof" then Token::Kind::Sizeof  # Phase 41
           when "pointerof" then Token::Kind::Pointerof  # Phase 42
           when "uninitialized" then Token::Kind::Uninitialized  # Phase 85
+          when "offsetof" then Token::Kind::Offsetof  # Phase 86
           when "yield"  then Token::Kind::Yield
           when "case"   then Token::Kind::Case
           when "when"   then Token::Kind::When
