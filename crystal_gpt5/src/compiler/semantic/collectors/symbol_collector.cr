@@ -3,6 +3,7 @@ require "../symbol"
 require "../context"
 require "../symbol_table"
 require "../diagnostic"
+require "../macro_expander"
 
 module CrystalGPT5
   module Compiler
@@ -17,6 +18,7 @@ module CrystalGPT5
           @arena = @program.arena
           @table_stack = [context.symbol_table]
           @diagnostics = [] of Diagnostic
+          @macro_expander = MacroExpander.new(@program, @arena)
         end
 
         def collect
@@ -55,6 +57,9 @@ module CrystalGPT5
                ExpressionNode::Kind::Property
             # Phase 87B-1: Expand accessor macros to method definitions
             expand_accessor_macro(node_id, node)
+          when ExpressionNode::Kind::Call
+            # Phase 87B-2: Check if call is actually a macro invocation
+            handle_potential_macro_call(node_id, node)
           end
         end
 
@@ -281,6 +286,40 @@ module CrystalGPT5
             def_body: [assign_id],
             def_params: [param]
           )
+        end
+
+        # Phase 87B-2: Handle potential macro calls
+        #
+        # Checks if a method call is actually a macro invocation.
+        # If yes: expands the macro and visits the result.
+        # If no: ignores (will be handled during type inference).
+        private def handle_potential_macro_call(node_id : Frontend::ExprId, node : ExpressionNode)
+          # Extract method name from call
+          callee_slice = node.member
+          return unless callee_slice
+
+          callee_name = String.new(callee_slice)
+
+          # Look up in current scope
+          table = current_table
+          symbol = table.lookup(callee_name)
+
+          # Check if it's a macro
+          if symbol.is_a?(MacroSymbol)
+            # Get arguments
+            args = node.args || [] of Frontend::ExprId
+
+            # Expand macro
+            expanded_id = @macro_expander.expand(symbol, args)
+
+            # Collect diagnostics from expander
+            @diagnostics.concat(@macro_expander.diagnostics)
+
+            # Visit expanded result (if valid)
+            visit(expanded_id) unless expanded_id.invalid?
+          end
+
+          # If not a macro, ignore - will be handled during type inference
         end
 
         # Phase 5A: Scan class body for instance variable assignments

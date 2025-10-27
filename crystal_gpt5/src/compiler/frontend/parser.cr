@@ -23,6 +23,17 @@ module CrystalGPT5
           @previous_token = nil
         end
 
+        # Phase 87B-2: Constructor for reparsing with existing arena
+        # Used by macro expander to add parsed nodes to existing arena
+        def initialize(lexer : Lexer, @arena : AstArena)
+          @tokens = [] of Token
+          lexer.each_token { |token| @tokens << token }
+          @index = 0
+          @diagnostics = [] of Diagnostic
+          @macro_terminator = nil
+          @previous_token = nil
+        end
+
         def parse_program : Program
           roots = [] of ExprId
           while current_token.kind != Token::Kind::EOF
