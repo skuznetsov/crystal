@@ -80,12 +80,21 @@ module CrystalGPT5
             infer_identifier(node, expr_id)
           when .instance_var?
             infer_instance_var(node, expr_id)
+          when .instance_var_decl?
+            # Phase 5C/77: Instance variable declaration (@var : Type)
+            infer_instance_var_decl(node, expr_id)
           when .class_var?
             # Phase 76: Class variables
             infer_class_var(node, expr_id)
+          when .class_var_decl?
+            # Phase 77: Class variable declaration (@@var : Type)
+            infer_class_var_decl(node, expr_id)
           when .global?
             # Phase 75: Global variables
             infer_global(node, expr_id)
+          when .global_var_decl?
+            # Phase 77: Global variable declaration ($var : Type)
+            infer_global_var_decl(node, expr_id)
           when .unary?
             # Phase 17: Unary operators (+x, -x, !x)
             infer_unary(node, expr_id)
@@ -524,6 +533,27 @@ module CrystalGPT5
           # For now, return nil_type as placeholder
           # Future: Track global variable types in global scope
           # (Type will be set by infer_expression)
+          @context.nil_type
+        end
+
+        # Phase 5C/77: Infer type of instance variable declaration (@var : Type)
+        private def infer_instance_var_decl(node, expr_id : ExprId) : Type
+          # Type declarations have no runtime value, return nil_type
+          # The type annotation is stored in ivar_decl_type for semantic analysis
+          @context.nil_type
+        end
+
+        # Phase 77: Infer type of class variable declaration (@@var : Type)
+        private def infer_class_var_decl(node, expr_id : ExprId) : Type
+          # Type declarations have no runtime value, return nil_type
+          # The type annotation is stored in ivar_decl_type for semantic analysis
+          @context.nil_type
+        end
+
+        # Phase 77: Infer type of global variable declaration ($var : Type)
+        private def infer_global_var_decl(node, expr_id : ExprId) : Type
+          # Type declarations have no runtime value, return nil_type
+          # The type annotation is stored in ivar_decl_type for semantic analysis
           @context.nil_type
         end
 

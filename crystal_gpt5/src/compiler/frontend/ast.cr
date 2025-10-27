@@ -259,7 +259,9 @@ module CrystalGPT5
           InstanceVar  # @var
           InstanceVarDecl  # @var : Type (Phase 5C)
           ClassVar  # Phase 76: @@var (class variable)
+          ClassVarDecl  # Phase 77: @@var : Type (class variable declaration)
           Global  # Phase 75: $var (global variable)
+          GlobalVarDecl  # Phase 77: $var : Type (global variable declaration)
           Number
           String
           Char  # Phase 56: character literal 'a'

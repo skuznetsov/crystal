@@ -203,6 +203,7 @@ module CrystalGPT5
           end
 
           # Phase 66: Check for type declaration: identifier : Type (without =)
+          # Phase 77: Also handle global variable declaration: $var : Type
           if operator_token?(token, Token::Kind::Colon)
             left_node = @arena[left]
             if left_node.kind == ExpressionNode::Kind::Identifier
@@ -237,6 +238,37 @@ module CrystalGPT5
                   type_decl_span,
                   type_decl_name: left_node.literal,
                   type_decl_type: type_token.slice,
+                )
+              )
+            # Phase 77: Global variable declaration: $var : Type
+            elsif left_node.kind == ExpressionNode::Kind::Global
+              advance  # consume ':'
+              skip_trivia
+
+              # Parse type identifier
+              type_token = current_token
+              unless type_token.kind == Token::Kind::Identifier
+                emit_unexpected(type_token)
+                return PREFIX_ERROR
+              end
+              advance
+              skip_trivia
+
+              # Check if followed by = (that would be type-annotated assignment, handle differently)
+              if current_token.kind == Token::Kind::Eq
+                # For now, emit error (will handle type-annotated assignment separately)
+                emit_unexpected(current_token)
+                return PREFIX_ERROR
+              end
+
+              # It's a global variable declaration: $var : Type
+              decl_span = left_node.span.cover(type_token.span)
+              return @arena.add(
+                ExpressionNode.new(
+                  ExpressionNode::Kind::GlobalVarDecl,
+                  decl_span,
+                  literal: left_node.literal,        # $var
+                  ivar_decl_type: type_token.slice,  # Type (reusing field)
                 )
               )
             end
@@ -2398,9 +2430,29 @@ module CrystalGPT5
             break if token.kind == Token::Kind::EOF
 
             # Phase 5C: Instance variable declaration (@var : Type)
-            # At class body level, @var can only be a type declaration
+            # Check for type declaration vs assignment by looking at next non-trivia token
             if token.kind == Token::Kind::InstanceVar
-              expr = parse_instance_var_decl
+              # Find next non-trivia token to check if it's a colon
+              next_token = peek_next_non_trivia
+              if next_token.kind == Token::Kind::Colon
+                # It's a type declaration: @var : Type
+                expr = parse_instance_var_decl
+              else
+                # It's an assignment or expression: @var = value
+                expr = parse_statement
+              end
+            # Phase 77: Class variable declaration (@@var : Type)
+            # Check for type declaration vs assignment by looking at next non-trivia token
+            elsif token.kind == Token::Kind::ClassVar
+              # Find next non-trivia token to check if it's a colon
+              next_token = peek_next_non_trivia
+              if next_token.kind == Token::Kind::Colon
+                # It's a type declaration: @@var : Type
+                expr = parse_class_var_decl
+              else
+                # It's an assignment or expression: @@var = value
+                expr = parse_statement
+              end
             elsif definition_start?
               expr = case current_token.kind
                 when Token::Kind::Def
@@ -2911,6 +2963,86 @@ module CrystalGPT5
               decl_span,
               literal: ivar_token.slice,       # @var
               ivar_decl_type: type_token.slice  # Type
+            )
+          )
+        end
+
+        # Phase 77: Parse class variable declaration: @@var : Type
+        private def parse_class_var_decl : ExprId
+          cvar_token = current_token
+          unless cvar_token.kind == Token::Kind::ClassVar
+            emit_unexpected(cvar_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume @@var
+
+          skip_trivia
+
+          # Expect colon
+          unless current_token.kind == Token::Kind::Colon
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume :
+
+          skip_trivia
+
+          # Expect type identifier
+          type_token = current_token
+          unless type_token.kind == Token::Kind::Identifier
+            emit_unexpected(type_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume type
+
+          decl_span = cvar_token.span.cover(type_token.span)
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::ClassVarDecl,
+              decl_span,
+              literal: cvar_token.slice,        # @@var
+              ivar_decl_type: type_token.slice  # Type (reusing field)
+            )
+          )
+        end
+
+        # Phase 77: Parse global variable declaration: $var : Type
+        private def parse_global_var_decl : ExprId
+          gvar_token = current_token
+          unless gvar_token.kind == Token::Kind::GlobalVar
+            emit_unexpected(gvar_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume $var
+
+          skip_trivia
+
+          # Expect colon
+          unless current_token.kind == Token::Kind::Colon
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume :
+
+          skip_trivia
+
+          # Expect type identifier
+          type_token = current_token
+          unless type_token.kind == Token::Kind::Identifier
+            emit_unexpected(type_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume type
+
+          decl_span = gvar_token.span.cover(type_token.span)
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::GlobalVarDecl,
+              decl_span,
+              literal: gvar_token.slice,        # $var
+              ivar_decl_type: type_token.slice  # Type (reusing field)
             )
           )
         end
@@ -4702,6 +4834,18 @@ module CrystalGPT5
             @tokens[index]
           else
             @tokens.last
+          end
+        end
+
+        # Phase 77: Peek ahead to find next non-trivia token
+        private def peek_next_non_trivia
+          offset = 1
+          loop do
+            token = peek_token(offset)
+            return token unless token.kind == Token::Kind::Whitespace ||
+                               token.kind == Token::Kind::Newline ||
+                               token.kind == Token::Kind::Comment
+            offset += 1
           end
         end
 
