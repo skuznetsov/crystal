@@ -289,7 +289,8 @@ module CrystalGPT5
              token.kind == Token::Kind::PipeEq ||
              token.kind == Token::Kind::CaretEq ||
              token.kind == Token::Kind::LShiftEq ||
-             token.kind == Token::Kind::RShiftEq
+             token.kind == Token::Kind::RShiftEq ||
+             token.kind == Token::Kind::NilCoalesceEq  # Phase 82
             # Phase 35: Check if this is a constant declaration (uppercase identifier + =)
             left_node = @arena[left]
             if token.kind == Token::Kind::Eq &&
@@ -353,6 +354,7 @@ module CrystalGPT5
               when Token::Kind::CaretEq    then "^"   # Phase 52
               when Token::Kind::LShiftEq   then "<<"  # Phase 52
               when Token::Kind::RShiftEq   then ">>"  # Phase 52
+              when Token::Kind::NilCoalesceEq then "??"  # Phase 82
               else
                 ""
               end

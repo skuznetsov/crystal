@@ -159,6 +159,7 @@ module CrystalGPT5
           CaretEq     # ^= (Phase 52: bitwise XOR compound assignment)
           LShiftEq    # <<= (Phase 52: left shift compound assignment)
           RShiftEq    # >>= (Phase 52: right shift compound assignment)
+          NilCoalesceEq # ??= (Phase 82: nil-coalescing compound assignment)
 
           # Other operators (keep for now, will migrate gradually)
           Operator    # Generic fallback for unhandled operators

@@ -1177,11 +1177,18 @@ module CrystalGPT5
               Token::Kind::Operator
             end
           when '?'.ord.to_u8
-            # Check for ?? (nil-coalescing) before ? (ternary)
+            # Check for ??=, ??, and ? (longest match first)
             if @offset < @rope.size && current_byte == '?'.ord.to_u8
-              # Phase 81: ?? (nil-coalescing)
-              advance
-              Token::Kind::NilCoalesce
+              # Potential ?? or ??=
+              advance  # consume second ?
+              if @offset < @rope.size && current_byte == '='.ord.to_u8
+                # Phase 82: ??= (nil-coalescing compound assignment)
+                advance  # consume =
+                Token::Kind::NilCoalesceEq
+              else
+                # Phase 81: ?? (nil-coalescing)
+                Token::Kind::NilCoalesce
+              end
             else
               # Phase 23: ? (ternary operator)
               Token::Kind::Question
