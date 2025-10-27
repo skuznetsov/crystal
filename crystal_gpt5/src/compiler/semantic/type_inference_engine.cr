@@ -122,6 +122,9 @@ module CrystalGPT5
           when .loop?
             # Phase 83: infinite loop
             infer_loop(node)
+          when .spawn?
+            # Phase 84: spawn fiber
+            infer_spawn(node)
           when .until?
             # Phase 25: until loop
             infer_until(node)
@@ -1110,6 +1113,26 @@ module CrystalGPT5
 
           # Loop statements always return Nil in Crystal
           # (actual exit via break/return is handled separately)
+          @context.nil_type
+        end
+
+        private def infer_spawn(node) : Type
+          # Phase 84: Spawn fiber (concurrency)
+          # spawn do...end | spawn expression
+          # Creates a new fiber to run code concurrently
+
+          # Block form: spawn do...end
+          if body = node.spawn_body
+            body.each { |expr_id| infer_expression(expr_id) }
+          end
+
+          # Expression form: spawn expression
+          if expr = node.spawn_expression
+            infer_expression(expr)
+          end
+
+          # Spawn doesn't return value to caller
+          # (fiber runs independently, no synchronous return)
           @context.nil_type
         end
 

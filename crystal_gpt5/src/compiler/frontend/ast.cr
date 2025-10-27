@@ -280,6 +280,7 @@ module CrystalGPT5
           While
           Until   # Phase 25: until condition
           Loop    # Phase 83: infinite loop
+          Spawn   # Phase 84: spawn fiber (concurrency)
           Assign
           MultipleAssign  # Phase 73: multiple assignment (a, b = 1, 2)
           MacroExpression
@@ -366,6 +367,8 @@ module CrystalGPT5
         getter while_condition : ExprId?
         getter while_body : Array(ExprId)?
         getter loop_body : Array(ExprId)?  # Phase 83: infinite loop
+        getter spawn_expression : ExprId?  # Phase 84: spawn expr
+        getter spawn_body : Array(ExprId)?  # Phase 84: spawn do...end
         getter assign_target : ExprId?
         getter assign_value : ExprId?
         getter assign_targets : Array(ExprId)?  # Phase 73: multiple assignment targets (a, b, c)
@@ -470,6 +473,8 @@ module CrystalGPT5
           @while_condition : ExprId? = nil,
           @while_body : Array(ExprId)? = nil,
           @loop_body : Array(ExprId)? = nil,  # Phase 83
+          @spawn_expression : ExprId? = nil,  # Phase 84
+          @spawn_body : Array(ExprId)? = nil,  # Phase 84
           @assign_target : ExprId? = nil,
           @assign_value : ExprId? = nil,
           @assign_targets : Array(ExprId)? = nil,

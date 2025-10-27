@@ -1138,6 +1138,69 @@ module CrystalGPT5
           )
         end
 
+        # Phase 84: spawn fiber (concurrency)
+        # Syntax: spawn do...end | spawn expression
+        private def parse_spawn : ExprId
+          spawn_token = current_token
+          advance
+          skip_trivia
+
+          token = current_token
+
+          # Check if it's block form (spawn do...end) or expression form (spawn expr)
+          if token.kind == Token::Kind::Do
+            # Block form: spawn do...end
+            advance
+            consume_newlines
+
+            # Parse body
+            body_ids = [] of ExprId
+            loop do
+              skip_trivia
+              token = current_token
+              break if token.kind == Token::Kind::End
+              break if token.kind == Token::Kind::EOF
+
+              expr = parse_statement
+              body_ids << expr unless expr.invalid?
+              consume_newlines
+            end
+
+            expect_identifier("end")
+            end_token = previous_token
+            consume_newlines
+
+            spawn_span = if end_token
+              spawn_token.span.cover(end_token.span)
+            else
+              spawn_token.span
+            end
+
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Spawn,
+                spawn_span,
+                spawn_body: body_ids,
+              )
+            )
+          else
+            # Expression form: spawn expression
+            expr = parse_expression(0)
+            return PREFIX_ERROR if expr.invalid?
+
+            expr_span = node_span(expr)
+            spawn_span = spawn_token.span.cover(expr_span)
+
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::Spawn,
+                spawn_span,
+                spawn_expression: expr,
+              )
+            )
+          end
+        end
+
         # Phase 25: Parse until loop (inverse of while)
         private def parse_until : ExprId
           until_token = current_token
@@ -3382,6 +3445,9 @@ module CrystalGPT5
           when Token::Kind::Loop
             # Phase 83: infinite loop
             parse_loop
+          when Token::Kind::Spawn
+            # Phase 84: spawn fiber
+            parse_spawn
           when Token::Kind::Begin
             # Phase 28: begin/end blocks
             parse_begin

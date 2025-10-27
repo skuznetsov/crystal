@@ -37,6 +37,7 @@ module CrystalGPT5
           End
           While
           Loop    # Phase 83: infinite loop
+          Spawn   # Phase 84: spawn fiber (concurrency)
           Do
           Then
           Def
