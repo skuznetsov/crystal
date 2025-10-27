@@ -50,6 +50,11 @@ module CrystalGPT5
             handle_def(node_id, node)
           when ExpressionNode::Kind::Class
             handle_class(node_id, node)
+          when ExpressionNode::Kind::Getter,
+               ExpressionNode::Kind::Setter,
+               ExpressionNode::Kind::Property
+            # Phase 87B-1: Expand accessor macros to method definitions
+            expand_accessor_macro(node_id, node)
           end
         end
 
@@ -147,6 +152,135 @@ module CrystalGPT5
             visit(expr_id)
           end
           pop_table
+        end
+
+        # Phase 87B-1: Expand accessor macros to method definitions
+        #
+        # Transforms:
+        #   getter name : String    → def name : String; @name; end
+        #   setter name : String    → def name=(value : String); @name = value; end
+        #   property name : String  → both getter and setter
+        #
+        # Uses immediate visit() pattern - generates AST node and immediately
+        # processes it to register as MethodSymbol. No AST mutation needed.
+        private def expand_accessor_macro(node_id : Frontend::ExprId, node : ExpressionNode)
+          specs = node.accessor_specs
+          return unless specs
+
+          specs.each do |spec|
+            case node.kind
+            when ExpressionNode::Kind::Getter
+              # Generate: def name : Type; @name; end
+              def_node = build_getter_def(spec, node.span)
+              def_id = @arena.add(def_node)
+              visit(def_id)  # Immediately register as MethodSymbol
+
+            when ExpressionNode::Kind::Setter
+              # Generate: def name=(value : Type); @name = value; end
+              def_node = build_setter_def(spec, node.span)
+              def_id = @arena.add(def_node)
+              visit(def_id)
+
+            when ExpressionNode::Kind::Property
+              # Generate both getter and setter
+              getter_node = build_getter_def(spec, node.span)
+              setter_node = build_setter_def(spec, node.span)
+              visit(@arena.add(getter_node))
+              visit(@arena.add(setter_node))
+            end
+          end
+        end
+
+        # Build getter method AST node
+        #
+        # Input:  getter name : String
+        # Output: def name : String
+        #           @name
+        #         end
+        private def build_getter_def(spec : Frontend::AccessorSpec, base_span : Frontend::Span) : ExpressionNode
+          # Create instance variable access node: @name
+          ivar_name = "@#{spec.name}"
+          ivar_bytes = ivar_name.to_slice
+          ivar_node = ExpressionNode.new(
+            ExpressionNode::Kind::InstanceVar,
+            spec.name_span,
+            literal: ivar_bytes
+          )
+          ivar_id = @arena.add(ivar_node)
+
+          # Create def node with instance variable as body
+          method_name_bytes = spec.name.to_slice
+          return_type_bytes = spec.type_annotation.try(&.to_slice)
+
+          ExpressionNode.new(
+            ExpressionNode::Kind::Def,
+            base_span,
+            def_name: method_name_bytes,
+            def_return_type: return_type_bytes,
+            def_body: [ivar_id],
+            def_params: nil  # Getter has no parameters
+          )
+        end
+
+        # Build setter method AST node
+        #
+        # Input:  setter name : String
+        # Output: def name=(value : String)
+        #           @name = value
+        #         end
+        private def build_setter_def(spec : Frontend::AccessorSpec, base_span : Frontend::Span) : ExpressionNode
+          # Create parameter: value : Type
+          # Parameter.new expects String?, but def_return_type expects Slice(UInt8)?
+          param_type_str = spec.type_annotation  # String? for Parameter
+          param_type_bytes = param_type_str.try(&.to_slice)  # Slice(UInt8)? for def_return_type
+
+          param = Frontend::Parameter.new(
+            "value",
+            param_type_str,  # Pass String? to Parameter
+            nil,  # No default value for setter parameter
+            spec.name_span
+          )
+
+          # Create instance variable node: @name
+          ivar_name = "@#{spec.name}"
+          ivar_bytes = ivar_name.to_slice
+          ivar_node = ExpressionNode.new(
+            ExpressionNode::Kind::InstanceVar,
+            spec.name_span,
+            literal: ivar_bytes
+          )
+          ivar_id = @arena.add(ivar_node)
+
+          # Create identifier node: value
+          value_bytes = "value".to_slice
+          value_node = ExpressionNode.new(
+            ExpressionNode::Kind::Identifier,
+            spec.name_span,
+            literal: value_bytes
+          )
+          value_id = @arena.add(value_node)
+
+          # Create assignment: @name = value
+          assign_node = ExpressionNode.new(
+            ExpressionNode::Kind::Assign,
+            base_span,
+            assign_target: ivar_id,
+            assign_value: value_id
+          )
+          assign_id = @arena.add(assign_node)
+
+          # Create def node with assignment as body
+          setter_name = "#{spec.name}="
+          setter_name_bytes = setter_name.to_slice
+
+          ExpressionNode.new(
+            ExpressionNode::Kind::Def,
+            base_span,
+            def_name: setter_name_bytes,
+            def_return_type: param_type_bytes,  # Setter returns same type (Slice(UInt8)?)
+            def_body: [assign_id],
+            def_params: [param]
+          )
         end
 
         # Phase 5A: Scan class body for instance variable assignments
