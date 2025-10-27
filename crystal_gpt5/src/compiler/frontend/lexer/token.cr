@@ -21,6 +21,7 @@ module CrystalGPT5
           # Literals
           Identifier
           InstanceVar  # @var
+          GlobalVar    # Phase 75: $var (global variable)
           Number
           String
           StringInterpolation  # Phase 8: "text #{expr} text"

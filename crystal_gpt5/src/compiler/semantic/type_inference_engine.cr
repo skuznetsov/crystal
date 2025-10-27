@@ -80,6 +80,9 @@ module CrystalGPT5
             infer_identifier(node, expr_id)
           when .instance_var?
             infer_instance_var(node, expr_id)
+          when .global?
+            # Phase 75: Global variables
+            infer_global(node, expr_id)
           when .unary?
             # Phase 17: Unary operators (+x, -x, !x)
             infer_unary(node, expr_id)
@@ -502,6 +505,14 @@ module CrystalGPT5
           end
 
           # Not found - return Nil
+          @context.nil_type
+        end
+
+        # Phase 75: Infer type of global variable
+        private def infer_global(node, expr_id : ExprId) : Type
+          # For now, return nil_type as placeholder
+          # Future: Track global variable types in global scope
+          # (Type will be set by infer_expression)
           @context.nil_type
         end
 

@@ -35,6 +35,9 @@ module CrystalGPT5
             lex_newline
           when byte == AT_SIGN
             lex_instance_var
+          when byte == DOLLAR_SIGN
+            # Phase 75: Global variables
+            lex_global_var
           when byte == COLON
             # Phase 16: Check if this is a symbol literal
             lex_symbol_or_colon
@@ -211,6 +214,42 @@ module CrystalGPT5
 
           Token.new(
             Token::Kind::InstanceVar,
+            @rope.bytes[from...@offset],
+            build_span(start_offset, start_line, start_column)
+          )
+        end
+
+        # Phase 75: Lex global variable
+        # $global_var → GlobalVar token with slice "$global_var"
+        private def lex_global_var
+          start_offset, start_line, start_column = capture_position
+          from = @offset
+
+          # Consume $
+          advance
+
+          # Global variable must start with identifier character
+          if @offset >= @rope.size || !identifier_start?(current_byte)
+            # Invalid global variable - just $, return as operator
+            return Token.new(
+              Token::Kind::Operator,
+              @rope.bytes[from...@offset],
+              build_span(start_offset, start_line, start_column)
+            )
+          end
+
+          # Read identifier part
+          while @offset < @rope.size && identifier_char?(current_byte)
+            advance
+          end
+
+          # Global variables can have suffix (?, !)
+          if @offset < @rope.size && identifier_suffix?(current_byte)
+            advance
+          end
+
+          Token.new(
+            Token::Kind::GlobalVar,
             @rope.bytes[from...@offset],
             build_span(start_offset, start_line, start_column)
           )
@@ -1240,6 +1279,7 @@ module CrystalGPT5
         QUESTION     = '?'.ord.to_u8
         EXCLAMATION  = '!'.ord.to_u8
         AT_SIGN      = '@'.ord.to_u8
+        DOLLAR_SIGN  = '$'.ord.to_u8  # Phase 75: for global variables
         LEFT_BRACE   = '{'.ord.to_u8  # Phase 8: for interpolation detection
         COLON        = ':'.ord.to_u8  # Phase 16: for symbol literals
 
