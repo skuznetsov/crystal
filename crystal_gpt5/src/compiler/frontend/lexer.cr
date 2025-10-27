@@ -965,8 +965,18 @@ module CrystalGPT5
               Token::Kind::Star
             end
           when '/'.ord.to_u8
+            # Phase 78: Check for // and //= before /=
+            if @offset < @rope.size && current_byte == '/'.ord.to_u8
+              advance  # consume second /
+              # Check for //=
+              if @offset < @rope.size && current_byte == '='.ord.to_u8
+                advance
+                Token::Kind::FloorDivEq  # Phase 78: Floor division compound assignment
+              else
+                Token::Kind::FloorDiv  # Phase 78: Floor division
+              end
             # Check for /=
-            if @offset < @rope.size && current_byte == '='.ord.to_u8
+            elsif @offset < @rope.size && current_byte == '='.ord.to_u8
               advance
               Token::Kind::SlashEq  # Phase 20: Compound assignment
             else

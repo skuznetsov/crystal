@@ -280,6 +280,7 @@ module CrystalGPT5
              token.kind == Token::Kind::MinusEq ||
              token.kind == Token::Kind::StarEq ||
              token.kind == Token::Kind::SlashEq ||
+             token.kind == Token::Kind::FloorDivEq ||
              token.kind == Token::Kind::PercentEq ||
              token.kind == Token::Kind::StarStarEq ||
              token.kind == Token::Kind::OrOrEq ||
@@ -342,6 +343,7 @@ module CrystalGPT5
               when Token::Kind::MinusEq    then "-"
               when Token::Kind::StarEq     then "*"
               when Token::Kind::SlashEq    then "/"
+              when Token::Kind::FloorDivEq then "//"  # Phase 78
               when Token::Kind::PercentEq  then "%"
               when Token::Kind::StarStarEq then "**"
               when Token::Kind::OrOrEq     then "||"  # Phase 51
@@ -5196,6 +5198,7 @@ module CrystalGPT5
           Token::Kind::RShift    => 10,  # Right shift (Phase 22)
           Token::Kind::Star      => 20,  # Multiplication
           Token::Kind::Slash     => 20,  # Division
+          Token::Kind::FloorDiv  => 20,  # Floor division (Phase 78)
           Token::Kind::Percent   => 20,  # Modulo (Phase 18)
           Token::Kind::StarStar  => 25,  # Exponentiation (Phase 19, highest precedence)
         }

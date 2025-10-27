@@ -613,8 +613,8 @@ module CrystalGPT5
           op = node.operator_string || ""
 
           result_type = case op
-          when "+", "-", "*", "/", "%", "**", "<<", ">>", "&", "|", "^"
-            # Phase 4B.3/4B.5/18/19/21/22: Try method lookup first for built-in methods
+          when "+", "-", "*", "/", "//", "%", "**", "<<", ">>", "&", "|", "^"
+            # Phase 4B.3/4B.5/18/19/21/22/78: Try method lookup first for built-in methods
             if method = lookup_method(left_type, op, [right_type])
               if ann = method.return_annotation
                 parse_type_name(ann)
@@ -1878,8 +1878,9 @@ module CrystalGPT5
           when "Int32", "Int64", "Float64"
             # Arithmetic operators
             case method_name
-            when "+", "-", "*", "/"
+            when "+", "-", "*", "/", "//"
               # Binary arithmetic: Int32#+(Int32) : Int32
+              # Phase 78: // floor division
               param = Frontend::Parameter.new(name: "other", type_annotation: type_name)
               methods << MethodSymbol.new(
                 method_name,

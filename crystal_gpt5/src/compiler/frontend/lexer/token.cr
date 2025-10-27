@@ -85,6 +85,7 @@ module CrystalGPT5
           Star        # *
           StarStar    # ** (Phase 19: exponentiation)
           Slash       # /
+          FloorDiv    # // (Phase 78: floor division)
           Percent     # % (Phase 18: modulo)
 
           # Comparison operators
@@ -144,6 +145,7 @@ module CrystalGPT5
           MinusEq     # -= (Phase 20: compound assignment)
           StarEq      # *= (Phase 20: compound assignment)
           SlashEq     # /= (Phase 20: compound assignment)
+          FloorDivEq  # //= (Phase 78: floor division compound assignment)
           PercentEq   # %= (Phase 20: compound assignment)
           StarStarEq  # **= (Phase 20: compound assignment)
           OrOrEq      # ||= (Phase 51: logical or compound assignment)
