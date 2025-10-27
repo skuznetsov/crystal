@@ -172,6 +172,9 @@ module CrystalGPT5
           when .pointerof?
             # Phase 42: Pointerof expressions
             infer_pointerof(node, expr_id)
+          when .uninitialized?
+            # Phase 85: Uninitialized expressions
+            infer_uninitialized(node, expr_id)
           when ExpressionNode::Kind::As
             # Phase 44: Type cast expressions (can't use .as? due to keyword collision)
             infer_as(node, expr_id)
@@ -1305,6 +1308,26 @@ module CrystalGPT5
           end
 
           # Return nil_type as placeholder (full implementation would return Pointer(T))
+          @context.nil_type
+        end
+
+        private def infer_uninitialized(node, expr_id : ExprId) : Type
+          # Phase 85: uninitialized creates an uninitialized variable of specified type
+          # uninitialized(Type) allocates memory but doesn't initialize it
+          # Returns a value of the specified type
+          # In a full implementation:
+          # - Parse type expression to get actual type
+          # - Return that type as the result type
+          # - No initialization code generated
+
+          # For now, infer the type expression and return the type
+          if type_expr = node.uninitialized_type
+            # Type expressions like Int32, String, Pointer(UInt8) are identifiers/calls
+            # For simplified implementation, return nil_type as placeholder
+            infer_expression(type_expr)
+          end
+
+          # Return nil_type as placeholder (full implementation would return the actual type)
           @context.nil_type
         end
 

@@ -2104,6 +2104,44 @@ module CrystalGPT5
           )
         end
 
+        # Phase 85: Parse uninitialized (uninitialized variable)
+        # Grammar: uninitialized(Type)
+        private def parse_uninitialized : ExprId
+          uninitialized_token = current_token
+          advance
+          skip_trivia
+
+          # Expect opening parenthesis
+          unless current_token.kind == Token::Kind::LParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume (
+          skip_trivia
+
+          # Parse type expression (single argument)
+          type_expr = parse_expression(0)
+          return PREFIX_ERROR if type_expr.invalid?
+
+          skip_trivia
+
+          # Expect closing parenthesis
+          unless current_token.kind == Token::Kind::RParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          rparen_token = current_token
+          advance
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Uninitialized,
+              uninitialized_token.span.cover(rparen_token.span),
+              uninitialized_type: type_expr
+            )
+          )
+        end
+
         # Phase 10: Parse block
         # Grammar: { |params| body } or do |params| body end
         private def parse_block : ExprId
@@ -3429,6 +3467,9 @@ module CrystalGPT5
           when Token::Kind::Pointerof
             # Phase 42: pointerof (pointer to variable/expression)
             parse_pointerof
+          when Token::Kind::Uninitialized
+            # Phase 85: uninitialized variable
+            parse_uninitialized
           when Token::Kind::If
             parse_if
           when Token::Kind::Unless

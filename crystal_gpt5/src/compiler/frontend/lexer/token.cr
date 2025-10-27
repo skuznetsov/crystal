@@ -51,6 +51,7 @@ module CrystalGPT5
           Typeof  # Phase 40: type introspection
           Sizeof  # Phase 41: size in bytes
           Pointerof  # Phase 42: pointer to variable/expression
+          Uninitialized  # Phase 85: uninitialized variable
           Yield   # Phase 10
           Case    # Phase 11
           When    # Phase 11

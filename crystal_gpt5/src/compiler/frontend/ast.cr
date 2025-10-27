@@ -294,6 +294,7 @@ module CrystalGPT5
           Typeof  # Phase 40: typeof (type introspection)
           Sizeof  # Phase 41: sizeof (size in bytes)
           Pointerof  # Phase 42: pointerof (pointer to variable/expression)
+          Uninitialized  # Phase 85: uninitialized variable
           StringInterpolation  # Phase 8: string interpolation
           ArrayLiteral  # Phase 9: array literals [1, 2, 3]
           Block  # Phase 10: block {|x| ... } or do |x| ... end
@@ -386,6 +387,7 @@ module CrystalGPT5
         getter typeof_args : Array(ExprId)?  # Phase 40: typeof arguments (expressions to get type of)
         getter sizeof_args : Array(ExprId)?  # Phase 41: sizeof arguments (type or expression to get size of)
         getter pointerof_args : Array(ExprId)?  # Phase 42: pointerof arguments (variable or expression to get pointer of)
+        getter uninitialized_type : ExprId?  # Phase 85: uninitialized type expression
         getter case_value : ExprId?  # Phase 11: value to match against
         getter when_branches : Array(WhenBranch)?  # Phase 11: when branches
         getter case_else : Array(ExprId)?  # Phase 11: else clause
@@ -492,6 +494,7 @@ module CrystalGPT5
           @typeof_args : Array(ExprId)? = nil,
           @sizeof_args : Array(ExprId)? = nil,
           @pointerof_args : Array(ExprId)? = nil,
+          @uninitialized_type : ExprId? = nil,  # Phase 85
           @case_value : ExprId? = nil,
           @when_branches : Array(WhenBranch)? = nil,
           @case_else : Array(ExprId)? = nil,
