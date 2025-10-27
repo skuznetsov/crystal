@@ -178,6 +178,12 @@ module CrystalGPT5
           when .offsetof?
             # Phase 86: Offsetof expressions
             infer_offsetof(node, expr_id)
+          when .alignof?
+            # Phase 88: Alignof expressions
+            infer_alignof(node, expr_id)
+          when .instance_alignof?
+            # Phase 88: InstanceAlignof expressions
+            infer_instance_alignof(node, expr_id)
           when ExpressionNode::Kind::As
             # Phase 44: Type cast expressions (can't use .as? due to keyword collision)
             infer_as(node, expr_id)
@@ -1369,6 +1375,44 @@ module CrystalGPT5
 
           # Return nil_type as placeholder (full implementation would return Int32)
           @context.nil_type
+        end
+
+        # Phase 88: Type inference for alignof (ABI alignment in bytes)
+        private def infer_alignof(node, expr_id : ExprId) : Type
+          # alignof returns the ABI alignment of a type in bytes
+          # In a full implementation:
+          # - alignof(Int32) returns 4 (aligned on 4-byte boundaries)
+          # - alignof(Int64) returns 8 (aligned on 8-byte boundaries)
+          # - alignof(Type) returns the alignment of that type
+
+          # For now, infer types of arguments and return Int32
+          if args = node.alignof_args
+            args.each do |arg_expr_id|
+              infer_expression(arg_expr_id)
+            end
+          end
+
+          # alignof always returns Int32 (number of bytes)
+          @context.int32_type
+        end
+
+        # Phase 88: Type inference for instance_alignof (instance alignment)
+        private def infer_instance_alignof(node, expr_id : ExprId) : Type
+          # instance_alignof returns the effective alignment of a class instance
+          # Different from alignof which returns pointer alignment for reference types
+          # In a full implementation:
+          # - instance_alignof(Class) returns actual instance alignment
+          # - instance_alignof differs from alignof for reference types
+
+          # For now, infer types of arguments and return Int32
+          if args = node.instance_alignof_args
+            args.each do |arg_expr_id|
+              infer_expression(arg_expr_id)
+            end
+          end
+
+          # instance_alignof always returns Int32 (number of bytes)
+          @context.int32_type
         end
 
         # Phase 44: as keyword (type cast)

@@ -50,7 +50,13 @@
       "Bash(CRYSTAL_CACHE_DIR=./.crystal-cache crystal spec:*)",
       "Bash(git add:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nfeat(parser): Phase 28-31 - Exception handling, Accessor macros, and Modules\n\nImplements four major language features with production-ready quality:\n\n## Phase 28: Begin/End Blocks\n- Added `begin` keyword and Begin node type\n- Parser: `parse_begin` method for begin...end blocks\n- Type inference: Process body and return last expression type\n- Tests: 4 comprehensive tests (parser + semantic)\n\n## Phase 29: Exception Handling\n- Added `rescue`, `ensure`, `raise` keywords\n- AST: RescueClause struct with exception type, variable, body\n- Parser: Complete rescue/ensure/raise implementation\n  - Multiple rescue clauses with type matching\n  - Optional exception variable binding\n  - Ensure block execution\n- Type inference: Union types from rescue branches\n- Tests: 8 comprehensive tests covering all scenarios\n\n## Phase 30: Accessor Macros (PRODUCTION-READY)\n- Added `getter`, `setter`, `property` keywords\n- AST: AccessorSpec struct (name, type_annotation, default_value, spans)\n- Parser: Full Crystal syntax support\n  - Simple: `getter name`\n  - TypeDeclaration: `getter name : String`\n  - Assign: `getter name = \"default\"`\n  - Combined: `getter name : String = \"default\"`\n  - Multiple: `getter name, age : Int32, email`\n- Type inference: Infer default value types\n- Tests: 13 comprehensive tests (9 parser + 4 semantic)\n\n## Phase 31: Modules (PRODUCTION-READY)\n- Added `module`, `include`, `extend` keywords\n- AST: Module/Include/Extend node types with fields\n- Parser: Complete implementation\n  - `parse_module`: Module definitions with nested classes/modules/methods\n  - `parse_include`: Include module into class/module\n  - `parse_extend`: Extend class with module methods\n- Type inference: Process module bodies\n- Tests: 9 comprehensive tests covering all scenarios\n\n## Verification\n- All 385 tests pass (328 → 385, +57 new tests)\n- Compiler builds successfully\n- Production code parses correctly\n- Knowledge Core updated (entry c8a0602d)\n\n## Files Changed\n- ast.cr: +78 lines (4 new node types, AccessorSpec, RescueClause)\n- lexer/token.cr: +10 keywords\n- lexer.cr: +10 keyword mappings\n- parser.cr: +569 lines (7 new parse methods)\n- type_inference_engine.cr: +137 lines (7 new infer methods)\n- 7 new test files\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(./bin/crystal-gpt5:*)"
+      "Bash(./bin/crystal-gpt5:*)",
+      "WebSearch",
+      "WebFetch(domain:crystal-lang.org)",
+      "WebFetch(domain:github.com)",
+      "Bash(mcp__agents-assembly-v3__knowledge search:*)",
+      "Bash(awk:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

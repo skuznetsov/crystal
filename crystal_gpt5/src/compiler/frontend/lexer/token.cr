@@ -53,6 +53,8 @@ module CrystalGPT5
           Pointerof  # Phase 42: pointer to variable/expression
           Uninitialized  # Phase 85: uninitialized variable
           Offsetof  # Phase 86: offset of field in type
+          Alignof  # Phase 88: ABI alignment in bytes
+          InstanceAlignof  # Phase 88: instance alignment
           Yield   # Phase 10
           Case    # Phase 11
           When    # Phase 11
