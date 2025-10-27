@@ -36,6 +36,7 @@ module CrystalGPT5
           Else
           End
           While
+          Loop    # Phase 83: infinite loop
           Do
           Then
           Def

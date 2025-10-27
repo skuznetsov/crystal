@@ -119,6 +119,9 @@ module CrystalGPT5
             infer_unless(node)
           when .while?
             infer_while(node)
+          when .loop?
+            # Phase 83: infinite loop
+            infer_loop(node)
           when .until?
             # Phase 25: until loop
             infer_until(node)
@@ -1093,6 +1096,20 @@ module CrystalGPT5
           end
 
           # While loops always return Nil in Crystal
+          @context.nil_type
+        end
+
+        private def infer_loop(node) : Type
+          # Phase 83: Infinite loop
+          # loop do ... end - runs indefinitely until break/return
+
+          # Infer body expressions (result not used)
+          if body = node.loop_body
+            body.each { |expr_id| infer_expression(expr_id) }
+          end
+
+          # Loop statements always return Nil in Crystal
+          # (actual exit via break/return is handled separately)
           @context.nil_type
         end
 

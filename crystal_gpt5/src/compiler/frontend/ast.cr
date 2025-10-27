@@ -279,6 +279,7 @@ module CrystalGPT5
           Unless  # Phase 24: unless condition
           While
           Until   # Phase 25: until condition
+          Loop    # Phase 83: infinite loop
           Assign
           MultipleAssign  # Phase 73: multiple assignment (a, b = 1, 2)
           MacroExpression
@@ -364,6 +365,7 @@ module CrystalGPT5
         getter if_else : Array(ExprId)?
         getter while_condition : ExprId?
         getter while_body : Array(ExprId)?
+        getter loop_body : Array(ExprId)?  # Phase 83: infinite loop
         getter assign_target : ExprId?
         getter assign_value : ExprId?
         getter assign_targets : Array(ExprId)?  # Phase 73: multiple assignment targets (a, b, c)
@@ -467,6 +469,7 @@ module CrystalGPT5
           @if_else : Array(ExprId)? = nil,
           @while_condition : ExprId? = nil,
           @while_body : Array(ExprId)? = nil,
+          @loop_body : Array(ExprId)? = nil,  # Phase 83
           @assign_target : ExprId? = nil,
           @assign_value : ExprId? = nil,
           @assign_targets : Array(ExprId)? = nil,

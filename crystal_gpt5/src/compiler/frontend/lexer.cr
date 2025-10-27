@@ -132,6 +132,7 @@ module CrystalGPT5
           when "else"   then Token::Kind::Else
           when "end"    then Token::Kind::End
           when "while"  then Token::Kind::While
+          when "loop"   then Token::Kind::Loop  # Phase 83
           when "do"     then Token::Kind::Do
           when "then"   then Token::Kind::Then
           when "def"    then Token::Kind::Def

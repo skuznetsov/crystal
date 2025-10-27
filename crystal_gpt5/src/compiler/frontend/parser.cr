@@ -1091,6 +1091,53 @@ module CrystalGPT5
           )
         end
 
+        # Phase 83: infinite loop (loop do...end)
+        private def parse_loop : ExprId
+          loop_token = current_token
+          advance
+          skip_trivia
+
+          # Expect "do" keyword
+          token = current_token
+          unless token.kind == Token::Kind::Do
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance
+          consume_newlines
+
+          # Parse body
+          body_ids = [] of ExprId
+          loop do
+            skip_trivia
+            token = current_token
+            break if token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            expr = parse_statement
+            body_ids << expr unless expr.invalid?
+            consume_newlines
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          loop_span = if end_token
+            loop_token.span.cover(end_token.span)
+          else
+            loop_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Loop,
+              loop_span,
+              loop_body: body_ids,
+            )
+          )
+        end
+
         # Phase 25: Parse until loop (inverse of while)
         private def parse_until : ExprId
           until_token = current_token
@@ -3332,6 +3379,9 @@ module CrystalGPT5
           when Token::Kind::Until
             # Phase 25: until loop
             parse_until
+          when Token::Kind::Loop
+            # Phase 83: infinite loop
+            parse_loop
           when Token::Kind::Begin
             # Phase 28: begin/end blocks
             parse_begin
