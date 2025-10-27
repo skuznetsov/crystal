@@ -5,21 +5,22 @@ require "./diagnostic"
 module CrystalGPT5
   module Compiler
     module Semantic
-      # Phase 87B-3: General Macro Expansion Engine (with Control Flow)
+      # Phase 87B-4A: General Macro Expansion Engine (with Control Flow + Range Iteration)
       #
-      # SCOPE (Phase 87B-2 + 87B-3):
+      # SCOPE (Phase 87B-2 + 87B-3 + 87B-4A):
       # ✅ Macro call detection (method call → macro resolution)
       # ✅ Basic {{ expr }} evaluation (literals, constants, identifiers)
       # ✅ Simple parameter substitution
       # ✅ Recursion depth limit (100)
       # ✅ {% if %} / {% elsif %} / {% else %} control flow
-      # ✅ {% for %} iteration (ArrayLiteral only)
-      # ✅ Crystal truthiness (false/nil/Nop falsy, everything else truthy)
+      # ✅ {% for %} iteration (ArrayLiteral + Range)
+      # ✅ Range iteration (1..10, 1...10) with integer bounds
+      # ✅ Range size limit (max 10000 elements)
+      # ✅ Crystal truthiness (false/nil falsy, everything else truthy)
       # ✅ Nested control flow with depth tracking
       #
       # OUT OF SCOPE (Future Phases):
-      # ❌ {% for %} with ranges → Phase 87B-4
-      # ❌ TypeNode reflection → Phase 87B-4
+      # ❌ TypeNode reflection → Phase 87B-4B+
       # ❌ Macro methods (.stringify, .id) → Phase 87B-6
       class MacroExpander
         alias Program = Frontend::Program
@@ -29,6 +30,9 @@ module CrystalGPT5
 
         # Maximum macro expansion depth (prevents infinite recursion)
         MAX_DEPTH = 100
+
+        # Maximum range size in for loops (Phase 87B-4A: prevent compilation DOS)
+        MAX_RANGE_SIZE = 10000
 
         getter diagnostics : Array(Diagnostic)
 
@@ -65,6 +69,9 @@ module CrystalGPT5
         #
         # Takes a MacroSymbol and arguments, returns expanded AST node
         def expand(macro_symbol : MacroSymbol, args : Array(ExprId)) : ExprId
+          # Clear diagnostics from previous expansions
+          @diagnostics.clear
+
           # Check recursion depth
           if @depth >= MAX_DEPTH
             emit_error("Macro recursion depth exceeded (#{MAX_DEPTH})")
@@ -469,39 +476,101 @@ module CrystalGPT5
 
           var_name = iter_vars[0]
 
-          # Evaluate iterable
+          # Evaluate iterable → get element strings
           iterable_node = @arena[iterable_expr]
 
-          unless iterable_node.kind.array_literal?
-            emit_error("For loop requires ArrayLiteral in Phase 87B-3 (ranges deferred to Phase 87B-4)")
+          elem_values = case iterable_node.kind
+          when .array_literal?
+            # Phase 87B-3: Array path
+            array_elements = iterable_node.array_elements || [] of ExprId
+            array_elements.map { |elem_id| stringify_expr(elem_id) }
+
+          when .range?
+            # Phase 87B-4A: Range path
+            expand_range_to_strings(iterable_node)
+
+          else
+            emit_error("For loop requires ArrayLiteral or Range (Phase 87B-4A)")
+            nil
+          end
+
+          # Handle error case
+          unless elem_values
             end_index = find_matching_end(pieces, start_index)
             return {"", end_index + 1}
           end
-
-          # Get array elements
-          elements = iterable_node.array_elements || [] of ExprId
 
           # Find loop body range
           end_index = find_matching_end(pieces, start_index)
           body_start = start_index + 1
           body_end = end_index - 1
 
-          # Iterate over elements
+          # Iterate over element values (same for arrays and ranges)
           output = String.build do |str|
-            elements.each do |elem_id|
-              # Stringify element
-              elem_value = stringify_expr(elem_id)
-
-              # Create new context with loop variable
+            elem_values.each do |elem_value|
               loop_context = context.with_variable(var_name, elem_value)
-
-              # Evaluate body with loop context
               body_output = evaluate_pieces_range(pieces, body_start, body_end, loop_context)
               str << body_output
             end
           end
 
           return {output, end_index + 1}
+        end
+
+        # Phase 87B-4A: Expand range to array of string values
+        # Returns Array(String) if successful, nil if error (diagnostic emitted)
+        private def expand_range_to_strings(range_node : ExpressionNode) : Array(String)?
+          # Extract bounds
+          range_begin = range_node.range_begin
+          range_end = range_node.range_end
+
+          unless range_begin && range_end
+            emit_error("Invalid range: missing begin or end")
+            return nil
+          end
+
+          # Evaluate bounds to strings (use empty context for literals)
+          empty_context = Context.new
+          start_str = evaluate_expression(range_begin, empty_context)
+          end_str = evaluate_expression(range_end, empty_context)
+
+          # Parse to integers
+          start_val = start_str.to_i?
+          end_val = end_str.to_i?
+
+          unless start_val && end_val
+            emit_error("Range bounds must be integers in Phase 87B-4A (got: #{start_str}..#{end_str})")
+            return nil
+          end
+
+          # Handle reverse ranges (Crystal behavior: empty)
+          if start_val > end_val
+            return [] of String
+          end
+
+          # Calculate size
+          exclusive = range_node.range_exclusive || false
+          size = if exclusive
+            end_val - start_val
+          else
+            end_val - start_val + 1
+          end
+
+          # Check size limit (prevent compilation DOS)
+          if size > MAX_RANGE_SIZE
+            emit_error("Range too large: #{size} elements (max #{MAX_RANGE_SIZE})")
+            return nil
+          end
+
+          # Generate sequence
+          result = [] of String
+          current = start_val
+          while current < end_val || (!exclusive && current == end_val)
+            result << current.to_s
+            current += 1
+          end
+
+          result
         end
 
         private def emit_error(message : String, location : ExprId? = nil)
