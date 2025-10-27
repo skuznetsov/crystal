@@ -5178,6 +5178,7 @@ module CrystalGPT5
 
         BINARY_PRECEDENCE = {
           Token::Kind::Question  => 2,   # Ternary operator (Phase 23, second lowest)
+          Token::Kind::NilCoalesce => 3, # Nil-coalescing (Phase 81)
           Token::Kind::OrOr      => 3,   # Logical OR
           Token::Kind::AndAnd    => 4,   # Logical AND
           Token::Kind::DotDot    => 5,   # Inclusive range (Phase 13)

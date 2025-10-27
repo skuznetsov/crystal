@@ -1177,8 +1177,15 @@ module CrystalGPT5
               Token::Kind::Operator
             end
           when '?'.ord.to_u8
-            # Phase 23: Ternary operator
-            Token::Kind::Question
+            # Check for ?? (nil-coalescing) before ? (ternary)
+            if @offset < @rope.size && current_byte == '?'.ord.to_u8
+              # Phase 81: ?? (nil-coalescing)
+              advance
+              Token::Kind::NilCoalesce
+            else
+              # Phase 23: ? (ternary operator)
+              Token::Kind::Question
+            end
           else
             # Unknown operator - use generic fallback
             Token::Kind::Operator

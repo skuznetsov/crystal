@@ -141,6 +141,7 @@ module CrystalGPT5
           Semicolon   # ;
           Colon       # :
           Question    # ? (Phase 23: ternary operator)
+          NilCoalesce # ?? (Phase 81: nil-coalescing operator)
 
           # Assignment
           Eq          # =

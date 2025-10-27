@@ -671,6 +671,14 @@ module CrystalGPT5
               @context.bool_type
             end
 
+          when "??"
+            # Phase 81: Nil-coalescing operator
+            # value ?? default - returns value if not nil, otherwise default
+            # Type: Simplified - return union of left and right types
+            # More accurate: return non-nil version of left type | right type
+            # For now: return right type (the fallback type)
+            right_type
+
           else
             emit_error("Unknown operator '#{op}'", expr_id)
             @context.nil_type
