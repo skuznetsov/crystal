@@ -130,6 +130,12 @@ module CrystalGPT5
           Caret       # ^ (bitwise XOR)
           Tilde       # ~ (bitwise NOT)
 
+          # Wrapping arithmetic operators (Phase 89)
+          AmpPlus     # &+ (wrapping addition)
+          AmpMinus    # &- (wrapping subtraction)
+          AmpStar     # &* (wrapping multiplication)
+          AmpStarStar # &** (wrapping exponentiation)
+
           # Navigation operators
           AmpDot      # &. (Phase 47: safe navigation)
           ColonColon  # :: (Phase 63: path expression)
@@ -159,6 +165,10 @@ module CrystalGPT5
           OrOrEq      # ||= (Phase 51: logical or compound assignment)
           AndAndEq    # &&= (Phase 51: logical and compound assignment)
           AmpEq       # &= (Phase 52: bitwise AND compound assignment)
+          AmpPlusEq   # &+= (Phase 89: wrapping addition compound assignment)
+          AmpMinusEq  # &-= (Phase 89: wrapping subtraction compound assignment)
+          AmpStarEq   # &*= (Phase 89: wrapping multiplication compound assignment)
+          AmpStarStarEq # &**= (Phase 89: wrapping exponentiation compound assignment)
           PipeEq      # |= (Phase 52: bitwise OR compound assignment)
           CaretEq     # ^= (Phase 52: bitwise XOR compound assignment)
           LShiftEq    # <<= (Phase 52: left shift compound assignment)

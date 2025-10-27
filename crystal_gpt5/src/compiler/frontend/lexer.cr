@@ -1122,6 +1122,43 @@ module CrystalGPT5
               else
                 Token::Kind::AndAnd
               end
+            # Phase 89: Wrapping operators - check before &= and &
+            # CRITICAL: Check &** before &* (longest match first!)
+            elsif @offset < @rope.size && current_byte == '*'.ord.to_u8
+              advance  # consume first '*'
+              if @offset < @rope.size && current_byte == '*'.ord.to_u8
+                advance  # consume second '*'
+                # Check for &**=
+                if @offset < @rope.size && current_byte == '='.ord.to_u8
+                  advance  # consume '='
+                  Token::Kind::AmpStarStarEq
+                else
+                  Token::Kind::AmpStarStar  # &**
+                end
+              elsif @offset < @rope.size && current_byte == '='.ord.to_u8
+                advance  # consume '='
+                Token::Kind::AmpStarEq  # &*=
+              else
+                Token::Kind::AmpStar  # &*
+              end
+            elsif @offset < @rope.size && current_byte == '+'.ord.to_u8
+              advance  # consume '+'
+              # Check for &+=
+              if @offset < @rope.size && current_byte == '='.ord.to_u8
+                advance  # consume '='
+                Token::Kind::AmpPlusEq
+              else
+                Token::Kind::AmpPlus  # &+
+              end
+            elsif @offset < @rope.size && current_byte == '-'.ord.to_u8
+              advance  # consume '-'
+              # Check for &-=
+              if @offset < @rope.size && current_byte == '='.ord.to_u8
+                advance  # consume '='
+                Token::Kind::AmpMinusEq
+              else
+                Token::Kind::AmpMinus  # &-
+              end
             else
               # Check for &= (Phase 52)
               if @offset < @rope.size && current_byte == '='.ord.to_u8

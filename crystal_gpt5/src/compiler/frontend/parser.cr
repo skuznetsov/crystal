@@ -286,6 +286,10 @@ module CrystalGPT5
              token.kind == Token::Kind::OrOrEq ||
              token.kind == Token::Kind::AndAndEq ||
              token.kind == Token::Kind::AmpEq ||
+             token.kind == Token::Kind::AmpPlusEq ||      # Phase 89
+             token.kind == Token::Kind::AmpMinusEq ||     # Phase 89
+             token.kind == Token::Kind::AmpStarEq ||      # Phase 89
+             token.kind == Token::Kind::AmpStarStarEq ||  # Phase 89
              token.kind == Token::Kind::PipeEq ||
              token.kind == Token::Kind::CaretEq ||
              token.kind == Token::Kind::LShiftEq ||
@@ -333,10 +337,11 @@ module CrystalGPT5
             rhs = parse_expression(0)
             return PREFIX_ERROR if rhs.invalid?
 
-            # Phase 20/51/52: Desugar compound assignment
+            # Phase 20/51/52/89: Desugar compound assignment
             # x += 5  =>  x = x + 5
             # x ||= 5 =>  x = x || 5
             # x &= 3  =>  x = x & 3
+            # x &+= 5 =>  x = x &+ 5  # Phase 89: wrapping
             value = if is_compound
               # Map compound token to operator
               operator = case assign_token.kind
@@ -350,6 +355,10 @@ module CrystalGPT5
               when Token::Kind::OrOrEq     then "||"  # Phase 51
               when Token::Kind::AndAndEq   then "&&"  # Phase 51
               when Token::Kind::AmpEq      then "&"   # Phase 52
+              when Token::Kind::AmpPlusEq  then "&+"  # Phase 89
+              when Token::Kind::AmpMinusEq then "&-"  # Phase 89
+              when Token::Kind::AmpStarEq  then "&*"  # Phase 89
+              when Token::Kind::AmpStarStarEq then "&**"  # Phase 89
               when Token::Kind::PipeEq     then "|"   # Phase 52
               when Token::Kind::CaretEq    then "^"   # Phase 52
               when Token::Kind::LShiftEq   then "<<"  # Phase 52
@@ -3630,8 +3639,9 @@ module CrystalGPT5
           when Token::Kind::ColonColon
             # Phase 63: Absolute path (::TopLevel)
             parse_absolute_path
-          when Token::Kind::Plus, Token::Kind::Minus, Token::Kind::Not, Token::Kind::Tilde
+          when Token::Kind::Plus, Token::Kind::Minus, Token::Kind::Not, Token::Kind::Tilde, Token::Kind::AmpPlus, Token::Kind::AmpMinus
             # Unary operators (Phase 21: added Tilde for bitwise NOT)
+            # Phase 89: Added AmpPlus and AmpMinus for wrapping unary operators
             op = token
             advance
             right = parse_expression(UNARY_PRECEDENCE)
@@ -5413,16 +5423,20 @@ module CrystalGPT5
           Token::Kind::In        => 7,   # Containment check (Phase 79)
           Token::Kind::Plus      => 10,  # Addition
           Token::Kind::Minus     => 10,  # Subtraction
+          Token::Kind::AmpPlus   => 10,  # Wrapping addition (Phase 89)
+          Token::Kind::AmpMinus  => 10,  # Wrapping subtraction (Phase 89)
           Token::Kind::LShift    => 10,  # Left shift / array push (Phase 9)
           Token::Kind::RShift    => 10,  # Right shift (Phase 22)
           Token::Kind::Star      => 20,  # Multiplication
           Token::Kind::Slash     => 20,  # Division
           Token::Kind::FloorDiv  => 20,  # Floor division (Phase 78)
           Token::Kind::Percent   => 20,  # Modulo (Phase 18)
+          Token::Kind::AmpStar   => 20,  # Wrapping multiplication (Phase 89)
           Token::Kind::StarStar  => 25,  # Exponentiation (Phase 19, highest precedence)
+          Token::Kind::AmpStarStar => 25, # Wrapping exponentiation (Phase 89)
         }
 
-        UNARY_OPERATORS = [Token::Kind::Plus, Token::Kind::Minus, Token::Kind::Not, Token::Kind::Tilde]
+        UNARY_OPERATORS = [Token::Kind::Plus, Token::Kind::Minus, Token::Kind::AmpPlus, Token::Kind::AmpMinus, Token::Kind::Not, Token::Kind::Tilde]
       end
     end
   end

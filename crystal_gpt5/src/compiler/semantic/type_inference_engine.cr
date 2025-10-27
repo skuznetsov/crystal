@@ -625,8 +625,9 @@ module CrystalGPT5
           op = node.operator_string || ""
 
           result_type = case op
-          when "+", "-", "*", "/", "//", "%", "**", "<<", ">>", "&", "|", "^"
-            # Phase 4B.3/4B.5/18/19/21/22/78: Try method lookup first for built-in methods
+          when "+", "-", "*", "/", "//", "%", "**", "<<", ">>", "&", "|", "^", "&+", "&-", "&*", "&**"
+            # Phase 4B.3/4B.5/18/19/21/22/78/89: Try method lookup first for built-in methods
+            # Phase 89: Wrapping arithmetic operators (&+, &-, &*, &**)
             if method = lookup_method(left_type, op, [right_type])
               if ann = method.return_annotation
                 parse_type_name(ann)
@@ -728,6 +729,22 @@ module CrystalGPT5
               operand_type
             else
               emit_error("Unary '-' not defined for #{operand_type}", expr_id)
+              @context.nil_type
+            end
+          when "&+"
+            # Phase 89: Unary wrapping plus (identity with wrapping semantics)
+            if numeric_type?(operand_type)
+              operand_type
+            else
+              emit_error("Unary '&+' not defined for #{operand_type}", expr_id)
+              @context.nil_type
+            end
+          when "&-"
+            # Phase 89: Unary wrapping minus (negation with wrapping semantics)
+            if numeric_type?(operand_type)
+              operand_type
+            else
+              emit_error("Unary '&-' not defined for #{operand_type}", expr_id)
               @context.nil_type
             end
           when "~"
