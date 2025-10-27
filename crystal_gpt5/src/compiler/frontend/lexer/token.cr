@@ -98,6 +98,8 @@ module CrystalGPT5
           EqEqEq      # === (Phase 50: case equality)
           NotEq       # !=
           Spaceship   # <=> (Phase 48: three-way comparison)
+          Match       # =~ (Phase 80: regex match)
+          NotMatch    # !~ (Phase 80: regex not match)
 
           # Shift/append operators
           LShift      # << (Phase 9: array push / left shift)

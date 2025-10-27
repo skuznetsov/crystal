@@ -1060,10 +1060,14 @@ module CrystalGPT5
               Token::Kind::Greater
             end
           when '='.ord.to_u8
-            # Check for =>, ===, and ==
+            # Check for =~, =>, ===, and ==
             if @offset < @rope.size
               next_byte = current_byte
-              if next_byte == '>'.ord.to_u8
+              if next_byte == '~'.ord.to_u8
+                # Phase 80: =~ (regex match)
+                advance
+                Token::Kind::Match
+              elsif next_byte == '>'.ord.to_u8
                 advance
                 Token::Kind::Arrow  # =>
               elsif next_byte == '='.ord.to_u8
@@ -1082,12 +1086,21 @@ module CrystalGPT5
               Token::Kind::Eq
             end
           when '!'.ord.to_u8
-            # Check for !=
-            if @offset < @rope.size && current_byte == '='.ord.to_u8
-              advance
-              Token::Kind::NotEq
+            # Check for !~, !=
+            if @offset < @rope.size
+              next_byte = current_byte
+              if next_byte == '~'.ord.to_u8
+                # Phase 80: !~ (regex not match)
+                advance
+                Token::Kind::NotMatch
+              elsif next_byte == '='.ord.to_u8
+                advance
+                Token::Kind::NotEq
+              else
+                # Phase 17: Logical not operator
+                Token::Kind::Not
+              end
             else
-              # Phase 17: Logical not operator
               Token::Kind::Not
             end
           when '&'.ord.to_u8

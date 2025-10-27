@@ -5193,6 +5193,8 @@ module CrystalGPT5
           Token::Kind::LessEq    => 7,   # Less or equal
           Token::Kind::GreaterEq => 7,   # Greater or equal
           Token::Kind::Spaceship => 7,   # Three-way comparison (Phase 48)
+          Token::Kind::Match     => 7,   # Regex match (Phase 80)
+          Token::Kind::NotMatch  => 7,   # Regex not match (Phase 80)
           Token::Kind::In        => 7,   # Containment check (Phase 79)
           Token::Kind::Plus      => 10,  # Addition
           Token::Kind::Minus     => 10,  # Subtraction
