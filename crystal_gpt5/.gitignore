@@ -18,3 +18,4 @@ bin/crystal-gpt5
 
 # Debug/test files
 test_*.cr
+*.db
