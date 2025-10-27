@@ -279,12 +279,13 @@ module CrystalGPT5
               )
             end
 
-            # Verify left side is an identifier, instance variable, global variable, or index (Phase 14B: hash/array assignment)
+            # Verify left side is an identifier, instance variable, class variable, global variable, or index (Phase 14B: hash/array assignment)
             unless left_node.kind == ExpressionNode::Kind::Identifier ||
                    left_node.kind == ExpressionNode::Kind::InstanceVar ||
+                   left_node.kind == ExpressionNode::Kind::ClassVar ||
                    left_node.kind == ExpressionNode::Kind::Global ||
                    left_node.kind == ExpressionNode::Kind::Index
-              @diagnostics << Diagnostic.new("Assignment target must be an identifier, instance variable, global variable, or index expression", token.span)
+              @diagnostics << Diagnostic.new("Assignment target must be an identifier, instance variable, class variable, global variable, or index expression", token.span)
               return PREFIX_ERROR
             end
 
@@ -3235,6 +3236,11 @@ module CrystalGPT5
           when Token::Kind::InstanceVar
             # Instance variable (@var)
             id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::InstanceVar, token.span, literal: token.slice))
+            advance
+            id
+          when Token::Kind::ClassVar
+            # Phase 76: Class variable (@@var)
+            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::ClassVar, token.span, literal: token.slice))
             advance
             id
           when Token::Kind::GlobalVar

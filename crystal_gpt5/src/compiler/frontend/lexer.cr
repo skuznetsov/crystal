@@ -192,6 +192,13 @@ module CrystalGPT5
           # Consume @
           advance
 
+          # Phase 76: Check for class variable (@@var)
+          if @offset < @rope.size && current_byte == AT_SIGN
+            # This is a class variable
+            advance  # consume second @
+            return lex_class_var_continued(from, start_offset, start_line, start_column)
+          end
+
           # Instance variable must start with identifier character
           if @offset >= @rope.size || !identifier_start?(current_byte)
             # Invalid instance variable - just @, return as operator
@@ -214,6 +221,36 @@ module CrystalGPT5
 
           Token.new(
             Token::Kind::InstanceVar,
+            @rope.bytes[from...@offset],
+            build_span(start_offset, start_line, start_column)
+          )
+        end
+
+        # Phase 76: Lex class variable (continued after @@ consumed)
+        # @@class_var → ClassVar token with slice "@@class_var"
+        private def lex_class_var_continued(from, start_offset, start_line, start_column)
+          # Class variable must start with identifier character
+          if @offset >= @rope.size || !identifier_start?(current_byte)
+            # Invalid class variable - just @@, return as operator
+            return Token.new(
+              Token::Kind::Operator,
+              @rope.bytes[from...@offset],
+              build_span(start_offset, start_line, start_column)
+            )
+          end
+
+          # Read identifier part
+          while @offset < @rope.size && identifier_char?(current_byte)
+            advance
+          end
+
+          # Class variables can have suffix (?, !)
+          if @offset < @rope.size && identifier_suffix?(current_byte)
+            advance
+          end
+
+          Token.new(
+            Token::Kind::ClassVar,
             @rope.bytes[from...@offset],
             build_span(start_offset, start_line, start_column)
           )
