@@ -5,17 +5,20 @@ require "./diagnostic"
 module CrystalGPT5
   module Compiler
     module Semantic
-      # Phase 87B-2: General Macro Expansion Engine
+      # Phase 87B-3: General Macro Expansion Engine (with Control Flow)
       #
-      # SCOPE (Phase 87B-2):
+      # SCOPE (Phase 87B-2 + 87B-3):
       # ✅ Macro call detection (method call → macro resolution)
       # ✅ Basic {{ expr }} evaluation (literals, constants, identifiers)
       # ✅ Simple parameter substitution
       # ✅ Recursion depth limit (100)
+      # ✅ {% if %} / {% elsif %} / {% else %} control flow
+      # ✅ {% for %} iteration (ArrayLiteral only)
+      # ✅ Crystal truthiness (false/nil/Nop falsy, everything else truthy)
+      # ✅ Nested control flow with depth tracking
       #
       # OUT OF SCOPE (Future Phases):
-      # ❌ {% if %} control flow → Phase 87B-3
-      # ❌ {% for %} iteration → Phase 87B-3
+      # ❌ {% for %} with ranges → Phase 87B-4
       # ❌ TypeNode reflection → Phase 87B-4
       # ❌ Macro methods (.stringify, .id) → Phase 87B-6
       class MacroExpander
@@ -125,33 +128,52 @@ module CrystalGPT5
 
           return "" unless pieces
 
-          # Build output by processing each piece
-          output = String.build do |str|
-            pieces.each do |piece|
+          # Phase 87B-3: Use indexed loop to handle control flow jumps
+          String.build do |str|
+            index = 0
+
+            while index < pieces.size
+              piece = pieces[index]
+
               case piece.kind
-              when MacroPiece::Kind::Text
+              when .text?
                 # Plain text - append as-is
                 str << piece.text if piece.text
+                index += 1
 
-              when MacroPiece::Kind::Expression
+              when .expression?
                 # {{ expr }} - evaluate and stringify
                 if expr_id = piece.expr
                   value = evaluate_expression(expr_id, context)
                   str << value
                 end
+                index += 1
 
-              when MacroPiece::Kind::ControlStart,
-                   MacroPiece::Kind::ControlElseIf,
-                   MacroPiece::Kind::ControlElse,
-                   MacroPiece::Kind::ControlEnd
-                # Control flow not implemented in Phase 87B-2
-                # Emit warning and skip
-                emit_warning("Control flow ({% #{piece.control_keyword} %}) not implemented in Phase 87B-2", body_id)
+              when .control_start?
+                # {% if %} or {% for %} - delegate to specialized handlers
+                keyword = piece.control_keyword
+
+                if keyword == "if"
+                  output_part, new_index = evaluate_if_block(pieces, index, context)
+                  str << output_part
+                  index = new_index
+                elsif keyword == "for"
+                  output_part, new_index = evaluate_for_block(pieces, index, context)
+                  str << output_part
+                  index = new_index
+                else
+                  # Unknown control keyword
+                  emit_warning("Unknown control keyword: #{keyword}", body_id)
+                  index += 1
+                end
+
+              else
+                # Skip standalone control flow markers (elsif, else, end)
+                # These are handled inside evaluate_if_block
+                index += 1
               end
             end
           end
-
-          output
         end
 
         private def reparse(output : String, location : ExprId) : ExprId
@@ -215,6 +237,271 @@ module CrystalGPT5
             # Return empty string (graceful degradation)
             ""
           end
+        end
+
+        # Phase 87B-3: Control Flow Methods
+        # ====================================
+
+        # Evaluate condition expression to boolean (Crystal truthiness)
+        # CRITICAL: Only false/nil/Nop are falsy. EVERYTHING else is truthy (including 0, "", [])
+        private def evaluate_condition(expr_id : ExprId, context : Context) : Bool
+          node = @arena[expr_id]
+
+          case node.kind
+          when .bool?
+            # Parse "true" or "false"
+            literal = node.literal_string
+            if literal
+              return false if literal == "false"
+              return true  # "true"
+            end
+            return true  # Default to true if no literal
+
+          when .nil?
+            # nil is falsy
+            return false
+
+          else
+            # EVERYTHING else is truthy in Crystal
+            # This includes: 0, "", [], numbers, strings, arrays, etc.
+            return true
+          end
+        end
+
+        # Find matching {% end %} for given {% if %} or {% for %}
+        # Handles nested control flow via depth tracking
+        private def find_matching_end(pieces : Array(MacroPiece), start_index : Int32) : Int32
+          depth = 1
+          index = start_index + 1
+
+          while index < pieces.size
+            piece = pieces[index]
+
+            case piece.kind
+            when .control_start?
+              # Nested control structure
+              depth += 1
+
+            when .control_end?
+              depth -= 1
+              return index if depth == 0
+            end
+
+            index += 1
+          end
+
+          # Missing {% end %} - emit error
+          emit_error("Unmatched control flow block (missing {% end %})")
+          return pieces.size  # Return end of array (graceful degradation)
+        end
+
+        # Find next {% elsif %} / {% else %} / {% end %} at same depth
+        private def find_next_branch_or_end(
+          pieces : Array(MacroPiece),
+          start : Int32,
+          end_limit : Int32
+        ) : Int32
+          depth = 0
+          index = start
+
+          while index <= end_limit
+            piece = pieces[index]
+
+            case piece.kind
+            when .control_start?
+              depth += 1
+
+            when .control_end?
+              return index if depth == 0
+              depth -= 1
+
+            when .control_else_if?, .control_else?
+              return index if depth == 0
+            end
+
+            index += 1
+          end
+
+          return end_limit
+        end
+
+        # Evaluate pieces in given range [start, end_index] inclusive
+        # Handles nested control flow recursively
+        private def evaluate_pieces_range(
+          pieces : Array(MacroPiece),
+          start : Int32,
+          end_index : Int32,
+          context : Context
+        ) : String
+          String.build do |str|
+            index = start
+
+            while index <= end_index && index < pieces.size
+              piece = pieces[index]
+
+              case piece.kind
+              when .text?
+                str << piece.text if piece.text
+                index += 1
+
+              when .expression?
+                if expr_id = piece.expr
+                  value = evaluate_expression(expr_id, context)
+                  str << value
+                end
+                index += 1
+
+              when .control_start?
+                # Nested control flow
+                keyword = piece.control_keyword
+
+                if keyword == "if"
+                  output_part, new_index = evaluate_if_block(pieces, index, context)
+                  str << output_part
+                  index = new_index
+                elsif keyword == "for"
+                  output_part, new_index = evaluate_for_block(pieces, index, context)
+                  str << output_part
+                  index = new_index
+                else
+                  index += 1
+                end
+
+              else
+                # Skip control flow markers (elsif, else, end)
+                index += 1
+              end
+            end
+          end
+        end
+
+        # Evaluate {% if %} / {% elsif %} / {% else %} / {% end %} structure
+        # Returns {output, next_index} where next_index points AFTER {% end %}
+        private def evaluate_if_block(
+          pieces : Array(MacroPiece),
+          start_index : Int32,
+          context : Context
+        ) : {String, Int32}
+          # Get condition from start piece
+          start_piece = pieces[start_index]
+          condition_expr = start_piece.expr
+
+          unless condition_expr
+            emit_error("Missing condition in {% if %} block")
+            end_index = find_matching_end(pieces, start_index)
+            return {"", end_index + 1}
+          end
+
+          # Evaluate condition
+          condition_result = evaluate_condition(condition_expr, context)
+
+          # Find matching end
+          end_index = find_matching_end(pieces, start_index)
+
+          if condition_result
+            # Condition is true - evaluate if body
+            next_branch = find_next_branch_or_end(pieces, start_index + 1, end_index)
+
+            # Evaluate range [start_index+1, next_branch-1]
+            output = evaluate_pieces_range(pieces, start_index + 1, next_branch - 1, context)
+
+            return {output, end_index + 1}
+          else
+            # Condition is false - search for {% elsif %} or {% else %}
+            current = start_index + 1
+
+            while current < end_index
+              piece = pieces[current]
+
+              if piece.kind.control_else_if?
+                # Evaluate elsif condition
+                elsif_cond = piece.expr
+
+                if elsif_cond && evaluate_condition(elsif_cond, context)
+                  # Found true branch
+                  next_branch = find_next_branch_or_end(pieces, current + 1, end_index)
+                  output = evaluate_pieces_range(pieces, current + 1, next_branch - 1, context)
+                  return {output, end_index + 1}
+                end
+
+                current += 1
+
+              elsif piece.kind.control_else?
+                # No conditions matched, use else
+                output = evaluate_pieces_range(pieces, current + 1, end_index - 1, context)
+                return {output, end_index + 1}
+
+              else
+                current += 1
+              end
+            end
+
+            # No branch matched, return empty
+            return {"", end_index + 1}
+          end
+        end
+
+        # Evaluate {% for VAR in ARRAY %} loop
+        # Phase 87B-3: ArrayLiteral only (ranges deferred to Phase 87B-4)
+        # Returns {output, next_index} where next_index points AFTER {% end %}
+        private def evaluate_for_block(
+          pieces : Array(MacroPiece),
+          start_index : Int32,
+          context : Context
+        ) : {String, Int32}
+          # Get loop metadata
+          start_piece = pieces[start_index]
+          iter_vars = start_piece.iter_vars
+          iterable_expr = start_piece.iterable
+
+          unless iter_vars && iterable_expr
+            emit_error("Missing loop variable or iterable in {% for %} block")
+            end_index = find_matching_end(pieces, start_index)
+            return {"", end_index + 1}
+          end
+
+          # Check single variable (Phase 87B-3 scope)
+          if iter_vars.size != 1
+            emit_error("Multiple loop variables not supported in Phase 87B-3")
+            end_index = find_matching_end(pieces, start_index)
+            return {"", end_index + 1}
+          end
+
+          var_name = iter_vars[0]
+
+          # Evaluate iterable
+          iterable_node = @arena[iterable_expr]
+
+          unless iterable_node.kind.array_literal?
+            emit_error("For loop requires ArrayLiteral in Phase 87B-3 (ranges deferred to Phase 87B-4)")
+            end_index = find_matching_end(pieces, start_index)
+            return {"", end_index + 1}
+          end
+
+          # Get array elements
+          elements = iterable_node.array_elements || [] of ExprId
+
+          # Find loop body range
+          end_index = find_matching_end(pieces, start_index)
+          body_start = start_index + 1
+          body_end = end_index - 1
+
+          # Iterate over elements
+          output = String.build do |str|
+            elements.each do |elem_id|
+              # Stringify element
+              elem_value = stringify_expr(elem_id)
+
+              # Create new context with loop variable
+              loop_context = context.with_variable(var_name, elem_value)
+
+              # Evaluate body with loop context
+              body_output = evaluate_pieces_range(pieces, body_start, body_end, loop_context)
+              str << body_output
+            end
+          end
+
+          return {output, end_index + 1}
         end
 
         private def emit_error(message : String, location : ExprId? = nil)
