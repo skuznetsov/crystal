@@ -631,9 +631,10 @@ module CrystalGPT5
               @context.nil_type
             end
 
-          when "==", "!=", "<", ">", "<=", ">=", "==="
-            # Phase 4B.3/4B.5/50: Try method lookup first for built-in methods
+          when "==", "!=", "<", ">", "<=", ">=", "===", "in"
+            # Phase 4B.3/4B.5/50/79: Try method lookup first for built-in methods
             # Phase 50: === (case equality) returns Bool like ==
+            # Phase 79: in (containment) returns Bool
             if method = lookup_method(left_type, op, [right_type])
               if ann = method.return_annotation
                 parse_type_name(ann)

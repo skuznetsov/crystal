@@ -78,6 +78,7 @@ module CrystalGPT5
           Fun  # Phase 64: fun (C function declaration)
           As   # Phase 44: type cast (value.as(Type))
           AsQuestion  # Phase 45: safe cast (value.as?(Type))
+          In   # Phase 79: containment check (value in collection)
 
           # Arithmetic operators
           Plus        # +

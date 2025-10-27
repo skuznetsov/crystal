@@ -5008,7 +5008,8 @@ module CrystalGPT5
             skip_macro_whitespace
           end
 
-          if current_token.kind == Token::Kind::Identifier && token_text(current_token) == "in"
+          # Phase 79: "in" is now a keyword, not an identifier
+          if current_token.kind == Token::Kind::In
             advance
           else
             emit_unexpected(current_token)
@@ -5192,6 +5193,7 @@ module CrystalGPT5
           Token::Kind::LessEq    => 7,   # Less or equal
           Token::Kind::GreaterEq => 7,   # Greater or equal
           Token::Kind::Spaceship => 7,   # Three-way comparison (Phase 48)
+          Token::Kind::In        => 7,   # Containment check (Phase 79)
           Token::Kind::Plus      => 10,  # Addition
           Token::Kind::Minus     => 10,  # Subtraction
           Token::Kind::LShift    => 10,  # Left shift / array push (Phase 9)
