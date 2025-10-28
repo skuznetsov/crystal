@@ -469,13 +469,15 @@ module CrystalGPT5
           end
         end
 
+        # Phase 100: macro upgraded from identifier to keyword
         private def macro_definition_start?
-          current_token.kind == Token::Kind::Identifier && token_text(current_token) == "macro"
+          current_token.kind == Token::Kind::Macro
         end
 
+        # Phase 100: Added Macro to definition_start?
         private def definition_start?
           token = current_token
-          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Union || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Annotation || token.kind == Token::Kind::Abstract || token.kind == Token::Kind::Private || token.kind == Token::Kind::Protected || token.kind == Token::Kind::Lib || token.kind == Token::Kind::Fun
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Macro || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Union || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Annotation || token.kind == Token::Kind::Abstract || token.kind == Token::Kind::Private || token.kind == Token::Kind::Protected || token.kind == Token::Kind::Lib || token.kind == Token::Kind::Fun
         end
 
         # Phase 35: Check if identifier is a constant (uppercase first letter)

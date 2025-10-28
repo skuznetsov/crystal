@@ -41,6 +41,7 @@ module CrystalGPT5
           Do
           Then
           Def
+          Macro   # Phase 100: macro definition
           Class
           True
           False

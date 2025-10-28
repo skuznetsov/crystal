@@ -137,6 +137,7 @@ module CrystalGPT5
           when "do"     then Token::Kind::Do
           when "then"   then Token::Kind::Then
           when "def"    then Token::Kind::Def
+          when "macro"  then Token::Kind::Macro  # Phase 100
           when "class"  then Token::Kind::Class
           when "true"   then Token::Kind::True
           when "false"  then Token::Kind::False
