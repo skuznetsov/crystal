@@ -396,7 +396,7 @@ module CrystalGPT5
         getter return_value : ExprId?  # Phase 6: return statements
         getter string_pieces : Array(StringPiece)?  # Phase 8: string interpolation
         getter array_elements : Array(ExprId)?  # Phase 9: array literal elements
-        getter array_of_type : Slice(UInt8)?  # Phase 9: explicit type for [] of Type
+        getter array_of_type : ExprId?  # Phase 91: explicit type ([1,2,3] of Int32 | String)
         getter block_params : Array(Parameter)?  # Phase 10: block parameters
         getter block_body : Array(ExprId)?  # Phase 10: block body
         getter call_block : ExprId?  # Phase 10: block attached to call
@@ -508,7 +508,7 @@ module CrystalGPT5
           @return_value : ExprId? = nil,
           @string_pieces : Array(StringPiece)? = nil,
           @array_elements : Array(ExprId)? = nil,
-          @array_of_type : Slice(UInt8)? = nil,
+          @array_of_type : ExprId? = nil,  # Phase 91: explicit type expression
           @block_params : Array(Parameter)? = nil,
           @block_body : Array(ExprId)? = nil,
           @call_block : ExprId? = nil,

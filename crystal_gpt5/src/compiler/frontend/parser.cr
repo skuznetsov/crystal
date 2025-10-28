@@ -3909,27 +3909,22 @@ module CrystalGPT5
           skip_trivia
 
           elements = [] of ExprId
-          of_type : Slice(UInt8)? = nil
+          of_type_expr : ExprId? = nil
 
           # Check for closing bracket (empty array)
           if current_token.kind == Token::Kind::RBracket
             advance
             skip_trivia
 
-            # Check for "of Type" syntax
-            if current_token.kind == Token::Kind::Identifier && token_text(current_token) == "of"
+            # Phase 91: Check for "of Type" syntax
+            if current_token.kind == Token::Kind::Of
               advance
               skip_trivia
 
-              # Parse type name
-              type_token = current_token
-              if type_token.kind == Token::Kind::Identifier
-                of_type = type_token.slice
-                advance
-              else
-                emit_unexpected(type_token)
-                return PREFIX_ERROR
-              end
+              # Parse type expression (supports unions, generics, etc.)
+              type_expr = parse_expression(0)
+              return PREFIX_ERROR if type_expr.invalid?
+              of_type_expr = type_expr
             end
 
             closing_span = previous_token.try(&.span) || lbracket.span
@@ -3938,7 +3933,7 @@ module CrystalGPT5
               ExpressionNode::Kind::ArrayLiteral,
               array_span,
               array_elements: elements,
-              array_of_type: of_type
+              array_of_type: of_type_expr
             ))
           end
 
@@ -3968,13 +3963,25 @@ module CrystalGPT5
 
           closing_bracket = current_token
           advance
+          skip_trivia
+
+          # Phase 91: Check for "of Type" after closing bracket
+          if current_token.kind == Token::Kind::Of
+            advance
+            skip_trivia
+
+            # Parse type expression (supports unions, generics, etc.)
+            type_expr = parse_expression(0)
+            return PREFIX_ERROR if type_expr.invalid?
+            of_type_expr = type_expr
+          end
 
           array_span = lbracket.span.cover(closing_bracket.span)
           @arena.add(ExpressionNode.new(
             ExpressionNode::Kind::ArrayLiteral,
             array_span,
             array_elements: elements,
-            array_of_type: of_type
+            array_of_type: of_type_expr
           ))
         end
 

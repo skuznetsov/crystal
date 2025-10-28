@@ -56,7 +56,8 @@
       "WebFetch(domain:github.com)",
       "Bash(mcp__agents-assembly-v3__knowledge search:*)",
       "Bash(awk:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(CRYSTAL_CACHE_DIR=./.crystal-cache crystal run:*)"
     ],
     "deny": [],
     "ask": []

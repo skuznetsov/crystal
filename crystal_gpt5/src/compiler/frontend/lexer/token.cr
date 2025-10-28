@@ -86,6 +86,7 @@ module CrystalGPT5
           As   # Phase 44: type cast (value.as(Type))
           AsQuestion  # Phase 45: safe cast (value.as?(Type))
           In   # Phase 79: containment check (value in collection)
+          Of   # Phase 91: explicit generic type ([1,2,3] of Int32)
 
           # Arithmetic operators
           Plus        # +

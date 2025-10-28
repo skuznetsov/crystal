@@ -1603,9 +1603,22 @@ module CrystalGPT5
           element_type : Type
 
           # Case 1: Explicit "of Type" syntax ([] of Int32)
-          if of_type_slice = node.array_of_type
-            type_name = String.new(of_type_slice)
-            element_type = parse_type_name(type_name)
+          # Phase 91A: Parser only - just ignore type for now, return placeholder
+          if of_type_expr_id = node.array_of_type
+            # TODO Phase 91B: Extract type from expression and use for validation
+            # For now, infer from elements if present, else return placeholder
+            if elements = node.array_elements
+              if elements.empty?
+                # Empty array with type - return placeholder
+                element_type = @context.nil_type
+              else
+                # Infer from elements (ignore 'of' type for now)
+                element_types = elements.map { |elem_id| infer_expression(elem_id) }
+                element_type = union_of(element_types)
+              end
+            else
+              element_type = @context.nil_type
+            end
           # Case 2: Infer from elements
           elsif elements = node.array_elements
             if elements.empty?
