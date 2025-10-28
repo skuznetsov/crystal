@@ -87,6 +87,7 @@ module CrystalGPT5
           Protected  # Phase 37: protected visibility
           Lib  # Phase 38: lib (C bindings)
           Fun  # Phase 64: fun (C function declaration)
+          Out  # Phase 98: out (C bindings output parameter)
           As   # Phase 44: type cast (value.as(Type))
           AsQuestion  # Phase 45: safe cast (value.as?(Type))
           IsA  # Phase 93: type check (value.is_a?(Type))

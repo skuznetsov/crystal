@@ -2535,6 +2535,31 @@ module CrystalGPT5
           )
         end
 
+        # Phase 98: Parse out keyword (C bindings output parameter)
+        # Grammar: out identifier
+        private def parse_out : ExprId
+          out_token = current_token
+          advance
+          skip_trivia
+
+          # Expect identifier
+          unless current_token.kind == Token::Kind::Identifier
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+
+          identifier_token = current_token
+          advance
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Out,
+              out_token.span.cover(identifier_token.span),
+              out_identifier: identifier_token.slice
+            )
+          )
+        end
+
         # Phase 10: Parse block
         # Grammar: { |params| body } or do |params| body end
         private def parse_block : ExprId
@@ -3955,6 +3980,9 @@ module CrystalGPT5
           when Token::Kind::Asm
             # Phase 95: inline assembly
             parse_asm
+          when Token::Kind::Out
+            # Phase 98: out keyword (C bindings output parameter)
+            parse_out
           when Token::Kind::If
             parse_if
           when Token::Kind::Unless

@@ -284,6 +284,7 @@ module CrystalGPT5
           Bool
           Nil
           Unary
+          Out  # Phase 98: out keyword (C bindings output parameter)
           Binary
           Call
           Index
@@ -417,6 +418,7 @@ module CrystalGPT5
         getter alignof_args : Array(ExprId)?  # Phase 88: alignof arguments (type)
         getter instance_alignof_args : Array(ExprId)?  # Phase 88: instance_alignof arguments (type)
         getter asm_args : Array(ExprId)?  # Phase 95: asm arguments (template + optional sections)
+        getter out_identifier : Slice(UInt8)?  # Phase 98: identifier after out keyword (C bindings output parameter)
         getter case_value : ExprId?  # Phase 11: value to match against
         getter when_branches : Array(WhenBranch)?  # Phase 11: when branches
         getter case_else : Array(ExprId)?  # Phase 11: else clause
@@ -533,6 +535,7 @@ module CrystalGPT5
           @alignof_args : Array(ExprId)? = nil,  # Phase 88
           @instance_alignof_args : Array(ExprId)? = nil,  # Phase 88
           @asm_args : Array(ExprId)? = nil,  # Phase 95
+          @out_identifier : Slice(UInt8)? = nil,  # Phase 98
           @case_value : ExprId? = nil,
           @when_branches : Array(WhenBranch)? = nil,
           @case_else : Array(ExprId)? = nil,

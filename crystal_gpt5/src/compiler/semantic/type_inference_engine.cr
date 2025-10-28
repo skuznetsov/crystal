@@ -190,6 +190,9 @@ module CrystalGPT5
           when .asm?
             # Phase 95: Inline assembly expressions
             infer_asm(node, expr_id)
+          when .out?
+            # Phase 98: Out keyword (C bindings output parameter)
+            infer_out(node, expr_id)
           when ExpressionNode::Kind::As
             # Phase 44: Type cast expressions (can't use .as? due to keyword collision)
             infer_as(node, expr_id)
@@ -1470,6 +1473,25 @@ module CrystalGPT5
           end
 
           # asm expressions return nil (inline assembly is a statement)
+          @context.nil_type
+        end
+
+        # Phase 98: out keyword (C bindings output parameter)
+        private def infer_out(node, expr_id : ExprId) : Type
+          # out defines a new variable and passes its address to C function
+          # Syntax: out identifier
+          # In a full implementation:
+          # - Define new variable in current scope
+          # - Variable type inferred from C function signature
+          # - Return pointer type for passing to C
+          #
+          # Phase 98A: Parser-only implementation
+          # - Store identifier slice in AST
+          # - Return nil_type (actual variable definition in future phase)
+
+          # No expressions to infer (just identifier slice stored in node.out_identifier)
+
+          # Return nil (actual type inference deferred to semantic phase)
           @context.nil_type
         end
 
