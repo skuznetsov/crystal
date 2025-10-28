@@ -295,6 +295,7 @@ module CrystalGPT5
           Unless  # Phase 24: unless condition
           While
           Until   # Phase 25: until condition
+          For     # Phase 99: for loop (iteration)
           Loop    # Phase 83: infinite loop
           Spawn   # Phase 84: spawn fiber (concurrency)
           Assign
@@ -392,6 +393,9 @@ module CrystalGPT5
         getter if_else : Array(ExprId)?
         getter while_condition : ExprId?
         getter while_body : Array(ExprId)?
+        getter for_variable : Slice(UInt8)?  # Phase 99: iteration variable
+        getter for_collection : ExprId?  # Phase 99: collection to iterate over
+        getter for_body : Array(ExprId)?  # Phase 99: for loop body
         getter loop_body : Array(ExprId)?  # Phase 83: infinite loop
         getter spawn_expression : ExprId?  # Phase 84: spawn expr
         getter spawn_body : Array(ExprId)?  # Phase 84: spawn do...end
@@ -509,6 +513,9 @@ module CrystalGPT5
           @if_else : Array(ExprId)? = nil,
           @while_condition : ExprId? = nil,
           @while_body : Array(ExprId)? = nil,
+          @for_variable : Slice(UInt8)? = nil,  # Phase 99
+          @for_collection : ExprId? = nil,  # Phase 99
+          @for_body : Array(ExprId)? = nil,  # Phase 99
           @loop_body : Array(ExprId)? = nil,  # Phase 83
           @spawn_expression : ExprId? = nil,  # Phase 84
           @spawn_body : Array(ExprId)? = nil,  # Phase 84

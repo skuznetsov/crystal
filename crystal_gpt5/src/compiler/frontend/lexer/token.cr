@@ -65,6 +65,7 @@ module CrystalGPT5
           Next    # Phase 12
           Unless  # Phase 24
           Until   # Phase 25
+          For     # Phase 99: for loop (iteration)
           Begin   # Phase 28
           Rescue  # Phase 29: exception handling
           Ensure  # Phase 29: exception handling

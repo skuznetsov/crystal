@@ -1381,6 +1381,76 @@ module CrystalGPT5
           )
         end
 
+        # Phase 99: Parse for loop (iteration)
+        # Grammar: for var in collection ... end
+        private def parse_for : ExprId
+          for_token = current_token
+          advance
+          skip_trivia
+
+          # Parse variable name (identifier)
+          variable_token = current_token
+          unless variable_token.kind == Token::Kind::Identifier
+            emit_unexpected(variable_token)
+            return PREFIX_ERROR
+          end
+          advance
+          skip_trivia
+
+          # Expect 'in' keyword
+          unless current_token.kind == Token::Kind::In
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance
+          skip_trivia
+
+          # Parse collection expression
+          collection = parse_expression(0)
+          return PREFIX_ERROR if collection.invalid?
+
+          skip_trivia
+          # Optional "do" keyword
+          token = current_token
+          if token.kind == Token::Kind::Do
+            advance
+          end
+          consume_newlines
+
+          # Parse body
+          body_ids = [] of ExprId
+          loop do
+            skip_trivia
+            token = current_token
+            break if token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            expr = parse_statement
+            body_ids << expr unless expr.invalid?
+            consume_newlines
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          for_span = if end_token
+            for_token.span.cover(end_token.span)
+          else
+            for_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::For,
+              for_span,
+              for_variable: variable_token.slice,
+              for_collection: collection,
+              for_body: body_ids
+            )
+          )
+        end
+
         # Phase 28/29: Parse begin/end block with optional rescue/ensure
         # Grammar: begin <body> [rescue [type] [=> var] <rescue_body>]* [ensure <ensure_body>] end
         # Returns the value of the last expression in the body (or rescue if exception)
@@ -3999,6 +4069,9 @@ module CrystalGPT5
           when Token::Kind::Until
             # Phase 25: until loop
             parse_until
+          when Token::Kind::For
+            # Phase 99: for loop (iteration)
+            parse_for
           when Token::Kind::Loop
             # Phase 83: infinite loop
             parse_loop

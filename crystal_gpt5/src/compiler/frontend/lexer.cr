@@ -161,6 +161,7 @@ module CrystalGPT5
           when "next"   then Token::Kind::Next
           when "unless" then Token::Kind::Unless  # Phase 24
           when "until"  then Token::Kind::Until   # Phase 25
+          when "for"    then Token::Kind::For     # Phase 99
           when "begin"  then Token::Kind::Begin   # Phase 28
           when "rescue" then Token::Kind::Rescue  # Phase 29
           when "ensure" then Token::Kind::Ensure  # Phase 29

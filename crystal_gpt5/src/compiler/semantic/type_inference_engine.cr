@@ -119,6 +119,9 @@ module CrystalGPT5
             infer_unless(node)
           when .while?
             infer_while(node)
+          when .for?
+            # Phase 99: for loop
+            infer_for(node)
           when .loop?
             # Phase 83: infinite loop
             infer_loop(node)
@@ -1144,6 +1147,30 @@ module CrystalGPT5
           end
 
           # While loops always return Nil in Crystal
+          @context.nil_type
+        end
+
+        # Phase 99: for loop
+        private def infer_for(node) : Type
+          # Infer collection type
+          collection_id = node.for_collection
+          return @context.nil_type unless collection_id
+
+          collection_type = infer_expression(collection_id)
+
+          # In a full implementation:
+          # - Check collection is Enumerable/Iterable
+          # - Define loop variable in nested scope
+          # - Infer variable type from collection element type
+
+          # For now, just verify collection expression is valid
+
+          # Infer body expressions (result not used)
+          if body = node.for_body
+            body.each { |expr_id| infer_expression(expr_id) }
+          end
+
+          # For loops always return Nil in Crystal
           @context.nil_type
         end
 
