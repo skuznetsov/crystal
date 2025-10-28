@@ -55,6 +55,7 @@ module CrystalGPT5
           Offsetof  # Phase 86: offset of field in type
           Alignof  # Phase 88: ABI alignment in bytes
           InstanceAlignof  # Phase 88: instance alignment
+          Asm  # Phase 95: inline assembly
           Yield   # Phase 10
           Case    # Phase 11
           When    # Phase 11

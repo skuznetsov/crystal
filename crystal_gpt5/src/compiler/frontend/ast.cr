@@ -313,6 +313,7 @@ module CrystalGPT5
           Offsetof  # Phase 86: offset of field in type
           Alignof  # Phase 88: ABI alignment in bytes
           InstanceAlignof  # Phase 88: instance alignment
+          Asm  # Phase 95: inline assembly
           StringInterpolation  # Phase 8: string interpolation
           ArrayLiteral  # Phase 9: array literals [1, 2, 3]
           Block  # Phase 10: block {|x| ... } or do |x| ... end
@@ -411,6 +412,7 @@ module CrystalGPT5
         getter offsetof_args : Array(ExprId)?  # Phase 86: offsetof arguments (type, field)
         getter alignof_args : Array(ExprId)?  # Phase 88: alignof arguments (type)
         getter instance_alignof_args : Array(ExprId)?  # Phase 88: instance_alignof arguments (type)
+        getter asm_args : Array(ExprId)?  # Phase 95: asm arguments (template + optional sections)
         getter case_value : ExprId?  # Phase 11: value to match against
         getter when_branches : Array(WhenBranch)?  # Phase 11: when branches
         getter case_else : Array(ExprId)?  # Phase 11: else clause
@@ -524,6 +526,7 @@ module CrystalGPT5
           @offsetof_args : Array(ExprId)? = nil,  # Phase 86
           @alignof_args : Array(ExprId)? = nil,  # Phase 88
           @instance_alignof_args : Array(ExprId)? = nil,  # Phase 88
+          @asm_args : Array(ExprId)? = nil,  # Phase 95
           @case_value : ExprId? = nil,
           @when_branches : Array(WhenBranch)? = nil,
           @case_else : Array(ExprId)? = nil,

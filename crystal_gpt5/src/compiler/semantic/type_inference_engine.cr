@@ -184,6 +184,9 @@ module CrystalGPT5
           when .instance_alignof?
             # Phase 88: InstanceAlignof expressions
             infer_instance_alignof(node, expr_id)
+          when .asm?
+            # Phase 95: Inline assembly expressions
+            infer_asm(node, expr_id)
           when ExpressionNode::Kind::As
             # Phase 44: Type cast expressions (can't use .as? due to keyword collision)
             infer_as(node, expr_id)
@@ -1416,6 +1419,31 @@ module CrystalGPT5
 
           # instance_alignof always returns Int32 (number of bytes)
           @context.int32_type
+        end
+
+        # Phase 95: Type inference for asm (inline assembly)
+        private def infer_asm(node, expr_id : ExprId) : Type
+          # asm inserts inline assembly code
+          # In a full implementation:
+          # - asm("template", outputs..., inputs..., clobbers..., flags...)
+          # - Parse colon-separated sections
+          # - Validate LLVM assembly constraints
+          # - Return type depends on output operands
+          #
+          # Phase 95A: Parser-only implementation
+          # - Parse all arguments as expressions
+          # - Return nil_type (asm statements don't produce values)
+          # - Future phases will add proper constraint parsing and type checking
+
+          # For now, infer types of all arguments
+          if args = node.asm_args
+            args.each do |arg_expr_id|
+              infer_expression(arg_expr_id)
+            end
+          end
+
+          # asm expressions return nil (inline assembly is a statement)
+          @context.nil_type
         end
 
         # Phase 44: as keyword (type cast)

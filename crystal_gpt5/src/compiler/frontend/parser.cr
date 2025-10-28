@@ -2409,6 +2409,55 @@ module CrystalGPT5
           )
         end
 
+        # Phase 95: Parse asm (inline assembly)
+        # Grammar: asm(template, args...)
+        # Phase 95A: Parser-only - parse all arguments as expressions
+        # Later phases will interpret colon-separated sections
+        private def parse_asm : ExprId
+          asm_token = current_token
+          advance
+          skip_trivia
+
+          # Expect opening parenthesis
+          unless current_token.kind == Token::Kind::LParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          advance  # consume (
+          skip_trivia
+
+          args = [] of ExprId
+
+          # Parse at least one argument (template string)
+          loop do
+            arg = parse_expression(0)
+            return PREFIX_ERROR if arg.invalid?
+            args << arg
+
+            skip_trivia
+            break if current_token.kind != Token::Kind::Comma
+
+            advance  # consume comma
+            skip_trivia
+          end
+
+          # Expect closing parenthesis
+          unless current_token.kind == Token::Kind::RParen
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          rparen_token = current_token
+          advance
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Asm,
+              asm_token.span.cover(rparen_token.span),
+              asm_args: args
+            )
+          )
+        end
+
         # Phase 10: Parse block
         # Grammar: { |params| body } or do |params| body end
         private def parse_block : ExprId
@@ -3804,6 +3853,9 @@ module CrystalGPT5
           when Token::Kind::InstanceAlignof
             # Phase 88: instance alignment
             parse_instance_alignof
+          when Token::Kind::Asm
+            # Phase 95: inline assembly
+            parse_asm
           when Token::Kind::If
             parse_if
           when Token::Kind::Unless
