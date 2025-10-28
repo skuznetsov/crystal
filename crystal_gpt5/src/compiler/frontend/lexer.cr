@@ -154,6 +154,7 @@ module CrystalGPT5
           when "yield"  then Token::Kind::Yield
           when "case"   then Token::Kind::Case
           when "when"   then Token::Kind::When
+          when "select" then Token::Kind::Select  # Phase 90A
           when "break"  then Token::Kind::Break
           when "next"   then Token::Kind::Next
           when "unless" then Token::Kind::Unless  # Phase 24

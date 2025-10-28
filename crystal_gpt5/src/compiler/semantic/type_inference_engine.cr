@@ -217,6 +217,9 @@ module CrystalGPT5
           when .case?
             # Phase 11: Case/when pattern matching
             infer_case(node, expr_id)
+          when .select?
+            # Phase 90A: Select/when concurrent channel operations
+            infer_select(node, expr_id)
           when .break?
             # Phase 12: Break expressions
             infer_break(node, expr_id)
@@ -2275,6 +2278,35 @@ module CrystalGPT5
           end
 
           case_type
+        end
+
+        # ============================================================
+        # PHASE 90A: Select/When (Concurrent Channel Operations)
+        # ============================================================
+
+        private def infer_select(node, expr_id : ExprId) : Type
+          # Phase 90A: Parser only - infer conditions and bodies but return placeholder
+          # Full concurrent semantics deferred to Phase 90B
+
+          # Infer types from select branches
+          if branches = node.select_branches
+            branches.each do |branch|
+              # Infer type of condition (channel operation)
+              infer_expression(branch.condition)
+
+              # Infer types of body expressions
+              branch.body.each { |stmt_id| infer_expression(stmt_id) }
+            end
+          end
+
+          # Infer type from else clause (non-blocking fallback)
+          if else_body = node.select_else
+            else_body.each { |stmt_id| infer_expression(stmt_id) }
+          end
+
+          # Return nil_type placeholder (Phase 90A - parser only)
+          # Full type inference with concurrent semantics in Phase 90B
+          @context.nil_type
         end
 
         # ============================================================

@@ -71,6 +71,21 @@ module CrystalGPT5
         end
       end
 
+      # Represents a when branch in a select expression
+      #
+      # Phase 90A: Select/when for concurrent channel operations
+      # - condition: Single condition (channel operation: receive/send/timeout)
+      # - body: The body expressions for this branch
+      # - span: Exact source location
+      struct SelectBranch
+        getter condition : ExprId
+        getter body : Array(ExprId)
+        getter span : Span
+
+        def initialize(@condition : ExprId, @body : Array(ExprId), @span : Span)
+        end
+      end
+
       # Represents a key-value pair in a hash literal
       #
       # Phase 14: Hash literals
@@ -304,6 +319,7 @@ module CrystalGPT5
           ProcLiteral  # Phase 74: proc literal ->(x) { ... }
           Yield  # Phase 10: yield keyword
           Case  # Phase 11: case/when pattern matching
+          Select  # Phase 90A: select/when concurrent channel operations
           Break  # Phase 12: break [value]
           Next   # Phase 12: next
           Range  # Phase 13: range literals (1..10, 1...10)
@@ -397,6 +413,8 @@ module CrystalGPT5
         getter case_value : ExprId?  # Phase 11: value to match against
         getter when_branches : Array(WhenBranch)?  # Phase 11: when branches
         getter case_else : Array(ExprId)?  # Phase 11: else clause
+        getter select_branches : Array(SelectBranch)?  # Phase 90A: select when branches
+        getter select_else : Array(ExprId)?  # Phase 90A: select else clause
         getter break_value : ExprId?  # Phase 12: optional break value
         # Note: next has no value in Crystal
         getter range_begin : ExprId?  # Phase 13: range start (1..10)
@@ -507,6 +525,8 @@ module CrystalGPT5
           @case_value : ExprId? = nil,
           @when_branches : Array(WhenBranch)? = nil,
           @case_else : Array(ExprId)? = nil,
+          @select_branches : Array(SelectBranch)? = nil,  # Phase 90A
+          @select_else : Array(ExprId)? = nil,  # Phase 90A
           @break_value : ExprId? = nil,
           @range_begin : ExprId? = nil,
           @range_end : ExprId? = nil,

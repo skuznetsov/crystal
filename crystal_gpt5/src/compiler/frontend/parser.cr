@@ -1061,6 +1061,104 @@ module CrystalGPT5
           )
         end
 
+        # Phase 90A: Parse select (concurrent channel operation selection)
+        # Grammar: select when condition body... [else body...] end
+        # Note: Unlike case, select has NO value expression after 'select' keyword
+        private def parse_select : ExprId
+          select_token = current_token
+          advance
+          consume_newlines
+
+          # Parse when branches
+          select_branches = [] of SelectBranch
+          loop do
+            skip_trivia
+            token = current_token
+            break unless token.kind == Token::Kind::When
+
+            when_token = token
+            advance
+            skip_trivia
+
+            # Parse when condition (single expression or assignment)
+            # Examples: channel.receive, channel.send(x), timeout(5.seconds)
+            # Can also be assignment: msg = channel.receive
+            # Use parse_statement to support assignments
+            condition = parse_statement
+            return PREFIX_ERROR if condition.invalid?
+
+            skip_trivia
+
+            # Optional "then" keyword
+            if current_token.kind == Token::Kind::Then
+              advance
+            end
+
+            consume_newlines
+
+            # Parse when body
+            when_body = [] of ExprId
+            loop do
+              skip_trivia
+              token = current_token
+              break if token.kind.in?(Token::Kind::When, Token::Kind::Else, Token::Kind::End, Token::Kind::EOF)
+
+              stmt = parse_statement
+              when_body << stmt unless stmt.invalid?
+              consume_newlines
+            end
+
+            # Capture when span
+            when_span = if when_body.size > 0
+              last_expr = @arena[when_body.last]
+              when_token.span.cover(last_expr.span)
+            else
+              when_token.span
+            end
+
+            select_branches << SelectBranch.new(condition, when_body, when_span)
+          end
+
+          # Parse optional else body (non-blocking fallback)
+          else_body = nil
+          token = current_token
+          if token.kind == Token::Kind::Else
+            advance
+            consume_newlines
+
+            else_body = [] of ExprId
+            loop do
+              skip_trivia
+              token = current_token
+              break if token.kind == Token::Kind::End
+              break if token.kind == Token::Kind::EOF
+
+              expr = parse_statement
+              else_body << expr unless expr.invalid?
+              consume_newlines
+            end
+          end
+
+          expect_identifier("end")
+          end_token = previous_token
+          consume_newlines
+
+          select_span = if end_token
+            select_token.span.cover(end_token.span)
+          else
+            select_token.span
+          end
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Select,
+              select_span,
+              select_branches: select_branches,
+              select_else: else_body,
+            )
+          )
+        end
+
         private def parse_while : ExprId
           while_token = current_token
           advance
@@ -3653,6 +3751,9 @@ module CrystalGPT5
           when Token::Kind::Case
             # Phase 11: case/when pattern matching
             parse_case
+          when Token::Kind::Select
+            # Phase 90A: select/when concurrent channel operations
+            parse_select
           when Token::Kind::While
             parse_while
           when Token::Kind::Until

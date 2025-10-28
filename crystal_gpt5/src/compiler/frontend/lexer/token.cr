@@ -58,6 +58,7 @@ module CrystalGPT5
           Yield   # Phase 10
           Case    # Phase 11
           When    # Phase 11
+          Select  # Phase 90A: select/when concurrent channels
           Break   # Phase 12
           Next    # Phase 12
           Unless  # Phase 24
