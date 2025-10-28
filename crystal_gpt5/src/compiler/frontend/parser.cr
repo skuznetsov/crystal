@@ -113,6 +113,12 @@ module CrystalGPT5
             return parse_postfix_if_modifier(stmt)
           end
 
+          # Phase 96: previous_def statements
+          if current_token.kind == Token::Kind::PreviousDef
+            stmt = parse_previous_def
+            return parse_postfix_if_modifier(stmt)
+          end
+
           # Phase 12: break statements
           if current_token.kind == Token::Kind::Break
             stmt = parse_break
@@ -2079,6 +2085,75 @@ module CrystalGPT5
                 ExpressionNode::Kind::Super,
                 super_token.span,
                 super_args: nil  # nil = implicit args (pass all)
+              )
+            )
+          end
+        end
+
+        # Phase 96: Parse previous_def (call previous definition before reopening/redefining)
+        # Grammar: previous_def | previous_def() | previous_def(arg1, arg2, ...)
+        private def parse_previous_def : ExprId
+          previous_def_token = current_token
+          advance
+          skip_trivia
+
+          # Check if there are parentheses
+          token = current_token
+          if token.kind == Token::Kind::LParen
+            # Explicit argument list: previous_def() or previous_def(args)
+            advance  # consume (
+            skip_trivia
+
+            args = [] of ExprId
+
+            # Check for empty parens: previous_def()
+            if current_token.kind == Token::Kind::RParen
+              rparen_token = current_token
+              advance  # consume )
+              return @arena.add(
+                ExpressionNode.new(
+                  ExpressionNode::Kind::PreviousDef,
+                  previous_def_token.span.cover(rparen_token.span),
+                  previous_def_args: args  # Empty array = explicit no args
+                )
+              )
+            end
+
+            # Parse arguments
+            loop do
+              arg = parse_expression(0)
+              return PREFIX_ERROR if arg.invalid?
+              args << arg
+
+              skip_trivia
+              break if current_token.kind != Token::Kind::Comma
+
+              advance  # consume comma
+              skip_trivia
+            end
+
+            # Expect closing paren
+            unless current_token.kind == Token::Kind::RParen
+              emit_unexpected(current_token)
+              return PREFIX_ERROR
+            end
+            rparen_token = current_token
+            advance
+
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::PreviousDef,
+                previous_def_token.span.cover(rparen_token.span),
+                previous_def_args: args
+              )
+            )
+          else
+            # No parentheses: previous_def (implicit - pass all method args)
+            @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::PreviousDef,
+                previous_def_token.span,
+                previous_def_args: nil  # nil = implicit args (pass all)
               )
             )
           end

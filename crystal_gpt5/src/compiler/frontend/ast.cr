@@ -306,6 +306,7 @@ module CrystalGPT5
           Return  # Phase 6: return statements
           Self    # Phase 7: self keyword
           Super   # Phase 39: super keyword (call parent method)
+          PreviousDef  # Phase 96: previous_def keyword (call previous definition before reopening/redefining)
           Typeof  # Phase 40: typeof (type introspection)
           Sizeof  # Phase 41: sizeof (size in bytes)
           Pointerof  # Phase 42: pointerof (pointer to variable/expression)
@@ -405,6 +406,7 @@ module CrystalGPT5
         getter proc_return_type : Slice(UInt8)?  # Phase 74: proc return type annotation
         getter yield_args : Array(ExprId)?  # Phase 10: yield arguments
         getter super_args : Array(ExprId)?  # Phase 39: super arguments
+        getter previous_def_args : Array(ExprId)?  # Phase 96: previous_def arguments
         getter typeof_args : Array(ExprId)?  # Phase 40: typeof arguments (expressions to get type of)
         getter sizeof_args : Array(ExprId)?  # Phase 41: sizeof arguments (type or expression to get size of)
         getter pointerof_args : Array(ExprId)?  # Phase 42: pointerof arguments (variable or expression to get pointer of)
@@ -519,6 +521,7 @@ module CrystalGPT5
           @proc_return_type : Slice(UInt8)? = nil,
           @yield_args : Array(ExprId)? = nil,
           @super_args : Array(ExprId)? = nil,
+          @previous_def_args : Array(ExprId)? = nil,
           @typeof_args : Array(ExprId)? = nil,
           @sizeof_args : Array(ExprId)? = nil,
           @pointerof_args : Array(ExprId)? = nil,

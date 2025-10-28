@@ -48,6 +48,7 @@ module CrystalGPT5
           Return  # Phase 6
           Self    # Phase 7
           Super   # Phase 39: call parent method
+          PreviousDef  # Phase 96: call previous definition (before reopening/redefining)
           Typeof  # Phase 40: type introspection
           Sizeof  # Phase 41: size in bytes
           Pointerof  # Phase 42: pointer to variable/expression

@@ -163,6 +163,9 @@ module CrystalGPT5
           when .super?
             # Phase 39: Super expressions
             infer_super(node, expr_id)
+          when .previous_def?
+            # Phase 96: PreviousDef expressions
+            infer_previous_def(node, expr_id)
           when .typeof?
             # Phase 40: Typeof expressions
             infer_typeof(node, expr_id)
@@ -1280,6 +1283,26 @@ module CrystalGPT5
 
           # Return Nil for now (in full implementation, would return parent method's return type)
           # If super_args is nil, it means implicit args (pass all method args)
+          @context.nil_type
+        end
+
+        # Phase 96: Type inference for previous_def (call previous definition before reopening/redefining)
+        private def infer_previous_def(node, expr_id : ExprId) : Type
+          # In a full implementation, we would:
+          # 1. Look up the current method name
+          # 2. Look up the previous definition of this method (before reopening/redefining)
+          # 3. Type check the arguments
+          # 4. Return the previous method's return type
+
+          # For now, infer types of provided arguments
+          if args = node.previous_def_args
+            args.each do |arg_expr_id|
+              infer_expression(arg_expr_id)
+            end
+          end
+
+          # Return Nil for now (in full implementation, would return previous method's return type)
+          # If previous_def_args is nil, it means implicit args (pass all method args)
           @context.nil_type
         end
 
