@@ -78,6 +78,7 @@ module CrystalGPT5
           Include  # Phase 31: include module
           Extend  # Phase 31: extend module
           Struct  # Phase 32: struct definition
+          Union  # Phase 97: union definition (C bindings)
           Enum  # Phase 33: enum definition
           Alias  # Phase 34: type alias
           Annotation  # Phase 92: annotation definition

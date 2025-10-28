@@ -59,6 +59,8 @@ module CrystalGPT5
                   parse_module
                 when Token::Kind::Struct
                   parse_struct
+                when Token::Kind::Union
+                  parse_union
                 when Token::Kind::Enum
                   parse_enum
                 when Token::Kind::Alias
@@ -473,7 +475,7 @@ module CrystalGPT5
 
         private def definition_start?
           token = current_token
-          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Annotation || token.kind == Token::Kind::Abstract || token.kind == Token::Kind::Private || token.kind == Token::Kind::Protected || token.kind == Token::Kind::Lib || token.kind == Token::Kind::Fun
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Union || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Annotation || token.kind == Token::Kind::Abstract || token.kind == Token::Kind::Private || token.kind == Token::Kind::Protected || token.kind == Token::Kind::Lib || token.kind == Token::Kind::Fun
         end
 
         # Phase 35: Check if identifier is a constant (uppercase first letter)
@@ -2933,7 +2935,7 @@ module CrystalGPT5
 
         # Phase 32: Modified to support both class and struct
         # Phase 36: Modified to support abstract modifier
-        private def parse_class(is_struct : Bool = false, is_abstract : Bool = false) : ExprId
+        private def parse_class(is_struct : Bool = false, is_union : Bool = false, is_abstract : Bool = false) : ExprId
           class_token = current_token
           advance
           skip_trivia
@@ -3008,6 +3010,8 @@ module CrystalGPT5
                   parse_module
                 when Token::Kind::Struct
                   parse_struct
+                when Token::Kind::Union
+                  parse_union
                 when Token::Kind::Enum
                   parse_enum
                 when Token::Kind::Alias
@@ -3046,7 +3050,14 @@ module CrystalGPT5
           end
 
           # Phase 32: Choose kind based on is_struct flag
-          kind = is_struct ? ExpressionNode::Kind::Struct : ExpressionNode::Kind::Class
+          # Phase 97: Choose kind based on is_union flag
+          kind = if is_union
+                   ExpressionNode::Kind::Union
+                 elsif is_struct
+                   ExpressionNode::Kind::Struct
+                 else
+                   ExpressionNode::Kind::Class
+                 end
 
           @arena.add(
             ExpressionNode.new(
@@ -3056,6 +3067,7 @@ module CrystalGPT5
               class_body: body_ids,
               class_super_name: super_name_token.try(&.slice),
               class_is_struct: is_struct,
+              class_is_union: is_union,
               class_is_abstract: is_abstract,
               class_type_params: type_params,  # Phase 61: Generic type parameters
             )
@@ -3067,6 +3079,12 @@ module CrystalGPT5
         # Struct is syntactically identical to class, but represents a value type
         private def parse_struct : ExprId
           parse_class(is_struct: true)
+        end
+
+        # Phase 97: Parse union (C bindings union type)
+        # Grammar: union Name ... end
+        private def parse_union : ExprId
+          parse_class(is_union: true)
         end
 
         # Phase 36: Parse abstract modifier
@@ -3081,6 +3099,8 @@ module CrystalGPT5
             parse_class(is_abstract: true)
           when Token::Kind::Struct
             parse_class(is_struct: true, is_abstract: true)
+          when Token::Kind::Union
+            parse_class(is_union: true, is_abstract: true)
           when Token::Kind::Def
             parse_def(is_abstract: true)
           else
@@ -3158,6 +3178,8 @@ module CrystalGPT5
                   parse_module
                 when Token::Kind::Struct
                   parse_struct
+                when Token::Kind::Union
+                  parse_union
                 when Token::Kind::Enum
                   parse_enum
                 when Token::Kind::Alias
@@ -3432,6 +3454,8 @@ module CrystalGPT5
                   parse_module
                 when Token::Kind::Struct
                   parse_struct
+                when Token::Kind::Union
+                  parse_union
                 when Token::Kind::Enum
                   parse_enum
                 when Token::Kind::Alias

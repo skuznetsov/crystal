@@ -342,6 +342,7 @@ module CrystalGPT5
           Include  # Phase 31: include module into class/module
           Extend  # Phase 31: extend module into class/module
           Struct  # Phase 32: struct definition (value type)
+          Union  # Phase 97: union definition (C bindings)
           Enum  # Phase 33: enum definition (enumerated type)
           Alias  # Phase 34: type alias
           Annotation  # Phase 92: annotation definition
@@ -380,6 +381,7 @@ module CrystalGPT5
         getter class_body : Array(ExprId)?
         getter class_super_name : Slice(UInt8)?
         getter class_is_struct : Bool?  # Phase 32: true for struct, false/nil for class
+        getter class_is_union : Bool?  # Phase 97: true for union, false/nil for class/struct
         getter class_is_abstract : Bool?  # Phase 36: true for abstract class
         getter def_is_abstract : Bool?  # Phase 36: true for abstract method
         getter def_visibility : Visibility?  # Phase 37: nil = public (default)
@@ -495,6 +497,7 @@ module CrystalGPT5
           @class_body : Array(ExprId)? = nil,
           @class_super_name : Slice(UInt8)? = nil,
           @class_is_struct : Bool? = nil,
+          @class_is_union : Bool? = nil,
           @class_is_abstract : Bool? = nil,
           @def_is_abstract : Bool? = nil,
           @def_visibility : Visibility? = nil,

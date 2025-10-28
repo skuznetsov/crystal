@@ -260,6 +260,10 @@ module CrystalGPT5
             # Phase 32: Struct definition (value type)
             # At parsing stage, handled identically to class
             infer_class(node, expr_id)
+          when .union?
+            # Phase 97: Union definition (C bindings)
+            # At parsing stage, handled identically to class
+            infer_class(node, expr_id)
           when .enum?
             # Phase 33: Enum definition (enumerated type)
             infer_enum(node)
