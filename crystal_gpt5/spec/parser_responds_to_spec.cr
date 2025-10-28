@@ -3,7 +3,7 @@ require "spec"
 require "../src/compiler/frontend/parser"
 
 describe "CrystalGPT5::Compiler::Frontend::Parser" do
-  describe "Phase 49: responds_to? method (PRODUCTION-READY)" do
+  describe "Phase 94: responds_to? keyword (method check pseudo-method)" do
     it "parses simple responds_to? check with symbol" do
       source = <<-CRYSTAL
       result = obj.responds_to?(:to_s)

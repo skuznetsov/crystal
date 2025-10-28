@@ -194,7 +194,7 @@ module CrystalGPT5
             # Phase 93: Type check expressions (returns Bool)
             infer_is_a(node, expr_id)
           when ExpressionNode::Kind::RespondsTo
-            # Phase 49: Method check expressions (returns Bool)
+            # Phase 94: Method check expressions (returns Bool)
             infer_responds_to(node, expr_id)
           when ExpressionNode::Kind::Generic
             # Phase 60: Generic type instantiation
@@ -1475,7 +1475,7 @@ module CrystalGPT5
           @context.bool_type
         end
 
-        # Phase 49: responds_to? method (method check - returns Bool)
+        # Phase 94: responds_to? keyword (method check - returns Bool)
         private def infer_responds_to(node, expr_id : ExprId) : Type
           # Method check: value.responds_to?(:method_name)
           # Returns Bool (true if value has method, false otherwise)

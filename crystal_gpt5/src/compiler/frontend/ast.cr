@@ -349,7 +349,7 @@ module CrystalGPT5
           As  # Phase 44: type cast (value.as(Type))
           AsQuestion  # Phase 45: safe cast (value.as?(Type))
           IsA  # Phase 93: type check (value.is_a?(Type))
-          RespondsTo  # Phase 49: method check (value.responds_to?(:method))
+          RespondsTo  # Phase 94: method check (value.responds_to?(:method))
           Generic  # Phase 60: generic type instantiation (Box(Int32))
           Path  # Phase 63: path expression (Foo::Bar)
         end
@@ -459,8 +459,8 @@ module CrystalGPT5
         getter as_question_target_type : Slice(UInt8)?  # Phase 45: target type for safe cast
         getter is_a_value : ExprId?  # Phase 93: expression being type-checked
         getter is_a_target_type : Slice(UInt8)?  # Phase 93: target type for type check
-        getter responds_to_value : ExprId?  # Phase 49: expression being checked for method
-        getter responds_to_method_name : ExprId?  # Phase 49: method name (Symbol or String)
+        getter responds_to_value : ExprId?  # Phase 94: expression being checked for method
+        getter responds_to_method_name : ExprId?  # Phase 94: method name (Symbol or String)
         getter generic_name : ExprId?  # Phase 60: base type name (Box in Box(Int32))
         getter generic_type_args : Array(ExprId)?  # Phase 60: type arguments ([Int32] in Box(Int32))
         getter class_type_params : Array(Slice(UInt8))?  # Phase 60: type parameters (["T", "K"] in class Box(T, K))

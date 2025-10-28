@@ -4832,12 +4832,9 @@ module CrystalGPT5
             return parse_is_a(receiver, dot, member_token)
           end
 
-          # Phase 49: Check for .responds_to?(:method) method check
-          if member_token.kind == Token::Kind::Identifier
-            member_text = String.new(member_token.slice)
-            if member_text == "responds_to?"
-              return parse_responds_to(receiver, dot, member_token)
-            end
+          # Phase 94: Check for .responds_to?(:method) method check
+          if member_token.kind == Token::Kind::RespondsTo
+            return parse_responds_to(receiver, dot, member_token)
           end
 
           if member_token.kind == Token::Kind::Identifier
@@ -5087,9 +5084,9 @@ module CrystalGPT5
           )
         end
 
-        # Phase 49: Parse method check (.responds_to?(:method))
+        # Phase 94: Parse method check (.responds_to?(:method))
         private def parse_responds_to(receiver : ExprId, dot : Token, responds_to_token : Token) : ExprId
-          advance  # Skip 'responds_to?' identifier
+          advance  # Skip 'responds_to?' keyword
           skip_trivia
 
           # Expect opening parenthesis

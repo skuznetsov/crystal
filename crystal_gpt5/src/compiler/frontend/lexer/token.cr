@@ -87,6 +87,7 @@ module CrystalGPT5
           As   # Phase 44: type cast (value.as(Type))
           AsQuestion  # Phase 45: safe cast (value.as?(Type))
           IsA  # Phase 93: type check (value.is_a?(Type))
+          RespondsTo  # Phase 94: method check (value.responds_to?(:method))
           In   # Phase 79: containment check (value in collection)
           Of   # Phase 91: explicit generic type ([1,2,3] of Int32)
 
