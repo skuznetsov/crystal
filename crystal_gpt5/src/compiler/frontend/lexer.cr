@@ -1,11 +1,13 @@
 require "./rope"
 require "./lexer/token"
+require "./string_pool"
 
 module CrystalGPT5
   module Compiler
     module Frontend
       class Lexer
         @last_token_kind : Token::Kind?  # Phase 57: for regex vs division disambiguation
+        @string_pool : StringPool  # String interning for memory optimization
 
         def initialize(source : String)
           @rope = Rope.new(source)
@@ -14,6 +16,7 @@ module CrystalGPT5
           @column = 1
           @processed_strings = [] of Bytes  # Phase 54: storage for escape-processed strings
           @last_token_kind = nil  # Phase 57: for regex vs division disambiguation
+          @string_pool = StringPool.new  # String interning for memory optimization
         end
 
         def each_token(&block : Token ->)
@@ -123,7 +126,8 @@ module CrystalGPT5
             advance
           end
 
-          slice = @rope.bytes[from...@offset]
+          # Intern identifier slice for memory deduplication
+          slice = @string_pool.intern(@rope.bytes[from...@offset])
 
           # Check if this is a keyword
           kind = case String.new(slice)
@@ -239,7 +243,7 @@ module CrystalGPT5
 
           Token.new(
             Token::Kind::InstanceVar,
-            @rope.bytes[from...@offset],
+            @string_pool.intern(@rope.bytes[from...@offset]),
             build_span(start_offset, start_line, start_column)
           )
         end
@@ -269,7 +273,7 @@ module CrystalGPT5
 
           Token.new(
             Token::Kind::ClassVar,
-            @rope.bytes[from...@offset],
+            @string_pool.intern(@rope.bytes[from...@offset]),
             build_span(start_offset, start_line, start_column)
           )
         end
@@ -305,7 +309,7 @@ module CrystalGPT5
 
           Token.new(
             Token::Kind::GlobalVar,
-            @rope.bytes[from...@offset],
+            @string_pool.intern(@rope.bytes[from...@offset]),
             build_span(start_offset, start_line, start_column)
           )
         end
