@@ -63,6 +63,9 @@ module CrystalGPT5
                   parse_enum
                 when Token::Kind::Alias
                   parse_alias
+                when Token::Kind::Annotation
+                  # Phase 92: annotation definition
+                  parse_annotation
                 when Token::Kind::Abstract
                   # Phase 36: abstract class/def
                   parse_abstract
@@ -464,7 +467,7 @@ module CrystalGPT5
 
         private def definition_start?
           token = current_token
-          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Abstract || token.kind == Token::Kind::Private || token.kind == Token::Kind::Protected || token.kind == Token::Kind::Lib || token.kind == Token::Kind::Fun
+          token.kind == Token::Kind::Def || token.kind == Token::Kind::Class || token.kind == Token::Kind::Module || token.kind == Token::Kind::Struct || token.kind == Token::Kind::Enum || token.kind == Token::Kind::Alias || token.kind == Token::Kind::Annotation || token.kind == Token::Kind::Abstract || token.kind == Token::Kind::Private || token.kind == Token::Kind::Protected || token.kind == Token::Kind::Lib || token.kind == Token::Kind::Fun
         end
 
         # Phase 35: Check if identifier is a constant (uppercase first letter)
@@ -2885,6 +2888,9 @@ module CrystalGPT5
                   parse_enum
                 when Token::Kind::Alias
                   parse_alias
+                when Token::Kind::Annotation
+                  # Phase 92: annotation definition
+                  parse_annotation
                 when Token::Kind::Abstract
                   parse_abstract
                 when Token::Kind::Private
@@ -3032,6 +3038,9 @@ module CrystalGPT5
                   parse_enum
                 when Token::Kind::Alias
                   parse_alias
+                when Token::Kind::Annotation
+                  # Phase 92: annotation definition
+                  parse_annotation
                 when Token::Kind::Abstract
                   parse_abstract
                 when Token::Kind::Private
@@ -3211,6 +3220,55 @@ module CrystalGPT5
           )
         end
 
+        # Phase 92: Parse annotation definition
+        # Grammar: annotation Name [; body...] end
+        # Phase 92A: Parser only - body ignored/empty
+        private def parse_annotation : ExprId
+          annotation_token = current_token
+          advance
+          skip_trivia
+
+          # Parse annotation name
+          name_token = current_token
+          unless name_token.kind == Token::Kind::Identifier
+            emit_unexpected(name_token)
+            return PREFIX_ERROR
+          end
+          advance
+          skip_trivia
+          consume_newlines
+
+          # Phase 92A: Skip body for now (annotations can have methods/properties)
+          # For now, just expect 'end' immediately
+          loop do
+            token = current_token
+            break if token.kind == Token::Kind::End
+            break if token.kind == Token::Kind::EOF
+
+            # Skip any body content (Phase 92B will parse it)
+            advance
+            consume_newlines
+          end
+
+          # Expect 'end'
+          unless current_token.kind == Token::Kind::End
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+          end_token = current_token
+          advance
+
+          annotation_span = annotation_token.span.cover(end_token.span)
+
+          @arena.add(
+            ExpressionNode.new(
+              ExpressionNode::Kind::Annotation,
+              annotation_span,
+              annotation_name: name_token.slice,
+            )
+          )
+        end
+
         # Phase 31: Parse module definition
         # Grammar: module Name ... end
         private def parse_module : ExprId
@@ -3254,6 +3312,9 @@ module CrystalGPT5
                   parse_enum
                 when Token::Kind::Alias
                   parse_alias
+                when Token::Kind::Annotation
+                  # Phase 92: annotation definition
+                  parse_annotation
                 when Token::Kind::Abstract
                   parse_abstract
                 when Token::Kind::Private
