@@ -3,7 +3,7 @@ require "spec"
 require "../src/compiler/frontend/parser"
 
 describe "CrystalGPT5::Compiler::Frontend::Parser" do
-  describe "Phase 46: is_a? method (type check - returns Bool) (PRODUCTION-READY)" do
+  describe "Phase 93: is_a? keyword (type check pseudo-method - returns Bool)" do
     it "parses simple type check" do
       source = <<-CRYSTAL
       x = value.is_a?(Int32)

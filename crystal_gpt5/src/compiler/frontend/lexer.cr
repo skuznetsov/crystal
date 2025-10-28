@@ -182,6 +182,7 @@ module CrystalGPT5
           when "fun" then Token::Kind::Fun  # Phase 64
           when "as" then Token::Kind::As  # Phase 44
           when "as?" then Token::Kind::AsQuestion  # Phase 45
+          when "is_a?" then Token::Kind::IsA  # Phase 93
           when "in" then Token::Kind::In  # Phase 79
           when "of" then Token::Kind::Of  # Phase 91
           else

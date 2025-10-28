@@ -4827,13 +4827,15 @@ module CrystalGPT5
             return parse_as_safe_cast(receiver, dot, member_token)
           end
 
-          # Phase 46: Check for .is_a?(Type) type check
+          # Phase 93: Check for .is_a?(Type) type check
+          if member_token.kind == Token::Kind::IsA
+            return parse_is_a(receiver, dot, member_token)
+          end
+
           # Phase 49: Check for .responds_to?(:method) method check
           if member_token.kind == Token::Kind::Identifier
             member_text = String.new(member_token.slice)
-            if member_text == "is_a?"
-              return parse_is_a(receiver, dot, member_token)
-            elsif member_text == "responds_to?"
+            if member_text == "responds_to?"
               return parse_responds_to(receiver, dot, member_token)
             end
           end
@@ -5033,9 +5035,9 @@ module CrystalGPT5
           )
         end
 
-        # Phase 46: Parse type check (.is_a?(Type))
+        # Phase 93: Parse type check (.is_a?(Type))
         private def parse_is_a(receiver : ExprId, dot : Token, is_a_token : Token) : ExprId
-          advance  # Skip 'is_a?' identifier
+          advance  # Skip 'is_a?' keyword
           skip_trivia
 
           # Expect opening parenthesis
