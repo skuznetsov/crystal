@@ -2126,6 +2126,10 @@ module CrystalGPT5
         node.if_elsifs
       end
 
+      def self.node_if_elsifs(node : IfNode) : Array(ElsifBranch)?
+        node.elsifs
+      end
+
       def self.node_if_elsifs(node : TypedNode) : Array(ElsifBranch)?
         nil
       end
