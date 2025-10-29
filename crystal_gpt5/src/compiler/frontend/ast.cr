@@ -2192,6 +2192,18 @@ module CrystalGPT5
         node.value
       end
 
+      def self.node_hash_entries(node : HashLiteralNode)
+        node.entries
+      end
+
+      def self.node_hash_of_key_type(node : HashLiteralNode)
+        node.of_key_type
+      end
+
+      def self.node_hash_of_value_type(node : HashLiteralNode)
+        node.of_value_type
+      end
+
       def self.node_break_value(node : TypedNode)
         nil
       end

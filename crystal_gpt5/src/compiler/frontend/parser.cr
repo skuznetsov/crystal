@@ -203,10 +203,9 @@ module CrystalGPT5
               last_val_span = @arena[values.last].span
               tuple_span = first_val_span.cover(last_val_span)
 
-              @arena.add(ExpressionNode.new(
-                ExpressionNode::Kind::TupleLiteral,
+              @arena.add_typed(TupleLiteralNode.new(
                 tuple_span,
-                tuple_elements: values
+                values
               ))
             else
               # Single value or explicit tuple
@@ -3978,13 +3977,12 @@ module CrystalGPT5
             # Phase 13: Handle range operators specially
             if token.kind == Token::Kind::DotDot || token.kind == Token::Kind::DotDotDot
               exclusive = token.kind == Token::Kind::DotDotDot
-              left = @arena.add(
-                ExpressionNode.new(
-                  ExpressionNode::Kind::Range,
+              left = @arena.add_typed(
+                RangeNode.new(
                   cover_optional_spans(node_span(left), token.span, node_span(right)),
-                  range_begin: left,
-                  range_end: right,
-                  range_exclusive: exclusive,
+                  left,
+                  right,
+                  exclusive
                 )
               )
             # Phase 23: Handle ternary operator specially
@@ -4251,11 +4249,10 @@ module CrystalGPT5
 
             closing_span = previous_token.try(&.span) || lbracket.span
             array_span = lbracket.span.cover(closing_span)
-            return @arena.add(ExpressionNode.new(
-              ExpressionNode::Kind::ArrayLiteral,
+            return @arena.add_typed(ArrayLiteralNode.new(
               array_span,
-              array_elements: elements,
-              array_of_type: of_type_expr
+              elements,
+              of_type_expr
             ))
           end
 
@@ -4299,11 +4296,10 @@ module CrystalGPT5
           end
 
           array_span = lbracket.span.cover(closing_bracket.span)
-          @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::ArrayLiteral,
+          @arena.add_typed(ArrayLiteralNode.new(
             array_span,
-            array_elements: elements,
-            array_of_type: of_type_expr
+            elements,
+            of_type_expr
           ))
         end
 
@@ -4359,12 +4355,11 @@ module CrystalGPT5
 
             closing_span = previous_token.try(&.span) || lbrace.span
             hash_span = lbrace.span.cover(closing_span)
-            return @arena.add(ExpressionNode.new(
-              ExpressionNode::Kind::HashLiteral,
+            return @arena.add_typed(HashLiteralNode.new(
               hash_span,
-              hash_entries: entries,
-              hash_of_key_type: of_key_type,
-              hash_of_value_type: of_value_type
+              entries,
+              of_key_type,
+              of_value_type
             ))
           end
 
@@ -4421,12 +4416,11 @@ module CrystalGPT5
           advance
 
           hash_span = lbrace.span.cover(closing_brace.span)
-          @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::HashLiteral,
+          @arena.add_typed(HashLiteralNode.new(
             hash_span,
-            hash_entries: entries,
-            hash_of_key_type: of_key_type,
-            hash_of_value_type: of_value_type
+            entries,
+            of_key_type,
+            of_value_type
           ))
         end
 
@@ -4522,10 +4516,9 @@ module CrystalGPT5
           advance
 
           tuple_span = lbrace.span.cover(closing_brace.span)
-          @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::TupleLiteral,
+          @arena.add_typed(TupleLiteralNode.new(
             tuple_span,
-            tuple_elements: elements
+            elements
           ))
         end
 
@@ -4627,10 +4620,9 @@ module CrystalGPT5
           advance
 
           named_tuple_span = lbrace.span.cover(closing_brace.span)
-          @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::NamedTupleLiteral,
+          @arena.add_typed(NamedTupleLiteralNode.new(
             named_tuple_span,
-            named_tuple_entries: entries
+            entries
           ))
         end
 
@@ -4681,12 +4673,11 @@ module CrystalGPT5
 
           # Use lbrace span as start, current as end (after "of K => V" if present)
           closing_span = lbrace.span.cover(lbrace.span)  # Minimal span for now
-          @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::HashLiteral,
+          @arena.add_typed(HashLiteralNode.new(
             closing_span,
-            hash_entries: entries,
-            hash_of_key_type: of_key_type,
-            hash_of_value_type: of_value_type
+            entries,
+            of_key_type,
+            of_value_type
           ))
         end
 
@@ -4761,10 +4752,9 @@ module CrystalGPT5
           advance
 
           hash_span = lbrace.span.cover(closing_brace.span)
-          @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::HashLiteral,
+          @arena.add_typed(HashLiteralNode.new(
             hash_span,
-            hash_entries: entries
+            entries
           ))
         end
 
