@@ -36,6 +36,9 @@ module CrystalGPT5
 
         @current_class : ClassSymbol?  # Phase 5C: Track current class for instance var types
 
+        # Debug flag - set via environment variable TYPE_INFERENCE_DEBUG=1
+        @@debug : Bool = ENV["TYPE_INFERENCE_DEBUG"]? == "1"
+
         def initialize(
           @program : Frontend::Program,
           @identifier_symbols : Hash(ExprId, Symbol),
@@ -46,6 +49,11 @@ module CrystalGPT5
           @assignments = {} of String => Type  # Track variable assignments: name → type
           @instance_var_types = {} of String => Type  # Phase 5A: Track instance variable types
           @current_class = nil
+        end
+
+        # Debug helper
+        private def debug(msg : String)
+          STDERR.puts "[TYPE_INFERENCE_DEBUG] #{msg}" if @@debug
         end
 
         # Main entry point: Infer types for all root expressions
@@ -649,22 +657,30 @@ module CrystalGPT5
           # Get operator text
           op = Frontend.node_operator_string(node) || ""
 
+          debug("infer_binary: op=#{op}, left_type=#{left_type}, right_type=#{right_type}")
+
           result_type = case op
           when "+", "-", "*", "/", "//", "%", "**", "<<", ">>", "&", "|", "^", "&+", "&-", "&*", "&**"
             # Phase 4B.3/4B.5/18/19/21/22/78/89: Try method lookup first for built-in methods
             # Phase 89: Wrapping arithmetic operators (&+, &-, &*, &**)
             if method = lookup_method(left_type, op, [right_type])
+              debug("  lookup_method found: #{method.name}, return_annotation=#{method.return_annotation.inspect}")
               if ann = method.return_annotation
-                parse_type_name(ann)
+                result = parse_type_name(ann)
+                debug("  parse_type_name(#{ann}) => #{result}")
+                result
               else
+                debug("  NO return_annotation, returning nil_type")
                 @context.nil_type
               end
             # Fallback: numeric promotion for untyped numeric operators
             # Exclude << (array push operator) as it has specific semantics
             elsif op != "<<" && numeric_type?(left_type) && numeric_type?(right_type)
+              debug("  fallback: numeric promotion")
               promote_numeric_types(left_type, right_type)
             else
               # No method found and not numeric types
+              debug("  NO method found, emitting error")
               emit_error("Operator '#{op}' not defined for #{left_type} and #{right_type}", expr_id)
               @context.nil_type
             end

@@ -2135,6 +2135,14 @@ module CrystalGPT5
         node.operator.try { |slice| String.new(slice) }
       end
 
+      def self.node_operator_string(node : BinaryNode) : String?
+        String.new(node.operator)
+      end
+
+      def self.node_operator_string(node : UnaryNode) : String?
+        String.new(node.operator)
+      end
+
       def self.node_operator_string(node : TypedNode) : String?
         nil
       end
