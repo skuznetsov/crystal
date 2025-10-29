@@ -1070,13 +1070,12 @@ module CrystalGPT5
             case_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Case,
+          @arena.add_typed(
+            CaseNode.new(
               case_span,
-              case_value: value,
-              when_branches: when_branches,
-              case_else: else_body,
+              value,
+              when_branches,
+              else_body
             )
           )
         end
@@ -1378,12 +1377,11 @@ module CrystalGPT5
             until_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Until,
+          @arena.add_typed(
+            UntilNode.new(
               until_span,
-              while_condition: condition,  # Reuse while_condition field
-              while_body: body_ids,        # Reuse while_body field
+              condition,
+              body_ids
             )
           )
         end
@@ -2913,13 +2911,13 @@ module CrystalGPT5
             condition_span = node_span(condition)
             if_span = stmt_span.cover(condition_span)
 
-            return @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::If,
+            return @arena.add_typed(
+              IfNode.new(
                 if_span,
-                if_condition: condition,
-                if_then: [stmt],
-                if_else: [] of ExprId
+                condition,
+                [stmt],
+                nil,
+                [] of ExprId
               )
             )
           end
@@ -2938,13 +2936,12 @@ module CrystalGPT5
             condition_span = node_span(condition)
             unless_span = stmt_span.cover(condition_span)
 
-            return @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Unless,
+            return @arena.add_typed(
+              UnlessNode.new(
                 unless_span,
-                if_condition: condition,  # Reuse if_condition field
-                if_then: [stmt],          # Reuse if_then field
-                if_else: [] of ExprId     # Reuse if_else field (empty)
+                condition,
+                [stmt],
+                [] of ExprId
               )
             )
           end
@@ -2963,12 +2960,11 @@ module CrystalGPT5
             condition_span = node_span(condition)
             while_span = stmt_span.cover(condition_span)
 
-            return @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::While,
+            return @arena.add_typed(
+              WhileNode.new(
                 while_span,
-                while_condition: condition,
-                while_body: [stmt]
+                condition,
+                [stmt]
               )
             )
           end
@@ -2987,12 +2983,11 @@ module CrystalGPT5
             condition_span = node_span(condition)
             until_span = stmt_span.cover(condition_span)
 
-            return @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Until,
+            return @arena.add_typed(
+              UntilNode.new(
                 until_span,
-                while_condition: condition,  # Reuse while_condition field
-                while_body: [stmt]           # Reuse while_body field
+                condition,
+                [stmt]
               )
             )
           end

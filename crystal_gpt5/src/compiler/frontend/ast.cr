@@ -2204,6 +2204,18 @@ module CrystalGPT5
         node.of_value_type
       end
 
+      def self.node_case_value(node : CaseNode)
+        node.value
+      end
+
+      def self.node_when_branches(node : CaseNode)
+        node.when_branches
+      end
+
+      def self.node_case_else(node : CaseNode)
+        node.else_branch
+      end
+
       def self.node_break_value(node : TypedNode)
         nil
       end
