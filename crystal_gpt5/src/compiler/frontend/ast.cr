@@ -1991,6 +1991,10 @@ module CrystalGPT5
         node.name
       end
 
+      def self.node_literal(node : InstanceVarDeclNode) : Slice(UInt8)?
+        node.name
+      end
+
       # Default: return nil for nodes that don't have literal data
       def self.node_literal(node : TypedNode) : Slice(UInt8)?
         nil
@@ -3195,10 +3199,19 @@ end
 
 # type_decl_type
 def self.node_type_decl_type(node : ExpressionNode)
-  node.type_decl_type
+  case node.kind
+  when ExpressionNode::Kind::InstanceVarDecl
+    node.ivar_decl_type
+  else
+    node.type_decl_type
+  end
 end
 
 def self.node_type_decl_type(node : TypeDeclarationNode)
+  node.type
+end
+
+def self.node_type_decl_type(node : InstanceVarDeclNode)
   node.type
 end
 
