@@ -13,8 +13,12 @@ bar")
 
     program.roots.size.should eq(2)
     arena = program.arena
-    first = arena[program.roots.first]
-    first.kind.should eq(ExprNode::Kind::Binary)
+    first_id = program.roots.first
+
+    # Check if it's a typed node (BinaryNode is migrated to typed)
+    arena.typed?(first_id).should be_true
+    first = arena.get_typed(first_id)
+    first.should be_a(CrystalGPT5::Compiler::Frontend::BinaryNode)
   end
 
   it "parses grouping, unary, and calls" do
@@ -24,18 +28,27 @@ bar")
 
     program.roots.size.should eq(1)
     arena = program.arena
-    root = arena[program.roots.first]
-    root.kind.should eq(ExprNode::Kind::Unary)
+    root_id = program.roots.first
 
-    grouping = arena[root.right.not_nil!]
-    grouping.kind.should eq(ExprNode::Kind::Grouping)
+    # UnaryNode is migrated to typed
+    arena.typed?(root_id).should be_true
+    root = arena.get_typed(root_id)
+    root.should be_a(CrystalGPT5::Compiler::Frontend::UnaryNode)
 
-    call_node = arena[grouping.left.not_nil!]
-    call_node.kind.should eq(ExprNode::Kind::Call)
-    call_node.args.not_nil!.size.should eq(1)
+    # Grouping is not migrated yet, use legacy API
+    grouping_id = root.as(CrystalGPT5::Compiler::Frontend::UnaryNode).operand
+    grouping = arena[grouping_id]
+    CrystalGPT5::Compiler::Frontend.node_kind(grouping).should eq(ExprNode::Kind::Grouping)
 
-    arg = arena[call_node.args.not_nil!.first]
-    arg.kind.should eq(ExprNode::Kind::Binary)
+    call_node = arena[CrystalGPT5::Compiler::Frontend.node_left(grouping).not_nil!]
+    CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(ExprNode::Kind::Call)
+    CrystalGPT5::Compiler::Frontend.node_args(call_node).not_nil!.size.should eq(1)
+
+    # Argument is BinaryNode (1 + 2), which is typed
+    arg_id = CrystalGPT5::Compiler::Frontend.node_args(call_node).not_nil!.first
+    arena.typed?(arg_id).should be_true
+    arg = arena.get_typed(arg_id)
+    arg.should be_a(CrystalGPT5::Compiler::Frontend::BinaryNode)
   end
 
   it "parses member access and indexing" do
@@ -47,15 +60,15 @@ bar")
     arena = program.arena
 
     root = arena[program.roots.first]
-    root.kind.should eq(ExprNode::Kind::Index)
+    CrystalGPT5::Compiler::Frontend.node_kind(root).should eq(ExprNode::Kind::Index)
 
     # Index uses 'left' field, not 'callee'
-    call_node = arena[root.left.not_nil!]
-    call_node.kind.should eq(ExprNode::Kind::Call)
+    call_node = arena[CrystalGPT5::Compiler::Frontend.node_left(root).not_nil!]
+    CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(ExprNode::Kind::Call)
 
-    member = arena[call_node.callee.not_nil!]
-    member.kind.should eq(ExprNode::Kind::MemberAccess)
-    member.member.try { |m| String.new(m) }.should eq("bar")
+    member = arena[CrystalGPT5::Compiler::Frontend.node_callee(call_node).not_nil!]
+    CrystalGPT5::Compiler::Frontend.node_kind(member).should eq(ExprNode::Kind::MemberAccess)
+    CrystalGPT5::Compiler::Frontend.node_member(member).try { |m| String.new(m) }.should eq("bar")
   end
 
   it "parses macro definitions with expression pieces" do
@@ -71,12 +84,12 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    macro_def.kind.should eq(ExprNode::Kind::MacroDef)
-    macro_def.macro_name.try { |slice| String.new(slice) }.should eq("my_macro")
+    CrystalGPT5::Compiler::Frontend.node_kind(macro_def).should eq(ExprNode::Kind::MacroDef)
+    CrystalGPT5::Compiler::Frontend.node_macro_name(macro_def).try { |slice| String.new(slice) }.should eq("my_macro")
 
-    body = arena[macro_def.left.not_nil!]
-    body.kind.should eq(ExprNode::Kind::MacroLiteral)
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    CrystalGPT5::Compiler::Frontend.node_kind(body).should eq(ExprNode::Kind::MacroLiteral)
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
     pieces.map(&.kind).should contain(CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Expression)
   end
 
@@ -99,8 +112,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
     pieces.map(&.kind).should contain(CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::ControlStart)
     pieces.map(&.kind).should contain(CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::ControlElse)
     pieces.map(&.kind).should contain(CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::ControlElseIf)
@@ -124,8 +137,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     expr_piece = pieces.find { |piece| piece.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Expression }
     expr_piece = expr_piece.not_nil!
@@ -148,8 +161,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     expr_piece = pieces.find { |piece| piece.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Expression }
     expr_piece = expr_piece.not_nil!
@@ -171,8 +184,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     pieces.size.should eq(2)
     expr_piece = pieces.find { |piece| piece.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Expression }.not_nil!
@@ -198,8 +211,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     # Should have ControlStart for while
     control_start = pieces.find { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::ControlStart }
@@ -226,8 +239,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     control_start = pieces.find { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::ControlStart }
     control_start.should_not be_nil
@@ -235,8 +248,8 @@ bar")
     control_start.not_nil!.trim_right.should be_true
 
     # Body should be properly trimmed
-    body.trim_left.should be_true
-    body.trim_right.should be_true
+    CrystalGPT5::Compiler::Frontend.node_trim_left(body).should be_true
+    CrystalGPT5::Compiler::Frontend.node_trim_right(body).should be_true
   end
 
   it "parses macro for loop" do
@@ -254,8 +267,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     # Should have ControlStart for for
     control_start = pieces.find { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::ControlStart }
@@ -285,8 +298,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     control_start = pieces.find { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::ControlStart }
     control_start.should_not be_nil
@@ -315,8 +328,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     # Should have ControlStart for comment
     control_start = pieces.find { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::ControlStart }
@@ -351,8 +364,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     control_start = pieces.find { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::ControlStart }
     control_start.should_not be_nil
@@ -389,8 +402,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     # Should have expression piece
     expr_piece = pieces.find { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Expression }
@@ -421,8 +434,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     expr_piece = pieces.find { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Expression }
     expr_piece.should_not be_nil
@@ -445,8 +458,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     expr_pieces = pieces.select { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Expression }
     expr_pieces.size.should eq(3)
@@ -479,8 +492,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     # Find control start piece
     control_start = pieces.find { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::ControlStart }
@@ -515,8 +528,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     # Find expression piece
     expr_piece = pieces.find { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Expression }
@@ -592,8 +605,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     # Should have text pieces with spans
     text_pieces = pieces.select { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Text }
@@ -620,8 +633,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     text_pieces = pieces.select { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Text }
     text_pieces.size.should eq(1)
@@ -649,8 +662,8 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    body = arena[macro_def.left.not_nil!]
-    pieces = body.macro_pieces.not_nil!
+    body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
+    pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
 
     text_pieces = pieces.select { |p| p.kind == CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Text }
     text_pieces.size.should be >= 2

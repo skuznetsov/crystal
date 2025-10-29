@@ -16,19 +16,19 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      assign_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
       # Right side is SafeNavigation node
-      safe_nav_node = arena[assign_node.assign_value.not_nil!]
-      safe_nav_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      safe_nav_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(safe_nav_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
 
       # Check member name
-      String.new(safe_nav_node.member.not_nil!).should eq("method")
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(safe_nav_node).not_nil!).should eq("method")
 
       # Check receiver
-      receiver = arena[safe_nav_node.left.not_nil!]
-      receiver.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
-      String.new(receiver.literal.not_nil!).should eq("obj")
+      receiver = arena[CrystalGPT5::Compiler::Frontend.node_left(safe_nav_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(receiver).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(receiver).not_nil!).should eq("obj")
     end
 
     it "parses safe navigation with complex receiver" do
@@ -43,14 +43,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      safe_nav_node = arena[assign_node.assign_value.not_nil!]
-      safe_nav_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      safe_nav_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(safe_nav_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
 
-      String.new(safe_nav_node.member.not_nil!).should eq("method")
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(safe_nav_node).not_nil!).should eq("method")
 
       # Check receiver is grouping
-      receiver = arena[safe_nav_node.left.not_nil!]
-      receiver.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
+      receiver = arena[CrystalGPT5::Compiler::Frontend.node_left(safe_nav_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(receiver).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
     end
 
     it "parses chained safe navigation" do
@@ -65,14 +65,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      outer_nav = arena[assign_node.assign_value.not_nil!]
-      outer_nav.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(outer_nav.member.not_nil!).should eq("method2")
+      outer_nav = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_nav).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(outer_nav).not_nil!).should eq("method2")
 
       # Inner safe navigation
-      inner_nav = arena[outer_nav.left.not_nil!]
-      inner_nav.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(inner_nav.member.not_nil!).should eq("method1")
+      inner_nav = arena[CrystalGPT5::Compiler::Frontend.node_left(outer_nav).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_nav).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(inner_nav).not_nil!).should eq("method1")
     end
 
     it "parses safe navigation in method call arguments" do
@@ -87,15 +87,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call_node = arena[program.roots[0]]
-      call_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
       # Check argument is safe navigation
-      args = call_node.args.not_nil!
+      args = call_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
       args.size.should eq(1)
 
       arg = arena[args[0]]
-      arg.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(arg.member.not_nil!).should eq("value")
+      CrystalGPT5::Compiler::Frontend.node_kind(arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(arg).not_nil!).should eq("value")
     end
 
     it "parses safe navigation in array literal" do
@@ -110,19 +110,19 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      array_node = arena[assign_node.assign_value.not_nil!]
-      array_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      array_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
 
-      elements = array_node.array_elements.not_nil!
+      elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array_node).not_nil!
       elements.size.should eq(2)
 
       first = arena[elements[0]]
-      first.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(first.member.not_nil!).should eq("val")
+      CrystalGPT5::Compiler::Frontend.node_kind(first).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(first).not_nil!).should eq("val")
 
       second = arena[elements[1]]
-      second.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(second.member.not_nil!).should eq("val")
+      CrystalGPT5::Compiler::Frontend.node_kind(second).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(second).not_nil!).should eq("val")
     end
 
     it "parses safe navigation in conditional" do
@@ -139,11 +139,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       if_node = arena[program.roots[0]]
-      if_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::If)
+      CrystalGPT5::Compiler::Frontend.node_kind(if_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::If)
 
-      condition = arena[if_node.if_condition.not_nil!]
-      condition.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(condition.member.not_nil!).should eq("active")
+      condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(if_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(condition).not_nil!).should eq("active")
     end
 
     it "parses safe navigation with method call" do
@@ -159,12 +159,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # After &.calculate, we expect (1, 2) to parse as call with safe navigation as callee
       call_node = arena[program.roots[0]]
-      call_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
       # Check callee is safe navigation
-      callee = arena[call_node.callee.not_nil!]
-      callee.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(callee.member.not_nil!).should eq("calculate")
+      callee = arena[call_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).callee.not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(callee).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(callee).not_nil!).should eq("calculate")
     end
 
     it "parses safe navigation in method definition" do
@@ -181,13 +181,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
 
-      def_body = method_node.def_body.not_nil!
+      def_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       def_body.size.should eq(1)
       body = arena[def_body[0]]
-      body.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(body.member.not_nil!).should eq("value")
+      CrystalGPT5::Compiler::Frontend.node_kind(body).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(body).not_nil!).should eq("value")
     end
 
     it "parses safe navigation in class method" do
@@ -206,18 +206,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      class_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(1)
       method = arena[class_body[0]]
-      method.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
 
-      method_def_body = method.def_body.not_nil!
+      method_def_body = CrystalGPT5::Compiler::Frontend.node_def_body(method).not_nil!
       method_def_body.size.should eq(1)
       def_body = arena[method_def_body[0]]
-      def_body.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(def_body.member.not_nil!).should eq("data")
+      CrystalGPT5::Compiler::Frontend.node_kind(def_body).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(def_body).not_nil!).should eq("data")
     end
 
     it "parses mixed safe and regular navigation" do
@@ -233,18 +233,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Outermost is &.method3
       outer_safe = arena[program.roots[0]]
-      outer_safe.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(outer_safe.member.not_nil!).should eq("method3")
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_safe).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(outer_safe).not_nil!).should eq("method3")
 
       # Next is .method2 (regular member access)
-      regular_access = arena[outer_safe.left.not_nil!]
-      regular_access.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
-      String.new(regular_access.member.not_nil!).should eq("method2")
+      regular_access = arena[CrystalGPT5::Compiler::Frontend.node_left(outer_safe).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(regular_access).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(regular_access).not_nil!).should eq("method2")
 
       # Innermost is &.method1
-      inner_safe = arena[regular_access.left.not_nil!]
-      inner_safe.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(inner_safe.member.not_nil!).should eq("method1")
+      inner_safe = arena[CrystalGPT5::Compiler::Frontend.node_left(regular_access).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_safe).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(inner_safe).not_nil!).should eq("method1")
     end
 
     it "parses safe navigation with return statement" do
@@ -261,16 +261,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
 
-      def_body = method_node.def_body.not_nil!
+      def_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       def_body.size.should eq(1)
       body = arena[def_body[0]]
-      body.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Return)
+      CrystalGPT5::Compiler::Frontend.node_kind(body).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Return)
 
-      return_value = arena[body.return_value.not_nil!]
-      return_value.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(return_value.member.not_nil!).should eq("value")
+      return_value = arena[CrystalGPT5::Compiler::Frontend.node_return_value(body).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(return_value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(return_value).not_nil!).should eq("value")
     end
 
     it "parses safe navigation on literal" do
@@ -285,12 +285,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       safe_nav_node = arena[program.roots[0]]
-      safe_nav_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
-      String.new(safe_nav_node.member.not_nil!).should eq("upcase")
+      CrystalGPT5::Compiler::Frontend.node_kind(safe_nav_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::SafeNavigation)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(safe_nav_node).not_nil!).should eq("upcase")
 
       # Check receiver is string literal
-      receiver = arena[safe_nav_node.left.not_nil!]
-      receiver.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      receiver = arena[CrystalGPT5::Compiler::Frontend.node_left(safe_nav_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(receiver).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
     end
   end
 end

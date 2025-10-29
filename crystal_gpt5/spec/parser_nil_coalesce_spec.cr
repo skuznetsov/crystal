@@ -14,8 +14,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("??")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("??")
     end
 
     it "parses nil-coalescing with literals" do
@@ -28,16 +28,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("??")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("??")
 
       # Left side should be nil
-      left = arena[binary.left.not_nil!]
-      left.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Nil)
+      left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Nil)
 
       # Right side should be number
-      right = arena[binary.right.not_nil!]
-      right.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      right = arena[CrystalGPT5::Compiler::Frontend.node_right(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
     end
 
     it "parses nil-coalescing in assignment" do
@@ -50,11 +50,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
-      value = arena[assign.assign_value.not_nil!]
-      value.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(value.operator.not_nil!).should eq("??")
+      value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(value).not_nil!).should eq("??")
     end
 
     it "parses nil-coalescing with method call" do
@@ -67,18 +67,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
-      value = arena[assign.assign_value.not_nil!]
-      value.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(value.operator.not_nil!).should eq("??")
+      value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(value).not_nil!).should eq("??")
 
       # Both sides should be method calls
-      left = arena[value.left.not_nil!]
-      left.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      left = arena[CrystalGPT5::Compiler::Frontend.node_left(value).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
-      right = arena[value.right.not_nil!]
-      right.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      right = arena[CrystalGPT5::Compiler::Frontend.node_right(value).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
     end
 
     it "parses chained nil-coalescing" do
@@ -92,13 +92,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Should parse as (a ?? b) ?? c due to left-associativity
       outer = arena[program.roots[0]]
-      outer.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(outer.operator.not_nil!).should eq("??")
+      CrystalGPT5::Compiler::Frontend.node_kind(outer).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(outer).not_nil!).should eq("??")
 
       # Left side should be another ??
-      inner = arena[outer.left.not_nil!]
-      inner.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(inner.operator.not_nil!).should eq("??")
+      inner = arena[CrystalGPT5::Compiler::Frontend.node_left(outer).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(inner).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(inner).not_nil!).should eq("??")
     end
 
     it "parses nil-coalescing in if condition" do
@@ -115,11 +115,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       if_node = arena[program.roots[0]]
-      if_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::If)
+      CrystalGPT5::Compiler::Frontend.node_kind(if_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::If)
 
-      condition = arena[if_node.if_condition.not_nil!]
-      condition.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(condition.operator.not_nil!).should eq("??")
+      condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(if_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(condition).not_nil!).should eq("??")
     end
 
     it "parses nil-coalescing as method argument" do
@@ -132,14 +132,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
-      args = call.args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       arg = arena[args[0]]
-      arg.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(arg.operator.not_nil!).should eq("??")
+      CrystalGPT5::Compiler::Frontend.node_kind(arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(arg).not_nil!).should eq("??")
     end
 
     it "parses nil-coalescing with array/hash access" do
@@ -152,12 +152,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("??")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("??")
 
       # Left side should be index access
-      left = arena[binary.left.not_nil!]
-      left.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Index)
+      left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Index)
     end
 
     it "disambiguates ?? from ? (ternary)" do
@@ -174,18 +174,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First: b ? c : d (ternary)
       assign1 = arena[program.roots[0]]
-      assign1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
-      ternary = arena[assign1.assign_value.not_nil!]
-      ternary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Ternary)
+      ternary = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign1).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(ternary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Ternary)
 
       # Second: f ?? g (nil-coalescing)
       assign2 = arena[program.roots[1]]
-      assign2.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
-      nil_coalesce = arena[assign2.assign_value.not_nil!]
-      nil_coalesce.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(nil_coalesce.operator.not_nil!).should eq("??")
+      nil_coalesce = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign2).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(nil_coalesce).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(nil_coalesce).not_nil!).should eq("??")
     end
 
     it "parses nil-coalescing with complex expressions" do
@@ -198,12 +198,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("??")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("??")
 
       # Left side should be grouping
-      left = arena[binary.left.not_nil!]
-      left.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
+      left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
     end
   end
 end

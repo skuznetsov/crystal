@@ -342,7 +342,7 @@ module CrystalGPT5
               # Remove @ prefix
               var_name = var_name[1..-1] if var_name.starts_with?("@")
 
-              type_annotation = Frontend.node_type_decl_type(node).try { |slice| String.new(slice) }
+              type_annotation = Frontend.node_ivar_decl_type(node).try { |slice| String.new(slice) }
               class_symbol.add_instance_var(var_name, type_annotation)
             end
           when ExpressionNode::Kind::Assign

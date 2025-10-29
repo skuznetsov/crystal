@@ -14,9 +14,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
 
-      String.new(binary.operator.not_nil!).should eq("//")
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("//")
     end
 
     it "parses floor division with negative numbers" do
@@ -29,9 +29,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
 
-      String.new(binary.operator.not_nil!).should eq("//")
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("//")
     end
 
     it "parses floor division in expression" do
@@ -44,11 +44,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
-      value = arena[assign.assign_value.not_nil!]
-      value.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(value.operator.not_nil!).should eq("//")
+      value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(value).not_nil!).should eq("//")
     end
 
     it "parses floor division compound assignment" do
@@ -61,12 +61,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
       # Should desugar to: x = x // 3
-      value = arena[assign.assign_value.not_nil!]
-      value.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(value.operator.not_nil!).should eq("//")
+      value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(value).not_nil!).should eq("//")
     end
 
     it "distinguishes floor division from regular division" do
@@ -80,12 +80,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Left-associative: (a / b) // c
       binary1 = arena[program.roots[0]]
-      binary1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary1.operator.not_nil!).should eq("//")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary1).not_nil!).should eq("//")
 
-      left = arena[binary1.left.not_nil!]
-      left.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(left.operator.not_nil!).should eq("/")
+      left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary1).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(left).not_nil!).should eq("/")
     end
 
     it "parses floor division with precedence" do
@@ -99,12 +99,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Should parse as: 2 + (10 // 3) due to precedence
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("+")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("+")
 
-      right = arena[binary.right.not_nil!]
-      right.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(right.operator.not_nil!).should eq("//")
+      right = arena[CrystalGPT5::Compiler::Frontend.node_right(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(right).not_nil!).should eq("//")
     end
 
     it "parses floor division as method argument" do
@@ -117,14 +117,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
-      args = call.args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       arg = arena[args[0]]
-      arg.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(arg.operator.not_nil!).should eq("//")
+      CrystalGPT5::Compiler::Frontend.node_kind(arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(arg).not_nil!).should eq("//")
     end
 
     it "parses floor division in array" do
@@ -137,14 +137,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array = arena[program.roots[0]]
-      array.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
 
-      elements = array.array_elements.not_nil!
+      elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array).not_nil!
       elements.size.should eq(2)
 
       elem1 = arena[elements[0]]
-      elem1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(elem1.operator.not_nil!).should eq("//")
+      CrystalGPT5::Compiler::Frontend.node_kind(elem1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(elem1).not_nil!).should eq("//")
     end
 
     it "parses chained floor division" do
@@ -158,12 +158,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Left-associative: (100 // 10) // 2
       binary1 = arena[program.roots[0]]
-      binary1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary1.operator.not_nil!).should eq("//")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary1).not_nil!).should eq("//")
 
-      left = arena[binary1.left.not_nil!]
-      left.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(left.operator.not_nil!).should eq("//")
+      left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary1).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(left).not_nil!).should eq("//")
     end
 
     it "parses floor division with parentheses" do
@@ -176,11 +176,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("//")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("//")
 
-      left = arena[binary.left.not_nil!]
-      left.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
+      left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
     end
   end
 end

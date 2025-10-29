@@ -92,7 +92,7 @@ module CrystalGPT5
 
           name = String.new(name_slice)
           params = Frontend.node_def_params(node) || [] of Frontend::Parameter
-          return_annotation = Frontend.node_def_return_type(node).try { |slice| String.new(slice) }
+          return_annotation = node.def_return_type.try { |slice| String.new(slice) }
 
           method_scope = SymbolTable.new(current_table)
           method_symbol = MethodSymbol.new(name, node_id, params: params, return_annotation: return_annotation, scope: method_scope)
@@ -131,7 +131,7 @@ module CrystalGPT5
           return unless name_slice
 
           name = String.new(name_slice)
-          super_name = Frontend.node_class_super_name(node).try { |slice| String.new(slice) }
+          super_name = node.class_super_name.try { |slice| String.new(slice) }
 
           table = current_table
           existing = table.lookup_local(name)
@@ -170,7 +170,7 @@ module CrystalGPT5
         # Uses immediate visit() pattern - generates AST node and immediately
         # processes it to register as MethodSymbol. No AST mutation needed.
         private def expand_accessor_macro(node_id : Frontend::ExprId, node : ExpressionNode | TypedNode)
-          specs = Frontend.node_accessor_specs(node)
+          specs = node.accessor_specs
           return unless specs
 
           specs.each do |spec|
@@ -296,7 +296,7 @@ module CrystalGPT5
         # If no: ignores (will be handled during type inference).
         private def handle_potential_macro_call(node_id : Frontend::ExprId, node : ExpressionNode | TypedNode)
           # Extract method name from call
-          callee_slice = Frontend.node_member(node)
+          callee_slice = node.member
           return unless callee_slice
 
           callee_name = String.new(callee_slice)
@@ -342,12 +342,12 @@ module CrystalGPT5
               # Remove @ prefix
               var_name = var_name[1..-1] if var_name.starts_with?("@")
 
-              type_annotation = Frontend.node_type_decl_type(node).try { |slice| String.new(slice) }
+              type_annotation = node.ivar_decl_type.try { |slice| String.new(slice) }
               class_symbol.add_instance_var(var_name, type_annotation)
             end
           when ExpressionNode::Kind::Assign
             # Check if assignment target is instance variable
-            target_id = Frontend.node_assign_target(node)
+            target_id = node.assign_target
             if target_id && !target_id.invalid?
               target_node = @arena[target_id]
               if Frontend.node_kind(target_node) == ExpressionNode::Kind::InstanceVar
@@ -371,19 +371,19 @@ module CrystalGPT5
             end
           when ExpressionNode::Kind::If
             # Scan if branches
-            if_then = Frontend.node_if_then(node) || [] of Frontend::ExprId
+            if_then = node.if_then || [] of Frontend::ExprId
             if_then.each { |e| scan_for_instance_vars(class_symbol, e) }
 
-            if_elsifs = Frontend.node_if_elsifs(node) || [] of Frontend::ElsifBranch
+            if_elsifs = node.if_elsifs || [] of Frontend::ElsifBranch
             if_elsifs.each do |elsif_branch|
               elsif_branch.body.each { |e| scan_for_instance_vars(class_symbol, e) }
             end
 
-            if_else = Frontend.node_if_else(node) || [] of Frontend::ExprId
+            if_else = node.if_else || [] of Frontend::ExprId
             if_else.each { |e| scan_for_instance_vars(class_symbol, e) }
           when ExpressionNode::Kind::While
             # Scan while body
-            while_body = Frontend.node_while_body(node) || [] of Frontend::ExprId
+            while_body = node.while_body || [] of Frontend::ExprId
             while_body.each { |e| scan_for_instance_vars(class_symbol, e) }
           end
         end

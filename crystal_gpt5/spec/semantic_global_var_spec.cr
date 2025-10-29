@@ -56,9 +56,9 @@ describe TypeInferenceEngine do
 
       arena = program.arena
       assign_node = arena[program.roots[0]]
-      value = arena[assign_node.assign_value.not_nil!]
+      value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
 
-      value_type = engine.context.get_type(assign_node.assign_value.not_nil!)
+      value_type = engine.context.get_type(CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!)
       value_type.should_not be_nil
     end
 
@@ -84,10 +84,10 @@ describe TypeInferenceEngine do
       assign1 = arena[program.roots[0]]
       assign2 = arena[program.roots[1]]
 
-      value1_type = engine.context.get_type(assign1.assign_value.not_nil!)
+      value1_type = engine.context.get_type(CrystalGPT5::Compiler::Frontend.node_assign_value(assign1).not_nil!)
       value1_type.should_not be_nil
 
-      value2_type = engine.context.get_type(assign2.assign_value.not_nil!)
+      value2_type = engine.context.get_type(CrystalGPT5::Compiler::Frontend.node_assign_value(assign2).not_nil!)
       value2_type.should_not be_nil
     end
   end

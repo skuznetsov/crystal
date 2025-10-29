@@ -89,7 +89,7 @@ module CrystalGPT5
           return unless pieces
 
           pieces.each do |piece|
-            case piece.kind
+            case Frontend.node_kind(piece)
             when Frontend::MacroPiece::Kind::Expression
               visit(piece.expr.not_nil!) if piece.expr
             when Frontend::MacroPiece::Kind::ControlStart,

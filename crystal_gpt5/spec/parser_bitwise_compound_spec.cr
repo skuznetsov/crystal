@@ -17,22 +17,22 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Should desugar to: flags = flags & mask
       assign_node = arena[program.roots[0]]
-      assign_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
       # Value is binary expression: flags & mask
-      binary_node = arena[assign_node.assign_value.not_nil!]
-      binary_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary_node.operator.not_nil!).should eq("&")
+      binary_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(binary_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary_node).not_nil!).should eq("&")
 
       # Left side is 'flags'
-      left = arena[binary_node.left.not_nil!]
-      left.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
-      String.new(left.literal.not_nil!).should eq("flags")
+      left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(left).not_nil!).should eq("flags")
 
       # Right side is 'mask'
-      right = arena[binary_node.right.not_nil!]
-      right.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
-      String.new(right.literal.not_nil!).should eq("mask")
+      right = arena[CrystalGPT5::Compiler::Frontend.node_right(binary_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(right).not_nil!).should eq("mask")
     end
 
     it "parses simple |= assignment" do
@@ -47,8 +47,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      binary_node = arena[assign_node.assign_value.not_nil!]
-      String.new(binary_node.operator.not_nil!).should eq("|")
+      binary_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary_node).not_nil!).should eq("|")
     end
 
     it "parses simple ^= assignment" do
@@ -63,8 +63,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      binary_node = arena[assign_node.assign_value.not_nil!]
-      String.new(binary_node.operator.not_nil!).should eq("^")
+      binary_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary_node).not_nil!).should eq("^")
     end
 
     it "parses simple <<= assignment" do
@@ -79,8 +79,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      binary_node = arena[assign_node.assign_value.not_nil!]
-      String.new(binary_node.operator.not_nil!).should eq("<<")
+      binary_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary_node).not_nil!).should eq("<<")
     end
 
     it "parses simple >>= assignment" do
@@ -95,8 +95,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      binary_node = arena[assign_node.assign_value.not_nil!]
-      String.new(binary_node.operator.not_nil!).should eq(">>")
+      binary_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary_node).not_nil!).should eq(">>")
     end
 
     it "parses &= with number literal" do
@@ -111,12 +111,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      binary_node = arena[assign_node.assign_value.not_nil!]
-      String.new(binary_node.operator.not_nil!).should eq("&")
+      binary_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary_node).not_nil!).should eq("&")
 
       # Right side is number
-      right = arena[binary_node.right.not_nil!]
-      right.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      right = arena[CrystalGPT5::Compiler::Frontend.node_right(binary_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
     end
 
     it "parses <<= with constant" do
@@ -131,12 +131,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      binary_node = arena[assign_node.assign_value.not_nil!]
-      String.new(binary_node.operator.not_nil!).should eq("<<")
+      binary_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary_node).not_nil!).should eq("<<")
 
       # Right side is identifier (constant)
-      right = arena[binary_node.right.not_nil!]
-      right.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      right = arena[CrystalGPT5::Compiler::Frontend.node_right(binary_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
     end
 
     it "parses multiple bitwise compound assignments" do
@@ -158,10 +158,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       operators = ["&", "|", "^", "<<", ">>"]
       (0..4).each do |i|
         assign = arena[program.roots[i]]
-        assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+        CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
-        binary = arena[assign.assign_value.not_nil!]
-        String.new(binary.operator.not_nil!).should eq(operators[i])
+        binary = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+        String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq(operators[i])
       end
     end
 
@@ -179,15 +179,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
 
-      def_body = method_node.def_body.not_nil!
+      def_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       def_body.size.should eq(1)
       assign = arena[def_body[0]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
-      binary = arena[assign.assign_value.not_nil!]
-      String.new(binary.operator.not_nil!).should eq("&")
+      binary = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("&")
     end
 
     it "parses bitwise compound in class" do
@@ -206,19 +206,19 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      class_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(1)
       method = arena[class_body[0]]
-      method.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
 
-      method_def_body = method.def_body.not_nil!
+      method_def_body = CrystalGPT5::Compiler::Frontend.node_def_body(method).not_nil!
       method_def_body.size.should eq(1)
       assign = arena[method_def_body[0]]
 
-      binary = arena[assign.assign_value.not_nil!]
-      String.new(binary.operator.not_nil!).should eq("<<")
+      binary = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("<<")
     end
 
     it "correctly distinguishes &= from &&= and &" do
@@ -237,23 +237,23 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First: x && y (logical and)
       assign1 = arena[program.roots[0]]
-      binary1 = arena[assign1.assign_value.not_nil!]
-      String.new(binary1.operator.not_nil!).should eq("&&")
+      binary1 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign1).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary1).not_nil!).should eq("&&")
 
       # Second: b &&= z (logical and assign)
       assign2 = arena[program.roots[1]]
-      binary2 = arena[assign2.assign_value.not_nil!]
-      String.new(binary2.operator.not_nil!).should eq("&&")
+      binary2 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign2).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary2).not_nil!).should eq("&&")
 
       # Third: c &= mask (bitwise and assign)
       assign3 = arena[program.roots[2]]
-      binary3 = arena[assign3.assign_value.not_nil!]
-      String.new(binary3.operator.not_nil!).should eq("&")
+      binary3 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign3).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary3).not_nil!).should eq("&")
 
       # Fourth: e & f (bitwise and)
       assign4 = arena[program.roots[3]]
-      binary4 = arena[assign4.assign_value.not_nil!]
-      String.new(binary4.operator.not_nil!).should eq("&")
+      binary4 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign4).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary4).not_nil!).should eq("&")
     end
 
     it "correctly distinguishes |= from ||= and |" do
@@ -274,8 +274,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       operators = ["||", "||", "|", "|"]
       (0..3).each do |i|
         assign = arena[program.roots[i]]
-        binary = arena[assign.assign_value.not_nil!]
-        String.new(binary.operator.not_nil!).should eq(operators[i])
+        binary = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+        String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq(operators[i])
       end
     end
 
@@ -294,18 +294,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First: x << y (left shift)
       assign1 = arena[program.roots[0]]
-      binary1 = arena[assign1.assign_value.not_nil!]
-      String.new(binary1.operator.not_nil!).should eq("<<")
+      binary1 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign1).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary1).not_nil!).should eq("<<")
 
       # Second: b <<= shift (left shift assign)
       assign2 = arena[program.roots[1]]
-      binary2 = arena[assign2.assign_value.not_nil!]
-      String.new(binary2.operator.not_nil!).should eq("<<")
+      binary2 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign2).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary2).not_nil!).should eq("<<")
 
       # Third: d < e (less than)
       assign3 = arena[program.roots[2]]
-      binary3 = arena[assign3.assign_value.not_nil!]
-      String.new(binary3.operator.not_nil!).should eq("<")
+      binary3 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign3).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary3).not_nil!).should eq("<")
     end
 
     it "correctly distinguishes >>= from >> and >" do
@@ -323,18 +323,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First: x >> y (right shift)
       assign1 = arena[program.roots[0]]
-      binary1 = arena[assign1.assign_value.not_nil!]
-      String.new(binary1.operator.not_nil!).should eq(">>")
+      binary1 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign1).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary1).not_nil!).should eq(">>")
 
       # Second: b >>= count (right shift assign)
       assign2 = arena[program.roots[1]]
-      binary2 = arena[assign2.assign_value.not_nil!]
-      String.new(binary2.operator.not_nil!).should eq(">>")
+      binary2 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign2).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary2).not_nil!).should eq(">>")
 
       # Third: d > e (greater than)
       assign3 = arena[program.roots[2]]
-      binary3 = arena[assign3.assign_value.not_nil!]
-      String.new(binary3.operator.not_nil!).should eq(">")
+      binary3 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign3).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary3).not_nil!).should eq(">")
     end
 
     it "parses all compound operators together" do
@@ -357,10 +357,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       operators = ["+", "&", "|", "^", "<<", ">>"]
       (0..5).each do |i|
         assign = arena[program.roots[i]]
-        assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+        CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
-        binary = arena[assign.assign_value.not_nil!]
-        String.new(binary.operator.not_nil!).should eq(operators[i])
+        binary = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+        String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq(operators[i])
       end
     end
   end

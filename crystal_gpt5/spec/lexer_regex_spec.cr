@@ -14,12 +14,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
       # Value is regex literal
-      regex = arena[assign.assign_value.not_nil!]
-      regex.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
-      String.new(regex.literal.not_nil!).should eq("abc")
+      regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(regex).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("abc")
     end
 
     it "parses regex with digits /\\d+/" do
@@ -32,9 +32,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      regex = arena[assign.assign_value.not_nil!]
-      regex.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
-      String.new(regex.literal.not_nil!).should eq("\\d+")
+      regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(regex).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("\\d+")
     end
 
     it "parses regex with word boundary /\\btest\\b/" do
@@ -47,8 +47,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      regex = arena[assign.assign_value.not_nil!]
-      String.new(regex.literal.not_nil!).should eq("\\btest\\b")
+      regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("\\btest\\b")
     end
 
     it "parses regex with escaped slash /a\\/b/" do
@@ -61,8 +61,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      regex = arena[assign.assign_value.not_nil!]
-      String.new(regex.literal.not_nil!).should eq("a\\/b")
+      regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("a\\/b")
     end
 
     it "parses regex with i flag /test/i" do
@@ -75,8 +75,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      regex = arena[assign.assign_value.not_nil!]
-      String.new(regex.literal.not_nil!).should eq("test/i")
+      regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("test/i")
     end
 
     it "parses regex with multiple flags /abc/im" do
@@ -89,8 +89,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      regex = arena[assign.assign_value.not_nil!]
-      String.new(regex.literal.not_nil!).should eq("abc/im")
+      regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("abc/im")
     end
 
     it "parses regex with m and x flags /pattern/mx" do
@@ -103,8 +103,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      regex = arena[assign.assign_value.not_nil!]
-      String.new(regex.literal.not_nil!).should eq("pattern/mx")
+      regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("pattern/mx")
     end
 
     it "parses regex in array" do
@@ -117,18 +117,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array = arena[program.roots[0]]
-      array.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
 
-      elements = array.array_elements.not_nil!
+      elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array).not_nil!
       elements.size.should eq(2)
 
       regex1 = arena[elements[0]]
-      regex1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
-      String.new(regex1.literal.not_nil!).should eq("abc")
+      CrystalGPT5::Compiler::Frontend.node_kind(regex1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex1).not_nil!).should eq("abc")
 
       regex2 = arena[elements[1]]
-      regex2.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
-      String.new(regex2.literal.not_nil!).should eq("def")
+      CrystalGPT5::Compiler::Frontend.node_kind(regex2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex2).not_nil!).should eq("def")
     end
 
     it "parses regex in method call" do
@@ -141,14 +141,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
-      args = call.args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       regex = arena[args[0]]
-      regex.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
-      String.new(regex.literal.not_nil!).should eq("pattern")
+      CrystalGPT5::Compiler::Frontend.node_kind(regex).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("pattern")
     end
 
     it "parses regex with character classes /[a-z]+/" do
@@ -161,8 +161,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      regex = arena[assign.assign_value.not_nil!]
-      String.new(regex.literal.not_nil!).should eq("[a-z]+")
+      regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("[a-z]+")
     end
 
     it "parses regex with groups /(foo|bar)/" do
@@ -175,8 +175,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      regex = arena[assign.assign_value.not_nil!]
-      String.new(regex.literal.not_nil!).should eq("(foo|bar)")
+      regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("(foo|bar)")
     end
 
     it "parses multiple regex with different patterns" do
@@ -197,9 +197,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       literals = ["abc", "\\d+", "test/i", "[a-z]/m"]
       (0..3).each do |i|
         assign = arena[program.roots[i]]
-        regex = arena[assign.assign_value.not_nil!]
-        regex.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
-        String.new(regex.literal.not_nil!).should eq(literals[i])
+        regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+        CrystalGPT5::Compiler::Frontend.node_kind(regex).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
+        String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq(literals[i])
       end
     end
 
@@ -213,9 +213,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      binary = arena[assign.assign_value.not_nil!]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("/")
+      binary = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("/")
     end
 
     it "distinguishes division from regex after identifier" do
@@ -228,9 +228,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      binary = arena[assign.assign_value.not_nil!]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("/")
+      binary = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("/")
     end
 
     it "parses regex after comma in array" do
@@ -243,16 +243,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array = arena[program.roots[0]]
-      elements = array.array_elements.not_nil!
+      elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array).not_nil!
       elements.size.should eq(2)
 
       # First element is number
       num = arena[elements[0]]
-      num.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      CrystalGPT5::Compiler::Frontend.node_kind(num).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
 
       # Second element is regex
       regex = arena[elements[1]]
-      regex.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
+      CrystalGPT5::Compiler::Frontend.node_kind(regex).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
     end
 
     it "parses regex with backslash escapes /\\n\\t/" do
@@ -265,9 +265,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      regex = arena[assign.assign_value.not_nil!]
+      regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
       # Escapes are preserved for regex engine
-      String.new(regex.literal.not_nil!).should eq("\\n\\t")
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("\\n\\t")
     end
 
     it "parses empty regex //" do
@@ -280,9 +280,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      regex = arena[assign.assign_value.not_nil!]
-      regex.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
-      String.new(regex.literal.not_nil!).should eq("")
+      regex = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(regex).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Regex)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(regex).not_nil!).should eq("")
     end
   end
 end

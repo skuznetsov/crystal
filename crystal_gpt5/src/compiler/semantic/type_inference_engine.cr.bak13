@@ -1870,11 +1870,11 @@ module CrystalGPT5
           case Frontend.node_kind(callee_node)
           when .member_access?
             # foo.bar(x) → receiver=foo, method=bar
-            receiver_id = Frontend.node_left(callee_node)
+            receiver_id = callee_node.left
             return @context.nil_type unless receiver_id
 
             receiver_type = infer_expression(receiver_id)
-            method_name = Frontend.node_member_string(callee_node)
+            method_name = callee_node.member_string
           when .identifier?
             # bar(x) → implicit self (not supported yet in Phase 4A)
             # But we still inferred the block above, so return nil_type for the call itself

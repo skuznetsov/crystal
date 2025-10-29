@@ -78,7 +78,7 @@ describe TypeInferenceEngine do
 
       arena = program.arena
       proc_node = arena[program.roots[0]]
-      body = proc_node.block_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_block_body(proc_node).not_nil!
 
       # Body expression should have a type inferred
       body_expr_type = engine.context.get_type(body[0])

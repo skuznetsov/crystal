@@ -16,21 +16,21 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      assign_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
       # Value side is pointerof
-      pointerof_expr = assign_node.assign_value.not_nil!
+      pointerof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       pointerof_node = arena[pointerof_expr]
-      pointerof_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
+      CrystalGPT5::Compiler::Frontend.node_kind(pointerof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
 
       # Check arguments
-      args = pointerof_node.pointerof_args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_pointerof_args(pointerof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is identifier Int32
       arg_node = arena[args[0]]
-      arg_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
-      String.new(arg_node.literal.not_nil!).should eq("Int32")
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(arg_node).not_nil!).should eq("Int32")
     end
 
     it "parses pointerof with variable" do
@@ -47,18 +47,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Second statement is assignment with pointerof
       assign_node = arena[program.roots[1]]
-      pointerof_expr = assign_node.assign_value.not_nil!
+      pointerof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       pointerof_node = arena[pointerof_expr]
 
-      pointerof_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
+      CrystalGPT5::Compiler::Frontend.node_kind(pointerof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
 
-      args = pointerof_node.pointerof_args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_pointerof_args(pointerof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is identifier x
       arg_node = arena[args[0]]
-      arg_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
-      String.new(arg_node.literal.not_nil!).should eq("x")
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(arg_node).not_nil!).should eq("x")
     end
 
     it "parses pointerof with expression" do
@@ -73,17 +73,17 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      pointerof_expr = assign_node.assign_value.not_nil!
+      pointerof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       pointerof_node = arena[pointerof_expr]
 
-      pointerof_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
+      CrystalGPT5::Compiler::Frontend.node_kind(pointerof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
 
-      args = pointerof_node.pointerof_args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_pointerof_args(pointerof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is binary expression
       arg_node = arena[args[0]]
-      arg_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
     end
 
     it "parses pointerof with array literal" do
@@ -98,17 +98,17 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      pointerof_expr = assign_node.assign_value.not_nil!
+      pointerof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       pointerof_node = arena[pointerof_expr]
 
-      pointerof_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
+      CrystalGPT5::Compiler::Frontend.node_kind(pointerof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
 
-      args = pointerof_node.pointerof_args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_pointerof_args(pointerof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is array literal
       arg_node = arena[args[0]]
-      arg_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
     end
 
     it "parses pointerof in method definition" do
@@ -126,12 +126,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      method_body = method_node.def_body.not_nil!
+      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       method_body.size.should eq(2)
 
       # Last statement is pointerof
       pointerof_node = arena[method_body[1]]
-      pointerof_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
+      CrystalGPT5::Compiler::Frontend.node_kind(pointerof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
     end
 
     it "parses pointerof in class" do
@@ -151,13 +151,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
-      method_body = method_node.def_body.not_nil!
+      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
 
       # Last statement is pointerof
       pointerof_node = arena[method_body[1]]
-      pointerof_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
+      CrystalGPT5::Compiler::Frontend.node_kind(pointerof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
     end
 
     it "parses nested pointerof" do
@@ -172,25 +172,25 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      outer_pointerof_expr = assign_node.assign_value.not_nil!
+      outer_pointerof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       outer_pointerof = arena[outer_pointerof_expr]
 
-      outer_pointerof.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_pointerof).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
 
       # Outer pointerof has one argument
-      outer_args = outer_pointerof.pointerof_args.not_nil!
+      outer_args = CrystalGPT5::Compiler::Frontend.node_pointerof_args(outer_pointerof).not_nil!
       outer_args.size.should eq(1)
 
       # That argument is also a pointerof
       inner_pointerof = arena[outer_args[0]]
-      inner_pointerof.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_pointerof).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
 
       # Inner pointerof has one argument (Int32)
-      inner_args = inner_pointerof.pointerof_args.not_nil!
+      inner_args = CrystalGPT5::Compiler::Frontend.node_pointerof_args(inner_pointerof).not_nil!
       inner_args.size.should eq(1)
 
       identifier_node = arena[inner_args[0]]
-      identifier_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(identifier_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
     end
 
     it "parses pointerof with method call" do
@@ -205,17 +205,17 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      pointerof_expr = assign_node.assign_value.not_nil!
+      pointerof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       pointerof_node = arena[pointerof_expr]
 
-      pointerof_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
+      CrystalGPT5::Compiler::Frontend.node_kind(pointerof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
 
-      args = pointerof_node.pointerof_args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_pointerof_args(pointerof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is member access (foo.bar)
       arg_node = arena[args[0]]
-      arg_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
     end
 
     it "parses pointerof with self" do
@@ -234,20 +234,20 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
-      method_body = method_node.def_body.not_nil!
+      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
 
       # Method body has pointerof
       pointerof_node = arena[method_body[0]]
-      pointerof_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
+      CrystalGPT5::Compiler::Frontend.node_kind(pointerof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Pointerof)
 
-      args = pointerof_node.pointerof_args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_pointerof_args(pointerof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is self
       arg_node = arena[args[0]]
-      arg_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Self)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Self)
     end
   end
 end

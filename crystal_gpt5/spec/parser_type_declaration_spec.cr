@@ -14,10 +14,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      type_decl.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
 
-      String.new(type_decl.type_decl_name.not_nil!).should eq("x")
-      String.new(type_decl.type_decl_type.not_nil!).should eq("Int32")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("x")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("Int32")
     end
 
     it "parses type declaration with String type" do
@@ -30,10 +30,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      type_decl.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
 
-      String.new(type_decl.type_decl_name.not_nil!).should eq("name")
-      String.new(type_decl.type_decl_type.not_nil!).should eq("String")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("name")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("String")
     end
 
     it "parses type declaration with custom type" do
@@ -46,10 +46,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      type_decl.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
 
-      String.new(type_decl.type_decl_name.not_nil!).should eq("user")
-      String.new(type_decl.type_decl_type.not_nil!).should eq("User")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("user")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("User")
     end
 
     it "parses multiple type declarations" do
@@ -67,21 +67,21 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First declaration
       decl1 = arena[program.roots[0]]
-      decl1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
-      String.new(decl1.type_decl_name.not_nil!).should eq("x")
-      String.new(decl1.type_decl_type.not_nil!).should eq("Int32")
+      CrystalGPT5::Compiler::Frontend.node_kind(decl1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(decl1).not_nil!).should eq("x")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(decl1).not_nil!).should eq("Int32")
 
       # Second declaration
       decl2 = arena[program.roots[1]]
-      decl2.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
-      String.new(decl2.type_decl_name.not_nil!).should eq("y")
-      String.new(decl2.type_decl_type.not_nil!).should eq("String")
+      CrystalGPT5::Compiler::Frontend.node_kind(decl2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(decl2).not_nil!).should eq("y")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(decl2).not_nil!).should eq("String")
 
       # Third declaration
       decl3 = arena[program.roots[2]]
-      decl3.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
-      String.new(decl3.type_decl_name.not_nil!).should eq("z")
-      String.new(decl3.type_decl_type.not_nil!).should eq("Bool")
+      CrystalGPT5::Compiler::Frontend.node_kind(decl3).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(decl3).not_nil!).should eq("z")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(decl3).not_nil!).should eq("Bool")
     end
 
     it "parses type declaration followed by assignment" do
@@ -98,11 +98,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First: type declaration
       decl = arena[program.roots[0]]
-      decl.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
 
       # Second: assignment
       assign = arena[program.roots[1]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
     end
 
     it "parses type declaration inside class" do
@@ -119,15 +119,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      class_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
 
-      body = class_node.class_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       body.size.should eq(1)
 
       decl = arena[body[0]]
-      decl.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
-      String.new(decl.type_decl_name.not_nil!).should eq("x")
-      String.new(decl.type_decl_type.not_nil!).should eq("Int32")
+      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(decl).not_nil!).should eq("x")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(decl).not_nil!).should eq("Int32")
     end
 
     it "parses type declaration inside method" do
@@ -144,13 +144,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
 
-      body = method_node.def_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       body.size.should eq(1)
 
       decl = arena[body[0]]
-      decl.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
     end
 
     it "parses type declaration with spaces" do
@@ -163,9 +163,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      type_decl.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
-      String.new(type_decl.type_decl_name.not_nil!).should eq("x")
-      String.new(type_decl.type_decl_type.not_nil!).should eq("Int32")
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("x")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("Int32")
     end
 
     it "parses type declaration with Array type" do
@@ -178,9 +178,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      type_decl.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
-      String.new(type_decl.type_decl_name.not_nil!).should eq("items")
-      String.new(type_decl.type_decl_type.not_nil!).should eq("Array")
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("items")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("Array")
     end
 
     it "parses type declaration with Hash type" do
@@ -193,9 +193,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      type_decl.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
-      String.new(type_decl.type_decl_name.not_nil!).should eq("data")
-      String.new(type_decl.type_decl_type.not_nil!).should eq("Hash")
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("data")
+      String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("Hash")
     end
   end
 end

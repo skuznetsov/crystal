@@ -19,11 +19,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      select_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
+      CrystalGPT5::Compiler::Frontend.node_kind(select_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
 
       # Check select has no value (unlike case)
-      select_node.select_branches.should_not be_nil
-      branches = select_node.select_branches.not_nil!
+      CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).should_not be_nil
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(1)
 
       # First branch
@@ -51,9 +51,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      select_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
+      CrystalGPT5::Compiler::Frontend.node_kind(select_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
 
-      branches = select_node.select_branches.not_nil!
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(3)
 
       # Each branch has condition and body
@@ -78,12 +78,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      branches = select_node.select_branches.not_nil!
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(1)
 
       # Condition should be assignment expression
       condition_node = arena[branches[0].condition]
-      condition_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
     end
 
     it "parses select with else clause" do
@@ -103,13 +103,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      select_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
+      CrystalGPT5::Compiler::Frontend.node_kind(select_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
 
-      branches = select_node.select_branches.not_nil!
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(1)
 
       # Check else clause
-      else_body = select_node.select_else
+      else_body = CrystalGPT5::Compiler::Frontend.node_select_else(select_node)
       else_body.should_not be_nil
       else_body.not_nil!.size.should eq(1)
     end
@@ -128,7 +128,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      branches = select_node.select_branches.not_nil!
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(1)
       branches[0].body.size.should eq(1)
     end
@@ -148,12 +148,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      branches = select_node.select_branches.not_nil!
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(1)
 
       # Condition should be method call (send)
       condition_node = arena[branches[0].condition]
-      condition_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
     end
 
     it "parses select with timeout condition" do
@@ -171,12 +171,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      branches = select_node.select_branches.not_nil!
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(1)
 
       # Condition should be method call (timeout)
       condition_node = arena[branches[0].condition]
-      condition_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
     end
 
     it "parses select inside method definition" do
@@ -196,12 +196,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      method_body = method_node.def_body.not_nil!
+      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       method_body.size.should eq(1)
 
       # Method body contains select
       select_node = arena[method_body[0]]
-      select_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
+      CrystalGPT5::Compiler::Frontend.node_kind(select_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
     end
 
     it "parses select inside class" do
@@ -223,13 +223,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
-      method_body = method_node.def_body.not_nil!
+      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
 
       # Method body contains select
       select_node = arena[method_body[0]]
-      select_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
+      CrystalGPT5::Compiler::Frontend.node_kind(select_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
     end
 
     it "parses select with multiple statements in when body" do
@@ -249,7 +249,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      branches = select_node.select_branches.not_nil!
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(1)
 
       # Body should have 3 statements
@@ -271,12 +271,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      branches = select_node.select_branches.not_nil!
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(1)
 
       # Condition is assignment with receive? call
       condition_node = arena[branches[0].condition]
-      condition_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
     end
 
     it "parses select with mixed operations" do
@@ -300,11 +300,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      branches = select_node.select_branches.not_nil!
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(3)
 
       # Has else clause
-      else_body = select_node.select_else
+      else_body = CrystalGPT5::Compiler::Frontend.node_select_else(select_node)
       else_body.should_not be_nil
       else_body.not_nil!.size.should eq(1)
     end
@@ -327,15 +327,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       outer_select = arena[program.roots[0]]
-      outer_select.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_select).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
 
-      outer_branches = outer_select.select_branches.not_nil!
+      outer_branches = CrystalGPT5::Compiler::Frontend.node_select_branches(outer_select).not_nil!
       outer_branches.size.should eq(1)
 
       # Body of outer when contains inner select
       inner_select_id = outer_branches[0].body[0]
       inner_select = arena[inner_select_id]
-      inner_select.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_select).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
     end
 
     it "parses select as expression in assignment" do
@@ -353,12 +353,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      assign_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
       # Assignment value is select
-      select_id = assign_node.assign_value.not_nil!
+      select_id = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       select_node = arena[select_id]
-      select_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
+      CrystalGPT5::Compiler::Frontend.node_kind(select_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
     end
 
     it "parses select with empty when body" do
@@ -377,7 +377,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      branches = select_node.select_branches.not_nil!
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(2)
 
       # First branch has empty body
@@ -402,12 +402,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      branches = select_node.select_branches.not_nil!
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node).not_nil!
       branches.size.should eq(1)
 
       # Condition should be assignment
       condition_node = arena[branches[0].condition]
-      condition_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
     end
 
     it "parses select in loop" do
@@ -429,11 +429,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       loop_node = arena[program.roots[0]]
-      loop_body = loop_node.loop_body.not_nil!
+      loop_body = CrystalGPT5::Compiler::Frontend.node_loop_body(loop_node).not_nil!
 
       # Loop body contains select
       select_node = arena[loop_body[0]]
-      select_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
+      CrystalGPT5::Compiler::Frontend.node_kind(select_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
     end
 
     it "parses select with only else clause (immediate fallback)" do
@@ -451,16 +451,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       select_node = arena[program.roots[0]]
-      select_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
+      CrystalGPT5::Compiler::Frontend.node_kind(select_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Select)
 
       # No when branches
-      branches = select_node.select_branches
+      branches = CrystalGPT5::Compiler::Frontend.node_select_branches(select_node)
       if branches
         branches.should be_empty
       end
 
       # Only else clause
-      else_body = select_node.select_else
+      else_body = CrystalGPT5::Compiler::Frontend.node_select_else(select_node)
       else_body.should_not be_nil
       else_body.not_nil!.size.should eq(1)
     end

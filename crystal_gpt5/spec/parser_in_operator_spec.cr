@@ -14,9 +14,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
 
-      String.new(binary.operator.not_nil!).should eq("in")
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("in")
     end
 
     it "parses in with array literal" do
@@ -29,12 +29,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("in")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("in")
 
       # Right side should be array literal
-      right = arena[binary.right.not_nil!]
-      right.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      right = arena[CrystalGPT5::Compiler::Frontend.node_right(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
     end
 
     it "parses in with range" do
@@ -47,15 +47,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("in")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("in")
 
       # Right side should be grouping containing range
-      right_grouping = arena[binary.right.not_nil!]
-      right_grouping.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
+      right_grouping = arena[CrystalGPT5::Compiler::Frontend.node_right(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(right_grouping).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
 
-      right = arena[right_grouping.left.not_nil!]
-      right.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Range)
+      right = arena[CrystalGPT5::Compiler::Frontend.node_left(right_grouping).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Range)
     end
 
     it "parses in within if condition" do
@@ -72,11 +72,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       if_node = arena[program.roots[0]]
-      if_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::If)
+      CrystalGPT5::Compiler::Frontend.node_kind(if_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::If)
 
-      condition = arena[if_node.if_condition.not_nil!]
-      condition.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(condition.operator.not_nil!).should eq("in")
+      condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(if_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(condition).not_nil!).should eq("in")
     end
 
     it "parses negated in with not" do
@@ -90,15 +90,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Parentheses force !(value in list) parsing
       unary = arena[program.roots[0]]
-      unary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Unary)
+      CrystalGPT5::Compiler::Frontend.node_kind(unary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Unary)
 
       # Operand is grouping containing the binary "in" expression
-      operand_grouping = arena[unary.right.not_nil!]
-      operand_grouping.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
+      operand_grouping = arena[CrystalGPT5::Compiler::Frontend.node_right(unary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(operand_grouping).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
 
-      operand = arena[operand_grouping.left.not_nil!]
-      operand.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(operand.operator.not_nil!).should eq("in")
+      operand = arena[CrystalGPT5::Compiler::Frontend.node_left(operand_grouping).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(operand).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(operand).not_nil!).should eq("in")
     end
 
     it "parses in in assignment" do
@@ -111,11 +111,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
-      value = arena[assign.assign_value.not_nil!]
-      value.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(value.operator.not_nil!).should eq("in")
+      value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(value).not_nil!).should eq("in")
     end
 
     it "parses in as method argument" do
@@ -128,14 +128,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
-      args = call.args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       arg = arena[args[0]]
-      arg.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(arg.operator.not_nil!).should eq("in")
+      CrystalGPT5::Compiler::Frontend.node_kind(arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(arg).not_nil!).should eq("in")
     end
 
     it "parses in with complex left expression" do
@@ -148,12 +148,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("in")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("in")
 
       # Left side should be member access
-      left = arena[binary.left.not_nil!]
-      left.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+      left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
     end
 
     it "parses multiple in expressions" do
@@ -169,12 +169,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary1 = arena[program.roots[0]]
-      binary1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary1.operator.not_nil!).should eq("in")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary1).not_nil!).should eq("in")
 
       binary2 = arena[program.roots[1]]
-      binary2.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary2.operator.not_nil!).should eq("in")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary2).not_nil!).should eq("in")
     end
 
     it "parses in with parentheses" do
@@ -187,12 +187,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
-      String.new(binary.operator.not_nil!).should eq("in")
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      String.new(CrystalGPT5::Compiler::Frontend.node_operator(binary).not_nil!).should eq("in")
 
       # Left side should be grouping
-      left = arena[binary.left.not_nil!]
-      left.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
+      left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
     end
   end
 end

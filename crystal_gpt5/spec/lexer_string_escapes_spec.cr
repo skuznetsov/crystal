@@ -16,12 +16,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
       # Value is string with processed escape
-      string = arena[assign.assign_value.not_nil!]
-      string.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
-      String.new(string.literal.not_nil!).should eq("hello\nworld")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(string).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("hello\nworld")
     end
 
     it "parses string with \\t tab escape" do
@@ -36,8 +36,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
-      String.new(string.literal.not_nil!).should eq("name\tvalue")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("name\tvalue")
     end
 
     it "parses string with \\r carriage return escape" do
@@ -52,8 +52,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
-      String.new(string.literal.not_nil!).should eq("line1\rline2")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("line1\rline2")
     end
 
     it "parses string with \\\\ backslash escape" do
@@ -68,8 +68,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
-      String.new(string.literal.not_nil!).should eq("path\\to\\file")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("path\\to\\file")
     end
 
     it "parses string with \\\" quote escape" do
@@ -84,8 +84,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
-      String.new(string.literal.not_nil!).should eq("He said \"Hello\"")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("He said \"Hello\"")
     end
 
     it "parses string with \\0 null escape" do
@@ -100,8 +100,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
-      String.new(string.literal.not_nil!).should eq("before\0after")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("before\0after")
     end
 
     it "parses string with multiple escape sequences" do
@@ -116,8 +116,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
-      String.new(string.literal.not_nil!).should eq("line1\nline2\tindented\r\n")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("line1\nline2\tindented\r\n")
     end
 
     it "parses string without escapes (fast path)" do
@@ -132,8 +132,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
-      String.new(string.literal.not_nil!).should eq("simple string")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("simple string")
     end
 
     it "parses string with unknown escape (keeps as is)" do
@@ -148,9 +148,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
       # Unknown escape \x should be kept as \x
-      String.new(string.literal.not_nil!).should eq("test\\xunknown")
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("test\\xunknown")
     end
 
     it "parses escaped strings in array" do
@@ -165,17 +165,17 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      array = arena[assign.assign_value.not_nil!]
-      array.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      array = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
 
-      elements = array.array_elements.not_nil!
+      elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array).not_nil!
       elements.size.should eq(2)
 
       str1 = arena[elements[0]]
-      String.new(str1.literal.not_nil!).should eq("line1\nline2")
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str1).not_nil!).should eq("line1\nline2")
 
       str2 = arena[elements[1]]
-      String.new(str2.literal.not_nil!).should eq("tab\there")
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str2).not_nil!).should eq("tab\there")
     end
 
     it "parses escaped string in method call" do
@@ -190,14 +190,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
-      args = call.args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       string = arena[args[0]]
-      string.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
-      String.new(string.literal.not_nil!).should eq("hello\nworld")
+      CrystalGPT5::Compiler::Frontend.node_kind(string).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("hello\nworld")
     end
 
     it "parses all supported escapes together" do
@@ -212,8 +212,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
-      String.new(string.literal.not_nil!).should eq("\n\t\r\\\"\0")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("\n\t\r\\\"\0")
     end
 
     it "parses empty string" do
@@ -228,8 +228,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
-      String.new(string.literal.not_nil!).should eq("")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("")
     end
 
     it "parses string with escape at start" do
@@ -244,8 +244,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
-      String.new(string.literal.not_nil!).should eq("\nstart")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("\nstart")
     end
 
     it "parses string with escape at end" do
@@ -260,8 +260,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string = arena[assign.assign_value.not_nil!]
-      String.new(string.literal.not_nil!).should eq("end\n")
+      string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("end\n")
     end
 
     it "parses multiple strings with different escapes" do
@@ -279,16 +279,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Check all three assignments
       assign1 = arena[program.roots[0]]
-      str1 = arena[assign1.assign_value.not_nil!]
-      String.new(str1.literal.not_nil!).should eq("first\n")
+      str1 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign1).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str1).not_nil!).should eq("first\n")
 
       assign2 = arena[program.roots[1]]
-      str2 = arena[assign2.assign_value.not_nil!]
-      String.new(str2.literal.not_nil!).should eq("second\t")
+      str2 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign2).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str2).not_nil!).should eq("second\t")
 
       assign3 = arena[program.roots[2]]
-      str3 = arena[assign3.assign_value.not_nil!]
-      String.new(str3.literal.not_nil!).should eq("third\\")
+      str3 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign3).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str3).not_nil!).should eq("third\\")
     end
   end
 end

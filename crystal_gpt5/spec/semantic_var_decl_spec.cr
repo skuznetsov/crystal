@@ -50,7 +50,7 @@ describe TypeInferenceEngine do
 
         arena = program.arena
         class_node = arena[program.roots[0]]
-        body = class_node.class_body.not_nil!
+        body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
         decl_id = body[0]
 
         decl_type = engine.context.get_type(decl_id)
@@ -70,7 +70,7 @@ describe TypeInferenceEngine do
 
         arena = program.arena
         class_node = arena[program.roots[0]]
-        body = class_node.class_body.not_nil!
+        body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
 
         decl1_type = engine.context.get_type(body[0])
         decl1_type.should_not be_nil

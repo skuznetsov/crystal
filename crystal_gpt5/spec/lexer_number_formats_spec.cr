@@ -14,13 +14,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
       # Value is hexadecimal number
-      number = arena[assign.assign_value.not_nil!]
-      number.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
-      String.new(number.literal.not_nil!).should eq("0xFF")
-      number.number_kind.should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I32)
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(number).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0xFF")
+      CrystalGPT5::Compiler::Frontend.node_number_kind(number).should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I32)
     end
 
     it "parses hexadecimal with lowercase 0xff" do
@@ -33,9 +33,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      number = arena[assign.assign_value.not_nil!]
-      number.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
-      String.new(number.literal.not_nil!).should eq("0xff")
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(number).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0xff")
     end
 
     it "parses hexadecimal with uppercase X: 0XFF" do
@@ -48,8 +48,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      number = arena[assign.assign_value.not_nil!]
-      String.new(number.literal.not_nil!).should eq("0XFF")
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0XFF")
     end
 
     it "parses large hexadecimal 0x1A2B3C4D" do
@@ -62,8 +62,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      number = arena[assign.assign_value.not_nil!]
-      String.new(number.literal.not_nil!).should eq("0x1A2B3C4D")
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0x1A2B3C4D")
     end
 
     it "parses binary literal 0b1010" do
@@ -76,10 +76,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      number = arena[assign.assign_value.not_nil!]
-      number.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
-      String.new(number.literal.not_nil!).should eq("0b1010")
-      number.number_kind.should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I32)
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(number).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0b1010")
+      CrystalGPT5::Compiler::Frontend.node_number_kind(number).should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I32)
     end
 
     it "parses binary with uppercase B: 0B1111" do
@@ -92,8 +92,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      number = arena[assign.assign_value.not_nil!]
-      String.new(number.literal.not_nil!).should eq("0B1111")
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0B1111")
     end
 
     it "parses long binary 0b11110000" do
@@ -106,8 +106,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      number = arena[assign.assign_value.not_nil!]
-      String.new(number.literal.not_nil!).should eq("0b11110000")
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0b11110000")
     end
 
     it "parses octal literal 0o755" do
@@ -120,10 +120,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      number = arena[assign.assign_value.not_nil!]
-      number.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
-      String.new(number.literal.not_nil!).should eq("0o755")
-      number.number_kind.should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I32)
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(number).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0o755")
+      CrystalGPT5::Compiler::Frontend.node_number_kind(number).should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I32)
     end
 
     it "parses octal with uppercase O: 0O644" do
@@ -136,8 +136,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      number = arena[assign.assign_value.not_nil!]
-      String.new(number.literal.not_nil!).should eq("0O644")
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0O644")
     end
 
     it "parses hex with _i64 suffix" do
@@ -150,9 +150,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      number = arena[assign.assign_value.not_nil!]
-      String.new(number.literal.not_nil!).should eq("0xFF_i64")
-      number.number_kind.should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I64)
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0xFF_i64")
+      CrystalGPT5::Compiler::Frontend.node_number_kind(number).should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I64)
     end
 
     it "parses binary with _i64 suffix" do
@@ -165,9 +165,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      number = arena[assign.assign_value.not_nil!]
-      String.new(number.literal.not_nil!).should eq("0b1111_i64")
-      number.number_kind.should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I64)
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0b1111_i64")
+      CrystalGPT5::Compiler::Frontend.node_number_kind(number).should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I64)
     end
 
     it "parses octal with _i32 suffix" do
@@ -180,9 +180,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      number = arena[assign.assign_value.not_nil!]
-      String.new(number.literal.not_nil!).should eq("0o777_i32")
-      number.number_kind.should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I32)
+      number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0o777_i32")
+      CrystalGPT5::Compiler::Frontend.node_number_kind(number).should eq(CrystalGPT5::Compiler::Frontend::NumberKind::I32)
     end
 
     it "parses hex in array" do
@@ -195,14 +195,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array = arena[program.roots[0]]
-      array.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
-      elements = array.array_elements.not_nil!
+      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array).not_nil!
       elements.size.should eq(3)
 
       # Check all three are hex numbers
       (0..2).each do |i|
         element = arena[elements[i]]
-        element.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+        CrystalGPT5::Compiler::Frontend.node_kind(element).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
       end
     end
 
@@ -216,14 +216,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
-      args = call.args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       number = arena[args[0]]
-      number.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
-      String.new(number.literal.not_nil!).should eq("0b1010")
+      CrystalGPT5::Compiler::Frontend.node_kind(number).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq("0b1010")
     end
 
     it "parses octal in binary expression" do
@@ -236,16 +236,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      binary = arena[assign.assign_value.not_nil!]
-      binary.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      binary = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
 
-      left = arena[binary.left.not_nil!]
-      left.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
-      String.new(left.literal.not_nil!).should eq("0o10")
+      left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(left).not_nil!).should eq("0o10")
 
-      right = arena[binary.right.not_nil!]
-      right.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
-      String.new(right.literal.not_nil!).should eq("0o20")
+      right = arena[CrystalGPT5::Compiler::Frontend.node_right(binary).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(right).not_nil!).should eq("0o20")
     end
 
     it "distinguishes 0 from 0x, 0b, 0o" do
@@ -266,11 +266,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       literals = ["0", "0x0", "0b0", "0o0"]
       (0..3).each do |i|
         assign = arena[program.roots[i]]
-        assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+        CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
-        number = arena[assign.assign_value.not_nil!]
-        number.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
-        String.new(number.literal.not_nil!).should eq(literals[i])
+        number = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+        CrystalGPT5::Compiler::Frontend.node_kind(number).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+        String.new(CrystalGPT5::Compiler::Frontend.node_literal(number).not_nil!).should eq(literals[i])
       end
     end
 
@@ -284,12 +284,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
       # Value is complex binary expression with multiple additions
       # Just verify it parses without error
-      value = arena[assign.assign_value.not_nil!]
-      value.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
     end
   end
 end

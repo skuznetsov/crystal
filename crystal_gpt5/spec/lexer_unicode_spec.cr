@@ -16,9 +16,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      string_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
-      String.new(string_node.literal.not_nil!).should eq("A")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(string_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("A")
     end
 
     it "parses \\uXXXX BMP character in string" do
@@ -31,8 +31,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("一")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("一")
     end
 
     it "parses \\u{X} variable length in string" do
@@ -45,8 +45,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("A")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("A")
     end
 
     it "parses \\u{XXXX} emoji in string" do
@@ -59,8 +59,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("😀")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("😀")
     end
 
     it "parses multiple Unicode escapes in string" do
@@ -73,8 +73,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("ABC")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("ABC")
     end
 
     it "parses mixed Unicode and regular text in string" do
@@ -87,8 +87,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("Hello 👋 World")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("Hello 👋 World")
     end
 
     it "parses mixed Unicode and escape sequences in string" do
@@ -101,8 +101,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("A\nB")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("A\nB")
     end
 
     # Character literal tests
@@ -117,9 +117,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      char_node = arena[assign.assign_value.not_nil!]
-      char_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Char)
-      String.new(char_node.literal.not_nil!).should eq("A")
+      char_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(char_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Char)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(char_node).not_nil!).should eq("A")
     end
 
     it "parses \\uXXXX BMP character in character literal" do
@@ -132,8 +132,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      char_node = arena[assign.assign_value.not_nil!]
-      String.new(char_node.literal.not_nil!).should eq("一")
+      char_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(char_node).not_nil!).should eq("一")
     end
 
     it "parses \\u{X} variable length in character" do
@@ -146,8 +146,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      char_node = arena[assign.assign_value.not_nil!]
-      String.new(char_node.literal.not_nil!).should eq("B")
+      char_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(char_node).not_nil!).should eq("B")
     end
 
     it "parses \\u{XXXX} emoji in character" do
@@ -160,8 +160,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      char_node = arena[assign.assign_value.not_nil!]
-      String.new(char_node.literal.not_nil!).should eq("😂")
+      char_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(char_node).not_nil!).should eq("😂")
     end
 
     # UTF-8 encoding tests
@@ -176,8 +176,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("©")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("©")
     end
 
     it "parses 3-byte UTF-8 sequence" do
@@ -190,8 +190,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("☃")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("☃")
     end
 
     it "parses 4-byte UTF-8 sequence" do
@@ -204,8 +204,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("👍")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("👍")
     end
 
     # Integration tests
@@ -220,14 +220,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array = arena[program.roots[0]]
-      elements = array.array_elements.not_nil!
+      elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array).not_nil!
       elements.size.should eq(2)
 
       str1 = arena[elements[0]]
-      String.new(str1.literal.not_nil!).should eq("A")
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str1).not_nil!).should eq("A")
 
       str2 = arena[elements[1]]
-      String.new(str2.literal.not_nil!).should eq("😀")
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str2).not_nil!).should eq("😀")
     end
 
     it "parses Unicode in method call" do
@@ -240,11 +240,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      args = call.args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       string_node = arena[args[0]]
-      String.new(string_node.literal.not_nil!).should eq("🎉")
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("🎉")
     end
 
     it "parses multiple statements with Unicode" do
@@ -262,18 +262,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First: "Hello"
       assign1 = arena[program.roots[0]]
-      str1 = arena[assign1.assign_value.not_nil!]
-      String.new(str1.literal.not_nil!).should eq("Hello")
+      str1 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign1).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str1).not_nil!).should eq("Hello")
 
       # Second: '👋'
       assign2 = arena[program.roots[1]]
-      char2 = arena[assign2.assign_value.not_nil!]
-      String.new(char2.literal.not_nil!).should eq("👋")
+      char2 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign2).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(char2).not_nil!).should eq("👋")
 
       # Third: "一二三"
       assign3 = arena[program.roots[2]]
-      str3 = arena[assign3.assign_value.not_nil!]
-      String.new(str3.literal.not_nil!).should eq("一二三")
+      str3 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign3).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str3).not_nil!).should eq("一二三")
     end
   end
 end

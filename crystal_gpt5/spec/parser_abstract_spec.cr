@@ -17,9 +17,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       class_node = arena[program.roots.first]
 
-      class_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
-      String.new(class_node.class_name.not_nil!).should eq("Shape")
-      class_node.class_is_abstract.should be_truthy
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      String.new(CrystalGPT5::Compiler::Frontend.node_class_name(class_node).not_nil!).should eq("Shape")
+      CrystalGPT5::Compiler::Frontend.node_class_is_abstract(class_node).should be_truthy
     end
 
     it "parses abstract struct" do
@@ -35,10 +35,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       struct_node = arena[program.roots.first]
 
-      struct_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
-      String.new(struct_node.class_name.not_nil!).should eq("Value")
-      struct_node.class_is_struct.should be_truthy
-      struct_node.class_is_abstract.should be_truthy
+      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
+      String.new(CrystalGPT5::Compiler::Frontend.node_class_name(struct_node).not_nil!).should eq("Value")
+      struct_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_struct.should be_truthy
+      CrystalGPT5::Compiler::Frontend.node_class_is_abstract(struct_node).should be_truthy
     end
 
     it "parses abstract method" do
@@ -53,16 +53,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       class_body = class_node.class_body.not_nil!
       class_body.size.should eq(1)
 
       method_node = arena[class_body[0]]
-      method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-      String.new(method_node.def_name.not_nil!).should eq("area")
-      method_node.def_is_abstract.should be_truthy
-      method_node.def_body.should be_nil
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method_node).not_nil!).should eq("area")
+      CrystalGPT5::Compiler::Frontend.node_def_is_abstract(method_node).should be_truthy
+      CrystalGPT5::Compiler::Frontend.node_def_body(method_node).should be_nil
     end
 
     it "parses multiple abstract methods" do
@@ -78,20 +78,20 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       class_body = class_node.class_body.not_nil!
       class_body.size.should eq(2)
 
       # First abstract method
       method1 = arena[class_body[0]]
-      method1.def_is_abstract.should be_truthy
-      String.new(method1.def_name.not_nil!).should eq("area")
+      CrystalGPT5::Compiler::Frontend.node_def_is_abstract(method1).should be_truthy
+      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method1).not_nil!).should eq("area")
 
       # Second abstract method
       method2 = arena[class_body[1]]
-      method2.def_is_abstract.should be_truthy
-      String.new(method2.def_name.not_nil!).should eq("perimeter")
+      CrystalGPT5::Compiler::Frontend.node_def_is_abstract(method2).should be_truthy
+      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method2).not_nil!).should eq("perimeter")
     end
 
     it "parses abstract class with concrete methods" do
@@ -110,20 +110,20 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       class_body = class_node.class_body.not_nil!
       class_body.size.should eq(2)
 
       # Abstract method
       abstract_method = arena[class_body[0]]
-      abstract_method.def_is_abstract.should be_truthy
-      abstract_method.def_body.should be_nil
+      CrystalGPT5::Compiler::Frontend.node_def_is_abstract(abstract_method).should be_truthy
+      CrystalGPT5::Compiler::Frontend.node_def_body(abstract_method).should be_nil
 
       # Concrete method
       concrete_method = arena[class_body[1]]
-      concrete_method.def_is_abstract.should be_falsey
-      concrete_method.def_body.should_not be_nil
+      CrystalGPT5::Compiler::Frontend.node_def_is_abstract(concrete_method).should be_falsey
+      CrystalGPT5::Compiler::Frontend.node_def_body(concrete_method).should_not be_nil
     end
 
     it "distinguishes abstract from non-abstract class" do
@@ -143,11 +143,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Abstract class
       abstract_class = arena[program.roots[0]]
-      abstract_class.class_is_abstract.should be_truthy
+      CrystalGPT5::Compiler::Frontend.node_class_is_abstract(abstract_class).should be_truthy
 
       # Concrete class
       concrete_class = arena[program.roots[1]]
-      concrete_class.class_is_abstract.should be_falsey
+      CrystalGPT5::Compiler::Frontend.node_class_is_abstract(concrete_class).should be_falsey
     end
 
     it "parses abstract class with inheritance" do
@@ -162,7 +162,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       class_node.class_is_abstract.should be_truthy
       String.new(class_node.class_super_name.not_nil!).should eq("LivingThing")
@@ -182,13 +182,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      outer_class = arena[program.roots.first]
+      outer_class = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       outer_body = outer_class.class_body.not_nil!
       outer_body.size.should eq(1)
 
       inner_class = arena[outer_body[0]]
-      inner_class.class_is_abstract.should be_truthy
+      CrystalGPT5::Compiler::Frontend.node_class_is_abstract(inner_class).should be_truthy
     end
 
     it "parses abstract method with parameters" do
@@ -203,13 +203,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       class_body = class_node.class_body.not_nil!
       method_node = arena[class_body[0]]
 
-      method_node.def_is_abstract.should be_truthy
-      params = method_node.def_params.not_nil!
+      CrystalGPT5::Compiler::Frontend.node_def_is_abstract(method_node).should be_truthy
+      params = CrystalGPT5::Compiler::Frontend.node_def_params(method_node).not_nil!
       params.size.should eq(2)
       params[0].name.should eq("x")
       params[1].name.should eq("y")

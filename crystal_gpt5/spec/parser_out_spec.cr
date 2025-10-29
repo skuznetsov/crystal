@@ -14,9 +14,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       out_node = arena[program.roots.first]
 
-      out_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
-      out_node.out_identifier.should_not be_nil
-      String.new(out_node.out_identifier.not_nil!).should eq("result")
+      CrystalGPT5::Compiler::Frontend.node_kind(out_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
+      CrystalGPT5::Compiler::Frontend.node_out_identifier(out_node).should_not be_nil
+      String.new(CrystalGPT5::Compiler::Frontend.node_out_identifier(out_node).not_nil!).should eq("result")
     end
 
     it "parses out in function call" do
@@ -27,24 +27,24 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      call_node = arena[program.roots.first]
+      call_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       # Should be a call expression
-      call_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
       # Check callee (C.get_value)
-      callee_id = call_node.callee.not_nil!
+      callee_id = call_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).callee.not_nil!
       callee = arena[callee_id]
-      callee.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+      CrystalGPT5::Compiler::Frontend.node_kind(callee).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
 
       # Check argument is out expression
-      args = call_node.args.not_nil!
+      args = call_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
       args.size.should eq(1)
 
       out_arg = arena[args[0]]
-      out_arg.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
-      out_arg.out_identifier.should_not be_nil
-      String.new(out_arg.out_identifier.not_nil!).should eq("new_var")
+      CrystalGPT5::Compiler::Frontend.node_kind(out_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
+      CrystalGPT5::Compiler::Frontend.node_out_identifier(out_arg).should_not be_nil
+      String.new(CrystalGPT5::Compiler::Frontend.node_out_identifier(out_arg).not_nil!).should eq("new_var")
     end
 
     it "parses multiple out parameters" do
@@ -55,7 +55,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      call_node = arena[program.roots.first]
+      call_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       # Check arguments
       args = call_node.args.not_nil!
@@ -64,8 +64,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       # Verify all three out expressions
       ["x", "y", "z"].each_with_index do |name, idx|
         out_arg = arena[args[idx]]
-        out_arg.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
-        String.new(out_arg.out_identifier.not_nil!).should eq(name)
+        CrystalGPT5::Compiler::Frontend.node_kind(out_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
+        String.new(CrystalGPT5::Compiler::Frontend.node_out_identifier(out_arg).not_nil!).should eq(name)
       end
     end
 
@@ -79,8 +79,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       out_node = arena[program.roots.first]
 
-      out_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
-      String.new(out_node.out_identifier.not_nil!).should eq("foo_bar_123")
+      CrystalGPT5::Compiler::Frontend.node_kind(out_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
+      String.new(CrystalGPT5::Compiler::Frontend.node_out_identifier(out_node).not_nil!).should eq("foo_bar_123")
     end
 
     it "parses out in lib context" do
@@ -101,15 +101,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Second root is the function call
       call_node = arena[program.roots[1]]
-      call_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
       # Check argument
-      args = call_node.args.not_nil!
+      args = call_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
       args.size.should eq(1)
 
       out_arg = arena[args[0]]
-      out_arg.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
-      String.new(out_arg.out_identifier.not_nil!).should eq("result")
+      CrystalGPT5::Compiler::Frontend.node_kind(out_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
+      String.new(CrystalGPT5::Compiler::Frontend.node_out_identifier(out_arg).not_nil!).should eq("result")
     end
 
     it "parses out mixed with regular arguments" do
@@ -120,7 +120,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      call_node = arena[program.roots.first]
+      call_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       # Check arguments
       args = call_node.args.not_nil!
@@ -128,21 +128,21 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First arg: 100 (number)
       arg0 = arena[args[0]]
-      arg0.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg0).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
 
       # Second arg: out status
       arg1 = arena[args[1]]
-      arg1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
-      String.new(arg1.out_identifier.not_nil!).should eq("status")
+      CrystalGPT5::Compiler::Frontend.node_kind(arg1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
+      String.new(CrystalGPT5::Compiler::Frontend.node_out_identifier(arg1).not_nil!).should eq("status")
 
       # Third arg: "hello" (string)
       arg2 = arena[args[2]]
-      arg2.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
 
       # Fourth arg: out error_code
       arg3 = arena[args[3]]
-      arg3.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
-      String.new(arg3.out_identifier.not_nil!).should eq("error_code")
+      CrystalGPT5::Compiler::Frontend.node_kind(arg3).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Out)
+      String.new(CrystalGPT5::Compiler::Frontend.node_out_identifier(arg3).not_nil!).should eq("error_code")
     end
 
     it "emits error for out without identifier" do

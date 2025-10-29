@@ -18,15 +18,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       with_node = arena[program.roots[0]]
-      with_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
+      CrystalGPT5::Compiler::Frontend.node_kind(with_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
 
       # Check receiver
-      receiver = arena[with_node.with_receiver.not_nil!]
-      receiver.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
-      String.new(receiver.literal.not_nil!).should eq("obj")
+      receiver = arena[CrystalGPT5::Compiler::Frontend.node_with_receiver(with_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(receiver).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(receiver).not_nil!).should eq("obj")
 
       # Check body (may have multiple statements depending on how parser processes them)
-      body = with_node.with_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_with_body(with_node).not_nil!
       body.size.should be >= 1
     end
 
@@ -44,11 +44,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       with_node = arena[program.roots[0]]
-      with_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
+      CrystalGPT5::Compiler::Frontend.node_kind(with_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
 
       # Receiver is method call
-      receiver = arena[with_node.with_receiver.not_nil!]
-      receiver.kind.should_not be_nil
+      receiver = arena[CrystalGPT5::Compiler::Frontend.node_with_receiver(with_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(receiver).should_not be_nil
     end
 
     it "parses with block with multiple statements" do
@@ -67,9 +67,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       with_node = arena[program.roots[0]]
-      with_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
+      CrystalGPT5::Compiler::Frontend.node_kind(with_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
 
-      body = with_node.with_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_with_body(with_node).not_nil!
       body.size.should eq(3)
     end
 
@@ -86,9 +86,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       with_node = arena[program.roots[0]]
-      with_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
+      CrystalGPT5::Compiler::Frontend.node_kind(with_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
 
-      body = with_node.with_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_with_body(with_node).not_nil!
       body.size.should eq(0)
     end
 
@@ -106,14 +106,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       with_node = arena[program.roots[0]]
-      with_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
+      CrystalGPT5::Compiler::Frontend.node_kind(with_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
 
-      body = with_node.with_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_with_body(with_node).not_nil!
       body.size.should eq(1)
 
       # First statement is assignment
       stmt = arena[body[0]]
-      stmt.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(stmt).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
     end
 
     it "parses nested with blocks" do
@@ -132,14 +132,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       outer_with = arena[program.roots[0]]
-      outer_with.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_with).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
 
-      outer_body = outer_with.with_body.not_nil!
+      outer_body = CrystalGPT5::Compiler::Frontend.node_with_body(outer_with).not_nil!
       outer_body.size.should eq(1)
 
       # Inner with
       inner_with = arena[outer_body[0]]
-      inner_with.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_with).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
     end
 
     it "parses with block inside method" do
@@ -158,13 +158,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
 
-      method_body = method_node.def_body.not_nil!
+      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       method_body.size.should eq(1)
 
       with_node = arena[method_body[0]]
-      with_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
+      CrystalGPT5::Compiler::Frontend.node_kind(with_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
     end
 
     it "parses with block with self receiver" do
@@ -181,10 +181,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       with_node = arena[program.roots[0]]
-      with_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
+      CrystalGPT5::Compiler::Frontend.node_kind(with_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
 
-      receiver = arena[with_node.with_receiver.not_nil!]
-      receiver.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Self)
+      receiver = arena[CrystalGPT5::Compiler::Frontend.node_with_receiver(with_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(receiver).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Self)
     end
 
     it "parses with block with instance variable receiver" do
@@ -201,10 +201,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       with_node = arena[program.roots[0]]
-      with_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
+      CrystalGPT5::Compiler::Frontend.node_kind(with_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
 
-      receiver = arena[with_node.with_receiver.not_nil!]
-      receiver.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceVar)
+      receiver = arena[CrystalGPT5::Compiler::Frontend.node_with_receiver(with_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(receiver).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceVar)
     end
 
     it "parses with block followed by other statements" do
@@ -223,11 +223,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First: with block
       with_node = arena[program.roots[0]]
-      with_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
+      CrystalGPT5::Compiler::Frontend.node_kind(with_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::With)
 
       # Second: assignment
       assign = arena[program.roots[1]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
     end
   end
 end

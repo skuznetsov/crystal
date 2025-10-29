@@ -20,14 +20,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       begin_node = arena[program.roots.first]
-      begin_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
+      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
 
       # Check begin body
-      body = begin_node.begin_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_begin_body(begin_node).not_nil!
       body.size.should eq(1)
 
       # Check rescue clause
-      rescue_clauses = begin_node.rescue_clauses.not_nil!
+      rescue_clauses = CrystalGPT5::Compiler::Frontend.node_rescue_clauses(begin_node).not_nil!
       rescue_clauses.size.should eq(1)
       rescue_clauses[0].body.size.should eq(1)
     end
@@ -48,10 +48,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       begin_node = arena[program.roots.first]
-      begin_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
+      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
 
       # Check rescue clause with type
-      rescue_clauses = begin_node.rescue_clauses.not_nil!
+      rescue_clauses = CrystalGPT5::Compiler::Frontend.node_rescue_clauses(begin_node).not_nil!
       rescue_clauses.size.should eq(1)
 
       rescue_clause = rescue_clauses[0]
@@ -75,7 +75,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program.roots.size.should eq(1)
       arena = program.arena
 
-      begin_node = arena[program.roots.first]
+      begin_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       rescue_clauses = begin_node.rescue_clauses.not_nil!
       rescue_clauses.size.should eq(1)
@@ -101,7 +101,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program.roots.size.should eq(1)
       arena = program.arena
 
-      begin_node = arena[program.roots.first]
+      begin_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       rescue_clauses = begin_node.rescue_clauses.not_nil!
       rescue_clause = rescue_clauses[0]
@@ -132,7 +132,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program.roots.size.should eq(1)
       arena = program.arena
 
-      begin_node = arena[program.roots.first]
+      begin_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       rescue_clauses = begin_node.rescue_clauses.not_nil!
       rescue_clauses.size.should eq(3)
@@ -162,13 +162,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program.roots.size.should eq(1)
       arena = program.arena
 
-      begin_node = arena[program.roots.first]
+      begin_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       # No rescue clauses
       begin_node.rescue_clauses.should be_nil
 
       # Has ensure body
-      ensure_body = begin_node.ensure_body.not_nil!
+      ensure_body = CrystalGPT5::Compiler::Frontend.node_ensure_body(begin_node).not_nil!
       ensure_body.size.should eq(1)
     end
 
@@ -189,14 +189,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program.roots.size.should eq(1)
       arena = program.arena
 
-      begin_node = arena[program.roots.first]
+      begin_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
 
       # Has rescue
       rescue_clauses = begin_node.rescue_clauses.not_nil!
       rescue_clauses.size.should eq(1)
 
       # Has ensure
-      ensure_body = begin_node.ensure_body.not_nil!
+      ensure_body = CrystalGPT5::Compiler::Frontend.node_ensure_body(begin_node).not_nil!
       ensure_body.size.should eq(1)
     end
 
@@ -212,11 +212,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       raise_node = arena[program.roots.first]
-      raise_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Raise)
+      CrystalGPT5::Compiler::Frontend.node_kind(raise_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Raise)
 
-      raise_value = raise_node.raise_value.not_nil!
+      raise_value = CrystalGPT5::Compiler::Frontend.node_raise_value(raise_node).not_nil!
       value_node = arena[raise_value]
-      value_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
     end
 
     it "parses bare raise (re-raise)" do
@@ -234,7 +234,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program.roots.size.should eq(1)
       arena = program.arena
 
-      begin_node = arena[program.roots.first]
+      begin_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
       rescue_clauses = begin_node.rescue_clauses.not_nil!
 
       # Rescue body contains raise
@@ -242,8 +242,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       rescue_body.size.should eq(1)
 
       raise_node = arena[rescue_body[0]]
-      raise_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Raise)
-      raise_node.raise_value.should be_nil  # Bare raise
+      CrystalGPT5::Compiler::Frontend.node_kind(raise_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Raise)
+      CrystalGPT5::Compiler::Frontend.node_raise_value(raise_node).should be_nil  # Bare raise
     end
   end
 end

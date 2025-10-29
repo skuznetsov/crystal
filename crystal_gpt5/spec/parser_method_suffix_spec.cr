@@ -18,8 +18,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-      String.new(method_node.def_name.not_nil!).should eq("empty?")
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method_node).not_nil!).should eq("empty?")
     end
 
     it "parses method definition with ! suffix" do
@@ -36,8 +36,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-      String.new(method_node.def_name.not_nil!).should eq("save!")
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method_node).not_nil!).should eq("save!")
     end
 
     it "parses bare method call with ? suffix as identifier" do
@@ -53,8 +53,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Bare call parses as Identifier (semantic analysis determines it's a call)
       id_node = arena[program.roots[0]]
-      id_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
-      String.new(id_node.literal.not_nil!).should eq("empty?")
+      CrystalGPT5::Compiler::Frontend.node_kind(id_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(id_node).not_nil!).should eq("empty?")
     end
 
     it "parses bare method call with ! suffix as identifier" do
@@ -70,8 +70,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Bare call parses as Identifier (semantic analysis determines it's a call)
       id_node = arena[program.roots[0]]
-      id_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
-      String.new(id_node.literal.not_nil!).should eq("save!")
+      CrystalGPT5::Compiler::Frontend.node_kind(id_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(id_node).not_nil!).should eq("save!")
     end
 
     it "parses method call with ! suffix and parentheses" do
@@ -87,12 +87,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # With parentheses, parses as Call
       call_node = arena[program.roots[0]]
-      call_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
       # Call has callee (Identifier with name)
-      callee = arena[call_node.callee.not_nil!]
-      callee.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
-      String.new(callee.literal.not_nil!).should eq("save!")
+      callee = arena[call_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).callee.not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(callee).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(callee).not_nil!).should eq("save!")
     end
 
     it "parses method with ? suffix in class" do
@@ -111,11 +111,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
 
-      method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-      String.new(method_node.def_name.not_nil!).should eq("empty?")
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method_node).not_nil!).should eq("empty?")
     end
 
     it "parses method with ! suffix and parameters" do
@@ -133,10 +133,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-      String.new(method_node.def_name.not_nil!).should eq("update!")
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method_node).not_nil!).should eq("update!")
 
-      params = method_node.def_params.not_nil!
+      params = CrystalGPT5::Compiler::Frontend.node_def_params(method_node).not_nil!
       params.size.should eq(2)
       params[0].name.should eq("name")
       params[1].name.should eq("age")
@@ -154,12 +154,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call_node = arena[program.roots[0]]
-      call_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
       # Call has callee (member access to obj.nil?)
-      callee = arena[call_node.callee.not_nil!]
-      callee.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
-      String.new(callee.member.not_nil!).should eq("nil?")
+      callee = arena[call_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).callee.not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(callee).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(callee).not_nil!).should eq("nil?")
     end
 
     it "parses member access with ! suffix" do
@@ -174,12 +174,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call_node = arena[program.roots[0]]
-      call_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
       # Call has callee (member access to user.save!)
-      callee = arena[call_node.callee.not_nil!]
-      callee.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
-      String.new(callee.member.not_nil!).should eq("save!")
+      callee = arena[call_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).callee.not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(callee).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(callee).not_nil!).should eq("save!")
     end
 
     it "parses chained method calls with suffixes" do
@@ -195,21 +195,21 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Top level is call to to_s
       to_s_call = arena[program.roots[0]]
-      to_s_call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(to_s_call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
       # Callee is member access to .to_s
-      to_s_member = arena[to_s_call.callee.not_nil!]
-      to_s_member.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
-      String.new(to_s_member.member.not_nil!).should eq("to_s")
+      to_s_member = arena[to_s_call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).callee.not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(to_s_member).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(to_s_member).not_nil!).should eq("to_s")
 
       # Left of to_s member access is call to valid?
-      valid_call = arena[to_s_member.left.not_nil!]
-      valid_call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      valid_call = arena[CrystalGPT5::Compiler::Frontend.node_left(to_s_member).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(valid_call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
       # Callee is member access to .valid?
-      valid_member = arena[valid_call.callee.not_nil!]
-      valid_member.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
-      String.new(valid_member.member.not_nil!).should eq("valid?")
+      valid_member = arena[valid_call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).callee.not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(valid_member).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+      String.new(CrystalGPT5::Compiler::Frontend.node_member(valid_member).not_nil!).should eq("valid?")
     end
 
     it "parses method with ? suffix and type annotation" do
@@ -226,10 +226,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-      String.new(method_node.def_name.not_nil!).should eq("empty?")
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method_node).not_nil!).should eq("empty?")
 
-      return_type = method_node.def_return_type
+      return_type = CrystalGPT5::Compiler::Frontend.node_def_return_type(method_node)
       return_type.should_not be_nil
       String.new(return_type.not_nil!).should eq("Bool")
     end
@@ -257,18 +257,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First method: valid?
       method1 = arena[program.roots[0]]
-      method1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-      String.new(method1.def_name.not_nil!).should eq("valid?")
+      CrystalGPT5::Compiler::Frontend.node_kind(method1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method1).not_nil!).should eq("valid?")
 
       # Second method: save!
       method2 = arena[program.roots[1]]
-      method2.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-      String.new(method2.def_name.not_nil!).should eq("save!")
+      CrystalGPT5::Compiler::Frontend.node_kind(method2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method2).not_nil!).should eq("save!")
 
       # Third method: process (no suffix)
       method3 = arena[program.roots[2]]
-      method3.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-      String.new(method3.def_name.not_nil!).should eq("process")
+      CrystalGPT5::Compiler::Frontend.node_kind(method3).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method3).not_nil!).should eq("process")
     end
 
     it "parses method call with ! suffix and arguments" do
@@ -283,14 +283,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call_node = arena[program.roots[0]]
-      call_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
       # Call has callee (Identifier with name)
-      callee = arena[call_node.callee.not_nil!]
-      callee.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
-      String.new(callee.literal.not_nil!).should eq("delete!")
+      callee = arena[call_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).callee.not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(callee).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(callee).not_nil!).should eq("delete!")
 
-      args = call_node.args.not_nil!
+      args = call_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
       args.size.should eq(2)
     end
   end

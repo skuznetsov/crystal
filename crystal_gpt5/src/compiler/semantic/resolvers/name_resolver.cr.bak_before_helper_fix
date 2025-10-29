@@ -48,17 +48,17 @@ module CrystalGPT5
           when ExpressionNode::Kind::Identifier
             resolve_identifier(node_id, node)
           when ExpressionNode::Kind::Call
-            visit(Frontend.node_callee(node).not_nil!) if Frontend.node_callee(node)
-            Frontend.node_args(node).try &.each { |arg| visit(arg) }
+            visit(node.as(ExpressionNode).callee.not_nil!) if node.as(ExpressionNode).callee
+            node.as(ExpressionNode).args.try &.each { |arg| visit(arg) }
           when ExpressionNode::Kind::Unary
-            visit(Frontend.node_right(node).not_nil!) if Frontend.node_right(node)
+            visit(node.as(ExpressionNode).right.not_nil!) if node.as(ExpressionNode).right
           when ExpressionNode::Kind::Binary
-            visit(Frontend.node_left(node).not_nil!) if Frontend.node_left(node)
-            visit(Frontend.node_right(node).not_nil!) if Frontend.node_right(node)
+            visit(node.as(ExpressionNode).left.not_nil!) if node.as(ExpressionNode).left
+            visit(node.as(ExpressionNode).right.not_nil!) if node.as(ExpressionNode).right
           when ExpressionNode::Kind::Grouping
-            visit(Frontend.node_left(node).not_nil!) if Frontend.node_left(node)
+            visit(node.as(ExpressionNode).left.not_nil!) if node.as(ExpressionNode).left
           when ExpressionNode::Kind::MacroExpression
-            visit(Frontend.node_macro_expr(node).not_nil!) if Frontend.node_macro_expr(node)
+            visit(node.macro_expr.not_nil!) if node.macro_expr
           when ExpressionNode::Kind::MacroLiteral
             visit_macro_literal(node)
           when ExpressionNode::Kind::MacroDef
@@ -89,7 +89,7 @@ module CrystalGPT5
           return unless pieces
 
           pieces.each do |piece|
-            case piece.kind
+            case Frontend.node_kind(piece)
             when Frontend::MacroPiece::Kind::Expression
               visit(piece.expr.not_nil!) if piece.expr
             when Frontend::MacroPiece::Kind::ControlStart,

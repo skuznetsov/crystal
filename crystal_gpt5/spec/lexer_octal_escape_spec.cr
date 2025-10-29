@@ -16,9 +16,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      string_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
-      bytes = string_node.literal.not_nil!
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(string_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      bytes = CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!
       bytes.size.should eq(1)
       bytes[0].should eq(7_u8)
     end
@@ -33,8 +33,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("A")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("A")
     end
 
     it "parses \\NNN octal in string (three digits)" do
@@ -47,8 +47,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("B")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("B")
     end
 
     it "parses \\0 as octal null byte in string" do
@@ -61,8 +61,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("\0")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("\0")
     end
 
     it "parses \\000 as octal null byte in string" do
@@ -75,8 +75,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("\0")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("\0")
     end
 
     it "parses \\012 as octal newline in string" do
@@ -89,8 +89,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("\n")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("\n")
     end
 
     it "parses \\177 as octal DEL character in string" do
@@ -103,8 +103,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      bytes = string_node.literal.not_nil!
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      bytes = CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!
       bytes.size.should eq(1)
       bytes[0].should eq(127_u8)
     end
@@ -119,8 +119,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("ABC")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("ABC")
     end
 
     it "parses mixed octal and regular text in string" do
@@ -133,8 +133,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("Hello World")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("Hello World")
     end
 
     it "parses mixed octal and other escapes in string" do
@@ -147,8 +147,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("A\nB")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("A\nB")
     end
 
     it "parses octal with 1, 2, and 3 digits in same string" do
@@ -161,8 +161,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      bytes = string_node.literal.not_nil!
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      bytes = CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!
       bytes.size.should eq(3)
       bytes[0].should eq(7_u8)
       bytes[1].should eq(32_u8)
@@ -179,8 +179,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      bytes = string_node.literal.not_nil!
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      bytes = CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!
       bytes.size.should eq(2)
       bytes[0].should eq(7_u8)   # \7
       bytes[1].should eq(56_u8)  # '8'
@@ -198,9 +198,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      char_node = arena[assign.assign_value.not_nil!]
-      char_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Char)
-      bytes = char_node.literal.not_nil!
+      char_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(char_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Char)
+      bytes = CrystalGPT5::Compiler::Frontend.node_literal(char_node).not_nil!
       bytes.size.should eq(1)
       bytes[0].should eq(7_u8)
     end
@@ -215,8 +215,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      char_node = arena[assign.assign_value.not_nil!]
-      String.new(char_node.literal.not_nil!).should eq("A")
+      char_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(char_node).not_nil!).should eq("A")
     end
 
     it "parses \\0 as octal null byte in character" do
@@ -229,8 +229,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      char_node = arena[assign.assign_value.not_nil!]
-      String.new(char_node.literal.not_nil!).should eq("\0")
+      char_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(char_node).not_nil!).should eq("\0")
     end
 
     it "parses \\012 as octal newline in character" do
@@ -243,8 +243,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      char_node = arena[assign.assign_value.not_nil!]
-      String.new(char_node.literal.not_nil!).should eq("\n")
+      char_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(char_node).not_nil!).should eq("\n")
     end
 
     it "parses \\177 as octal DEL character in character literal" do
@@ -257,8 +257,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      char_node = arena[assign.assign_value.not_nil!]
-      bytes = char_node.literal.not_nil!
+      char_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      bytes = CrystalGPT5::Compiler::Frontend.node_literal(char_node).not_nil!
       bytes.size.should eq(1)
       bytes[0].should eq(127_u8)
     end
@@ -275,14 +275,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array = arena[program.roots[0]]
-      elements = array.array_elements.not_nil!
+      elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array).not_nil!
       elements.size.should eq(2)
 
       str1 = arena[elements[0]]
-      String.new(str1.literal.not_nil!).should eq("A")
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str1).not_nil!).should eq("A")
 
       str2 = arena[elements[1]]
-      String.new(str2.literal.not_nil!).should eq("B")
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str2).not_nil!).should eq("B")
     end
 
     it "parses octal escapes in method call" do
@@ -295,11 +295,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      args = call.args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       string_node = arena[args[0]]
-      String.new(string_node.literal.not_nil!).should eq("Hello")
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("Hello")
     end
 
     it "parses multiple statements with octal escapes" do
@@ -317,18 +317,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First: "Hello" (110 = 'H' = 72)
       assign1 = arena[program.roots[0]]
-      str1 = arena[assign1.assign_value.not_nil!]
-      String.new(str1.literal.not_nil!).should eq("Hello")
+      str1 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign1).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str1).not_nil!).should eq("Hello")
 
       # Second: 'A' (101 = 65)
       assign2 = arena[program.roots[1]]
-      char2 = arena[assign2.assign_value.not_nil!]
-      String.new(char2.literal.not_nil!).should eq("A")
+      char2 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign2).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(char2).not_nil!).should eq("A")
 
       # Third: "123" (061='1'=49, 062='2'=50, 063='3'=51)
       assign3 = arena[program.roots[2]]
-      str3 = arena[assign3.assign_value.not_nil!]
-      String.new(str3.literal.not_nil!).should eq("123")
+      str3 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign3).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(str3).not_nil!).should eq("123")
     end
 
     it "parses mixed hex and octal escapes" do
@@ -341,8 +341,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      string_node = arena[assign.assign_value.not_nil!]
-      String.new(string_node.literal.not_nil!).should eq("AA")
+      string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("AA")
     end
   end
 end

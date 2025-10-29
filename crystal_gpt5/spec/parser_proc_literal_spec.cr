@@ -14,17 +14,17 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       proc_node = arena[program.roots[0]]
-      proc_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(proc_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
 
-      params = proc_node.block_params
+      params = CrystalGPT5::Compiler::Frontend.node_block_params(proc_node)
       params.should_not be_nil
       params.not_nil!.size.should eq(0)
 
-      body = proc_node.block_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_block_body(proc_node).not_nil!
       body.size.should eq(1)
 
       body_expr = arena[body[0]]
-      body_expr.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      CrystalGPT5::Compiler::Frontend.node_kind(body_expr).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
     end
 
     it "parses single parameter without type annotation" do
@@ -37,9 +37,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       proc_node = arena[program.roots[0]]
-      proc_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(proc_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
 
-      params = proc_node.block_params.not_nil!
+      params = CrystalGPT5::Compiler::Frontend.node_block_params(proc_node).not_nil!
       params.size.should eq(1)
       params[0].name.should eq("x")
       params[0].type_annotation.should be_nil
@@ -55,9 +55,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       proc_node = arena[program.roots[0]]
-      proc_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(proc_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
 
-      params = proc_node.block_params.not_nil!
+      params = CrystalGPT5::Compiler::Frontend.node_block_params(proc_node).not_nil!
       params.size.should eq(1)
       params[0].name.should eq("x")
 
@@ -75,7 +75,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       proc_node = arena[program.roots[0]]
-      params = proc_node.block_params.not_nil!
+      params = CrystalGPT5::Compiler::Frontend.node_block_params(proc_node).not_nil!
       params.size.should eq(2)
 
       params[0].name.should eq("x")
@@ -95,7 +95,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       proc_node = arena[program.roots[0]]
-      params = proc_node.block_params.not_nil!
+      params = CrystalGPT5::Compiler::Frontend.node_block_params(proc_node).not_nil!
       params.size.should eq(2)
 
       params[0].name.should eq("x")
@@ -115,9 +115,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       proc_node = arena[program.roots[0]]
-      proc_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(proc_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
 
-      return_type = proc_node.proc_return_type.not_nil!
+      return_type = CrystalGPT5::Compiler::Frontend.node_proc_return_type(proc_node).not_nil!
       String.new(return_type).should eq("Int32")
     end
 
@@ -135,13 +135,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       proc_node = arena[program.roots[0]]
-      proc_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(proc_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
 
-      params = proc_node.block_params.not_nil!
+      params = CrystalGPT5::Compiler::Frontend.node_block_params(proc_node).not_nil!
       params.size.should eq(1)
       params[0].name.should eq("x")
 
-      body = proc_node.block_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_block_body(proc_node).not_nil!
       body.size.should eq(1)
     end
 
@@ -160,7 +160,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       proc_node = arena[program.roots[0]]
-      body = proc_node.block_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_block_body(proc_node).not_nil!
       body.size.should eq(2)
     end
 
@@ -174,13 +174,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       outer_proc = arena[program.roots[0]]
-      outer_proc.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_proc).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
 
-      outer_body = outer_proc.block_body.not_nil!
+      outer_body = CrystalGPT5::Compiler::Frontend.node_block_body(outer_proc).not_nil!
       outer_body.size.should eq(1)
 
       inner_proc = arena[outer_body[0]]
-      inner_proc.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_proc).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
     end
 
     it "parses proc as method call argument" do
@@ -193,13 +193,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      call.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
-      args = call.args.not_nil!
+      args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
       args.size.should eq(1)
 
       proc_arg = arena[args[0]]
-      proc_arg.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(proc_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
     end
 
     it "parses proc assigned to variable" do
@@ -212,10 +212,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
 
-      value = arena[assign.assign_value.not_nil!]
-      value.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
+      value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
     end
 
     it "parses proc with empty body" do
@@ -228,9 +228,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       proc_node = arena[program.roots[0]]
-      proc_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(proc_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ProcLiteral)
 
-      body = proc_node.block_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_block_body(proc_node).not_nil!
       body.size.should eq(0)
     end
   end

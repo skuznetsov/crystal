@@ -14,12 +14,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       require_node = arena[program.roots[0]]
-      require_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      CrystalGPT5::Compiler::Frontend.node_kind(require_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
 
       # Path should be a string literal
-      path = arena[require_node.require_path.not_nil!]
-      path.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
-      String.new(path.literal.not_nil!).should eq("spec")
+      path = arena[CrystalGPT5::Compiler::Frontend.node_require_path(require_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(path).not_nil!).should eq("spec")
     end
 
     it "parses require with relative path" do
@@ -32,10 +32,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       require_node = arena[program.roots[0]]
-      require_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      CrystalGPT5::Compiler::Frontend.node_kind(require_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
 
-      path = arena[require_node.require_path.not_nil!]
-      String.new(path.literal.not_nil!).should eq("./local_file")
+      path = arena[CrystalGPT5::Compiler::Frontend.node_require_path(require_node).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(path).not_nil!).should eq("./local_file")
     end
 
     it "parses require with absolute path" do
@@ -48,10 +48,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       require_node = arena[program.roots[0]]
-      require_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      CrystalGPT5::Compiler::Frontend.node_kind(require_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
 
-      path = arena[require_node.require_path.not_nil!]
-      String.new(path.literal.not_nil!).should eq("/usr/lib/crystal")
+      path = arena[CrystalGPT5::Compiler::Frontend.node_require_path(require_node).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(path).not_nil!).should eq("/usr/lib/crystal")
     end
 
     it "parses require with nested path" do
@@ -64,10 +64,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       require_node = arena[program.roots[0]]
-      require_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      CrystalGPT5::Compiler::Frontend.node_kind(require_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
 
-      path = arena[require_node.require_path.not_nil!]
-      String.new(path.literal.not_nil!).should eq("compiler/frontend/parser")
+      path = arena[CrystalGPT5::Compiler::Frontend.node_require_path(require_node).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(path).not_nil!).should eq("compiler/frontend/parser")
     end
 
     it "parses multiple require statements" do
@@ -85,21 +85,21 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First require
       req1 = arena[program.roots[0]]
-      req1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
-      path1 = arena[req1.require_path.not_nil!]
-      String.new(path1.literal.not_nil!).should eq("spec")
+      CrystalGPT5::Compiler::Frontend.node_kind(req1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      path1 = arena[CrystalGPT5::Compiler::Frontend.node_require_path(req1).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(path1).not_nil!).should eq("spec")
 
       # Second require
       req2 = arena[program.roots[1]]
-      req2.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
-      path2 = arena[req2.require_path.not_nil!]
-      String.new(path2.literal.not_nil!).should eq("compiler")
+      CrystalGPT5::Compiler::Frontend.node_kind(req2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      path2 = arena[CrystalGPT5::Compiler::Frontend.node_require_path(req2).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(path2).not_nil!).should eq("compiler")
 
       # Third require
       req3 = arena[program.roots[2]]
-      req3.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
-      path3 = arena[req3.require_path.not_nil!]
-      String.new(path3.literal.not_nil!).should eq("./local")
+      CrystalGPT5::Compiler::Frontend.node_kind(req3).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      path3 = arena[CrystalGPT5::Compiler::Frontend.node_require_path(req3).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(path3).not_nil!).should eq("./local")
     end
 
     it "parses require with wildcard" do
@@ -112,10 +112,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       require_node = arena[program.roots[0]]
-      require_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      CrystalGPT5::Compiler::Frontend.node_kind(require_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
 
-      path = arena[require_node.require_path.not_nil!]
-      String.new(path.literal.not_nil!).should eq("./*")
+      path = arena[CrystalGPT5::Compiler::Frontend.node_require_path(require_node).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(path).not_nil!).should eq("./*")
     end
 
     it "parses require followed by code" do
@@ -132,11 +132,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First statement: require
       req = arena[program.roots[0]]
-      req.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      CrystalGPT5::Compiler::Frontend.node_kind(req).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
 
       # Second statement: assignment
       assign = arena[program.roots[1]]
-      assign.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
     end
 
     it "parses require inside class" do
@@ -153,13 +153,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      class_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
 
-      body = class_node.class_body.not_nil!
+      body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       body.size.should eq(1)
 
       req = arena[body[0]]
-      req.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      CrystalGPT5::Compiler::Frontend.node_kind(req).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
     end
 
     it "parses require with string interpolation (advanced)" do
@@ -172,11 +172,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       require_node = arena[program.roots[0]]
-      require_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      CrystalGPT5::Compiler::Frontend.node_kind(require_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
 
       # Path should be string interpolation node
-      path = arena[require_node.require_path.not_nil!]
-      path.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::StringInterpolation)
+      path = arena[CrystalGPT5::Compiler::Frontend.node_require_path(require_node).not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::StringInterpolation)
     end
 
     it "parses require at top-level typical usage" do
@@ -198,10 +198,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First two should be requires
       req1 = arena[program.roots[0]]
-      req1.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      CrystalGPT5::Compiler::Frontend.node_kind(req1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
 
       req2 = arena[program.roots[1]]
-      req2.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
+      CrystalGPT5::Compiler::Frontend.node_kind(req2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Require)
 
       # Third statement exists (don't care about exact type - could be Call or Identifier depending on parser state)
       program.roots[2].should_not be_nil

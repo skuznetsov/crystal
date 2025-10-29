@@ -25,6 +25,7 @@ module CrystalGPT5
       class MacroExpander
         alias Program = Frontend::Program
         alias ExpressionNode = Frontend::ExpressionNode
+        alias TypedNode = Frontend::TypedNode
         alias ExprId = Frontend::ExprId
         alias MacroPiece = Frontend::MacroPiece
 
@@ -116,22 +117,22 @@ module CrystalGPT5
         private def stringify_expr(expr_id : ExprId) : String
           node = @arena[expr_id]
 
-          case node.kind
+          case Frontend.node_kind(node)
           when .number?, .string?, .identifier?, .bool?
-            node.literal_string || ""
+            Frontend.node_literal_string(node) || ""
           when .nil?
             "nil"
           else
             # Complex expression - return source representation
             # For Phase 87B-2: Just return identifier or empty
-            node.literal_string || ""
+            Frontend.node_literal_string(node) || ""
           end
         end
 
         private def evaluate_macro_body(body_id : ExprId, context : Context) : String
           # Get MacroLiteral node
           body_node = @arena[body_id]
-          pieces = body_node.macro_pieces
+          pieces = body_node.as(ExpressionNode).macro_pieces
 
           return "" unless pieces
 
@@ -214,18 +215,18 @@ module CrystalGPT5
         private def evaluate_expression(expr_id : ExprId, context : Context) : Value
           node = @arena[expr_id]
 
-          case node.kind
+          case Frontend.node_kind(node)
           when .number?
             # Number literal: 42, 3.14
-            node.literal_string || ""
+            Frontend.node_literal_string(node) || ""
 
           when .string?
             # String literal: "hello"
-            node.literal_string || ""
+            Frontend.node_literal_string(node) || ""
 
           when .identifier?
             # Variable reference: look up in context
-            if name = node.literal_string
+            if name = Frontend.node_literal_string(node)
               context.variables[name]? || ""
             else
               ""
@@ -233,7 +234,7 @@ module CrystalGPT5
 
           when .bool?
             # Boolean: true/false
-            node.literal_string || ""
+            Frontend.node_literal_string(node) || ""
 
           when .nil?
             # Nil literal
@@ -254,10 +255,10 @@ module CrystalGPT5
         private def evaluate_condition(expr_id : ExprId, context : Context) : Bool
           node = @arena[expr_id]
 
-          case node.kind
+          case Frontend.node_kind(node)
           when .bool?
             # Parse "true" or "false"
-            literal = node.literal_string
+            literal = Frontend.node_literal_string(node)
             if literal
               return false if literal == "false"
               return true  # "true"
@@ -479,10 +480,10 @@ module CrystalGPT5
           # Evaluate iterable → get element strings
           iterable_node = @arena[iterable_expr]
 
-          elem_values = case iterable_node.kind
+          elem_values = case Frontend.node_kind(iterable_node)
           when .array_literal?
-            # Phase 87B-3: Array path
-            array_elements = iterable_node.array_elements || [] of ExprId
+            # Phase 87B-3: Array path (use helper for union type)
+            array_elements = Frontend.node_array_elements(iterable_node) || [] of ExprId
             array_elements.map { |elem_id| stringify_expr(elem_id) }
 
           when .range?
@@ -519,10 +520,10 @@ module CrystalGPT5
 
         # Phase 87B-4A: Expand range to array of string values
         # Returns Array(String) if successful, nil if error (diagnostic emitted)
-        private def expand_range_to_strings(range_node : ExpressionNode) : Array(String)?
-          # Extract bounds
-          range_begin = range_node.range_begin
-          range_end = range_node.range_end
+        private def expand_range_to_strings(range_node : (ExpressionNode | TypedNode)) : Array(String)?
+          # Extract bounds using helpers (handles field name mismatch: RangeNode.begin_expr vs ExpressionNode.range_begin)
+          range_begin = Frontend.node_range_begin(range_node)
+          range_end = Frontend.node_range_end(range_node)
 
           unless range_begin && range_end
             emit_error("Invalid range: missing begin or end")
@@ -548,8 +549,8 @@ module CrystalGPT5
             return [] of String
           end
 
-          # Calculate size
-          exclusive = range_node.range_exclusive || false
+          # Calculate size (use helper for field name mismatch: RangeNode.exclusive vs ExpressionNode.range_exclusive)
+          exclusive = Frontend.node_range_exclusive(range_node) || false
           size = if exclusive
             end_val - start_val
           else
