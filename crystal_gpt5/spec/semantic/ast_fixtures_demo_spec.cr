@@ -14,11 +14,11 @@ describe "AstFixtures" do
     name_id = AstFixtures.make_identifier(arena, "name")
     def_id = AstFixtures.make_def(arena, "greet", params: ["name"], body: [name_id])
 
-    node = arena[def_id]
-    node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-    String.new(node.def_name.not_nil!).should eq("greet")
-    node.def_params.not_nil!.map(&.name).should eq(["name"])
-    node.def_body.not_nil!.size.should eq(1)
+    node = arena[def_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+    CrystalGPT5::Compiler::Frontend.node_kind(node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+    String.new(node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).def_name.not_nil!).should eq("greet")
+    node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).def_params.not_nil!.map(&.name).should eq(["name"])
+    node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).def_body.not_nil!.size.should eq(1)
   end
 
   it "creates class nodes with methods" do
@@ -31,10 +31,10 @@ describe "AstFixtures" do
     greet_id = AstFixtures.make_def(arena, "greet")
     class_id = AstFixtures.make_class(arena, "Person", body: [greet_id])
 
-    node = arena[class_id]
-    node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
-    String.new(node.class_name.not_nil!).should eq("Person")
-    node.class_body.not_nil!.size.should eq(1)
+    node = arena[class_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+    CrystalGPT5::Compiler::Frontend.node_kind(node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+    String.new(node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_name.not_nil!).should eq("Person")
+    node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_body.not_nil!.size.should eq(1)
   end
 
   it "creates method calls" do
@@ -44,9 +44,9 @@ describe "AstFixtures" do
     arg_id = AstFixtures.make_string(arena, "World")
     call_id = AstFixtures.make_call(arena, "greet", args: [arg_id])
 
-    node = arena[call_id]
-    node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
-    node.args.not_nil!.size.should eq(1)
+    node = arena[call_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+    CrystalGPT5::Compiler::Frontend.node_kind(node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+    node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!.size.should eq(1)
   end
 
   it "creates nested def in class" do
@@ -62,11 +62,11 @@ describe "AstFixtures" do
     method_id = AstFixtures.make_def(arena, "say_hello", body: [call_id])
     class_id = AstFixtures.make_class(arena, "Greeter", body: [method_id])
 
-    class_node = arena[class_id]
+    class_node = arena[class_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
     class_node.class_body.not_nil!.size.should eq(1)
 
     method_node = arena[class_node.class_body.not_nil![0]]
-    method_node.kind.should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-    method_node.def_body.not_nil!.size.should eq(1)
+    CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+    method_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).def_body.not_nil!.size.should eq(1)
   end
 end

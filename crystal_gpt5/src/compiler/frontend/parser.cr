@@ -12,6 +12,7 @@ module CrystalGPT5
 
         @macro_terminator : Symbol?
         @previous_token : Token?
+        @temp_var_counter : Int32  # Phase 101: for generating temp variable names in block shorthand
 
         def initialize(lexer : Lexer)
           @tokens = [] of Token
@@ -21,6 +22,7 @@ module CrystalGPT5
           @diagnostics = [] of Diagnostic
           @macro_terminator = nil
           @previous_token = nil
+          @temp_var_counter = 0
         end
 
         # Phase 87B-2: Constructor for reparsing with existing arena
@@ -32,6 +34,7 @@ module CrystalGPT5
           @diagnostics = [] of Diagnostic
           @macro_terminator = nil
           @previous_token = nil
+          @temp_var_counter = 0
         end
 
         def parse_program : Program
@@ -228,7 +231,7 @@ module CrystalGPT5
           # Phase 77: Also handle global variable declaration: $var : Type
           if operator_token?(token, Token::Kind::Colon)
             left_node = @arena[left]
-            if left_node.kind == ExpressionNode::Kind::Identifier
+            if Frontend.node_kind(left_node) == ExpressionNode::Kind::Identifier
               # Lookahead to check if it's `: Type` or `: Type =`
               colon_token = token
               advance  # consume ':'
@@ -258,12 +261,12 @@ module CrystalGPT5
                 ExpressionNode.new(
                   ExpressionNode::Kind::TypeDeclaration,
                   type_decl_span,
-                  type_decl_name: left_node.literal,
+                  type_decl_name: Frontend.node_literal(left_node),
                   type_decl_type: type_token.slice,
                 )
               )
             # Phase 77: Global variable declaration: $var : Type
-            elsif left_node.kind == ExpressionNode::Kind::Global
+            elsif Frontend.node_kind(left_node) == ExpressionNode::Kind::Global
               advance  # consume ':'
               skip_trivia
 
@@ -289,7 +292,7 @@ module CrystalGPT5
                 ExpressionNode.new(
                   ExpressionNode::Kind::GlobalVarDecl,
                   decl_span,
-                  literal: left_node.literal,        # $var
+                  literal: Frontend.node_literal(left_node),        # $var
                   ivar_decl_type: type_token.slice,  # Type (reusing field)
                 )
               )
@@ -320,8 +323,8 @@ module CrystalGPT5
             # Phase 35: Check if this is a constant declaration (uppercase identifier + =)
             left_node = @arena[left]
             if token.kind == Token::Kind::Eq &&
-               left_node.kind == ExpressionNode::Kind::Identifier &&
-               left_node.literal && is_constant_name?(left_node.literal.not_nil!)
+               Frontend.node_kind(left_node) == ExpressionNode::Kind::Identifier &&
+               Frontend.node_literal(left_node) && is_constant_name?(Frontend.node_literal(left_node).not_nil!)
               # This is a constant declaration
               advance  # Skip =
               skip_trivia
@@ -333,18 +336,18 @@ module CrystalGPT5
                 ExpressionNode.new(
                   ExpressionNode::Kind::Constant,
                   constant_span,
-                  constant_name: left_node.literal,
+                  constant_name: Frontend.node_literal(left_node),
                   constant_value: value_expr,
                 )
               )
             end
 
             # Verify left side is an identifier, instance variable, class variable, global variable, or index (Phase 14B: hash/array assignment)
-            unless left_node.kind == ExpressionNode::Kind::Identifier ||
-                   left_node.kind == ExpressionNode::Kind::InstanceVar ||
-                   left_node.kind == ExpressionNode::Kind::ClassVar ||
-                   left_node.kind == ExpressionNode::Kind::Global ||
-                   left_node.kind == ExpressionNode::Kind::Index
+            unless Frontend.node_kind(left_node) == ExpressionNode::Kind::Identifier ||
+                   Frontend.node_kind(left_node) == ExpressionNode::Kind::InstanceVar ||
+                   Frontend.node_kind(left_node) == ExpressionNode::Kind::ClassVar ||
+                   Frontend.node_kind(left_node) == ExpressionNode::Kind::Global ||
+                   Frontend.node_kind(left_node) == ExpressionNode::Kind::Index
               @diagnostics << Diagnostic.new("Assignment target must be an identifier, instance variable, class variable, global variable, or index expression", token.span)
               return PREFIX_ERROR
             end
@@ -411,11 +414,10 @@ module CrystalGPT5
             value_span = node_span(value)
             assign_span = left_node.span.cover(value_span)
 
-            stmt = @arena.add(ExpressionNode.new(
-              ExpressionNode::Kind::Assign,
+            stmt = @arena.add_typed(AssignNode.new(
               assign_span,
-              assign_target: left,
-              assign_value: value
+              left,
+              value
             ))
             return parse_postfix_if_modifier(stmt)
           end
@@ -443,6 +445,14 @@ module CrystalGPT5
         private def advance
           @previous_token = current_token
           @index += 1 if @index < @tokens.size - 1
+        end
+
+        # Phase 101: Generate temporary variable name for block shorthand
+        # Returns "__arg0", "__arg1", etc.
+        private def temp_var_name : String
+          name = "__arg#{@temp_var_counter}"
+          @temp_var_counter += 1
+          name
         end
 
         private def skip_trivia
@@ -875,14 +885,13 @@ module CrystalGPT5
           # Set elsifs to nil if array is empty (cleaner AST)
           elsifs_field = elsifs.size > 0 ? elsifs : nil
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::If,
+          @arena.add_typed(
+            IfNode.new(
               if_span,
-              if_condition: condition,
-              if_then: then_body,
-              if_elsifs: elsifs_field,
-              if_else: else_body,
+              condition,
+              then_body,
+              elsifs_field,
+              else_body  # Already nil or Array
             )
           )
         end
@@ -948,13 +957,12 @@ module CrystalGPT5
             unless_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Unless,
+          @arena.add_typed(
+            UnlessNode.new(
               unless_span,
-              if_condition: condition,      # Reuse if_condition field
-              if_then: then_body,            # Reuse if_then field
-              if_else: else_body,            # Reuse if_else field
+              condition,
+              then_body,
+              else_body
             )
           )
         end
@@ -1212,12 +1220,11 @@ module CrystalGPT5
             while_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::While,
+          @arena.add_typed(
+            WhileNode.new(
               while_span,
-              while_condition: condition,
-              while_body: body_ids,
+              condition,
+              body_ids
             )
           )
         end
@@ -1260,11 +1267,10 @@ module CrystalGPT5
             loop_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Loop,
+          @arena.add_typed(
+            LoopNode.new(
               loop_span,
-              loop_body: body_ids,
+              body_ids
             )
           )
         end
@@ -1971,13 +1977,7 @@ module CrystalGPT5
           token = current_token
           if token.kind.in?(Token::Kind::Newline, Token::Kind::EOF, Token::Kind::End, Token::Kind::Else, Token::Kind::Elsif, Token::Kind::If)
             # Return without value (implicit nil)
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Return,
-                return_token.span,
-                return_value: nil
-              )
-            )
+            @arena.add_typed(ReturnNode.new(return_token.span, nil))
           else
             # Return with value
             value = parse_expression(0)
@@ -1986,13 +1986,7 @@ module CrystalGPT5
             value_span = node_span(value)
             return_span = return_token.span.cover(value_span)
 
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Return,
-                return_span,
-                return_value: value
-              )
-            )
+            @arena.add_typed(ReturnNode.new(return_span, value))
           end
         end
 
@@ -2008,13 +2002,7 @@ module CrystalGPT5
           token = current_token
           if token.kind.in?(Token::Kind::Newline, Token::Kind::EOF, Token::Kind::End, Token::Kind::Else, Token::Kind::Elsif, Token::Kind::If)
             # Break without value (returns nil from loop)
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Break,
-                break_token.span,
-                break_value: nil
-              )
-            )
+            @arena.add_typed(BreakNode.new(break_token.span, nil))
           else
             # Break with value
             value = parse_expression(0)
@@ -2023,13 +2011,7 @@ module CrystalGPT5
             value_span = node_span(value)
             break_span = break_token.span.cover(value_span)
 
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Break,
-                break_span,
-                break_value: value
-              )
-            )
+            @arena.add_typed(BreakNode.new(break_span, value))
           end
         end
 
@@ -2040,12 +2022,7 @@ module CrystalGPT5
           advance
 
           # Next has no value in Crystal
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Next,
-              next_token.span
-            )
-          )
+          @arena.add_typed(NextNode.new(next_token.span))
         end
 
         # Phase 10: Parse yield expression
@@ -2060,13 +2037,7 @@ module CrystalGPT5
           token = current_token
           if token.kind.in?(Token::Kind::Newline, Token::Kind::EOF, Token::Kind::End, Token::Kind::Else, Token::Kind::Elsif, Token::Kind::If, Token::Kind::Do, Token::Kind::RBrace)
             # Yield without args
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Yield,
-                yield_token.span,
-                yield_args: [] of ExprId
-              )
-            )
+            @arena.add_typed(YieldNode.new(yield_token.span, nil))
           else
             # Yield with args - parse comma-separated expressions
             args = [] of ExprId
@@ -2085,13 +2056,7 @@ module CrystalGPT5
             last_arg_span = node_span(args.last)
             yield_span = yield_token.span.cover(last_arg_span)
 
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Yield,
-                yield_span,
-                yield_args: args
-              )
-            )
+            @arena.add_typed(YieldNode.new(yield_span, args))
           end
         end
 
@@ -2642,7 +2607,7 @@ module CrystalGPT5
 
           # Parse optional block parameters: |x, y|
           params = [] of Parameter
-          if current_token.kind == Token::Kind::Operator && token_text(current_token) == "|"
+          if current_token.kind == Token::Kind::Pipe
             advance  # consume opening |
             skip_trivia
 
@@ -2676,7 +2641,7 @@ module CrystalGPT5
               if current_token.kind == Token::Kind::Comma
                 advance
                 skip_trivia
-              elsif current_token.kind == Token::Kind::Operator && token_text(current_token) == "|"
+              elsif current_token.kind == Token::Kind::Pipe
                 break
               else
                 emit_unexpected(current_token)
@@ -2892,7 +2857,7 @@ module CrystalGPT5
           call_span = call_node.span.cover(block_span)
 
           # If it's an identifier, convert it to a call (e.g., "three_times do |n| ... end")
-          if call_node.kind == ExpressionNode::Kind::Identifier
+          if Frontend.node_kind(call_node) == ExpressionNode::Kind::Identifier
             return @arena.add(ExpressionNode.new(
               ExpressionNode::Kind::Call,
               call_span,
@@ -2903,20 +2868,27 @@ module CrystalGPT5
           end
 
           # Verify it's a Call or MemberAccess
-          unless call_node.kind.in?(ExpressionNode::Kind::Call, ExpressionNode::Kind::MemberAccess)
+          unless Frontend.node_kind(call_node).in?(ExpressionNode::Kind::Call, ExpressionNode::Kind::MemberAccess)
             @diagnostics << Diagnostic.new("Block can only be attached to method call or identifier", call_node.span)
             return PREFIX_ERROR
           end
 
           # Create new Call node with block attached
-          @arena.add(ExpressionNode.new(
-            call_node.kind,
-            call_span,
-            callee: call_node.callee,
-            member: call_node.member,
-            args: call_node.args,
-            call_block: block_id
-          ))
+          # Note: Call and MemberAccess are not yet migrated to typed nodes, so call_node is always ExpressionNode
+          if call_node.is_a?(ExpressionNode)
+            @arena.add(ExpressionNode.new(
+              call_node.kind,
+              call_span,
+              callee: call_node.callee,
+              member: call_node.member,
+              args: call_node.args,
+              call_block: block_id
+            ))
+          else
+            # Typed CallNode/MemberAccessNode (future migration)
+            @diagnostics << Diagnostic.new("Block attachment to typed Call/MemberAccess not yet supported", call_node.span)
+            return PREFIX_ERROR
+          end
         end
 
         # Phase 6: Handle postfix if modifier
@@ -3615,11 +3587,10 @@ module CrystalGPT5
 
           include_span = include_token.span.cover(name_token.span)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Include,
+          @arena.add_typed(
+            IncludeNode.new(
               include_span,
-              include_name: name_token.slice,
+              name_token.slice
             )
           )
         end
@@ -3640,11 +3611,10 @@ module CrystalGPT5
 
           extend_span = extend_token.span.cover(name_token.span)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Extend,
+          @arena.add_typed(
+            ExtendNode.new(
               extend_span,
-              extend_name: name_token.slice,
+              name_token.slice
             )
           )
         end
@@ -3936,9 +3906,51 @@ module CrystalGPT5
               left = attach_block_to_call(left)
               next
             when Token::Kind::AmpDot
-              # Phase 47: Safe navigation (&.)
+              # Phase 47: AmpDot in postfix loop is ALWAYS safe navigation
+              # Block shorthand with AmpDot is handled in parse_parenthesized_call
               left = parse_safe_navigation(left)
               next
+            when Token::Kind::Amp
+              # Phase 101: Amp followed by dot might be block shorthand for method call without parens
+              # Only handle block shorthand case; otherwise let Amp be processed as infix operator
+              left_node = @arena[left]
+              left_kind = Frontend.node_kind(left_node)
+
+              if (left_kind == ExpressionNode::Kind::MemberAccess || left_kind == ExpressionNode::Kind::Call)
+                amp_token = current_token
+                advance
+                skip_trivia
+
+                if current_token.kind == Token::Kind::Operator
+                  # Block shorthand! & followed by .
+                  block_arg = parse_block_shorthand(amp_token)
+                  if block_arg.invalid?
+                    return PREFIX_ERROR
+                  end
+
+                  # Convert MemberAccess to Call with block argument
+                  callee = if left_kind == ExpressionNode::Kind::MemberAccess
+                    left
+                  else
+                    Frontend.node_callee(left_node)
+                  end
+
+                  span = left_node.span.cover(@arena[block_arg].span)
+
+                  left = @arena.add(ExpressionNode.new(
+                    ExpressionNode::Kind::Call,
+                    span,
+                    callee: callee,
+                    args: [block_arg]
+                  ))
+                  next
+                else
+                  # Not block shorthand, rewind
+                  @index -= 1
+                end
+              end
+
+              # Fall through to let Amp be processed as infix bitwise AND operator
             when Token::Kind::ColonColon
               # Phase 63: Path expression (::)
               left = parse_path(left)
@@ -4016,16 +4028,16 @@ module CrystalGPT5
           token = current_token
           case token.kind
           when Token::Kind::True, Token::Kind::False
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Bool, token.span, literal: token.slice))
+            id = @arena.add_typed(BoolNode.new(token.span, token.kind == Token::Kind::True))
             advance
             id
           when Token::Kind::Nil
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Nil, token.span, literal: token.slice))
+            id = @arena.add_typed(NilNode.new(token.span))
             advance
             id
           when Token::Kind::Self
             # Phase 7: self keyword
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Self, token.span))
+            id = @arena.add_typed(SelfNode.new(token.span))
             advance
             id
           when Token::Kind::Typeof
@@ -4115,44 +4127,39 @@ module CrystalGPT5
               parse_generic_instantiation(identifier_token)
             else
               # Regular identifier
-              @arena.add(ExpressionNode.new(ExpressionNode::Kind::Identifier, identifier_token.span, literal: identifier_token.slice))
+              @arena.add_typed(IdentifierNode.new(identifier_token.span, identifier_token.slice))
             end
           when Token::Kind::InstanceVar
             # Instance variable (@var)
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::InstanceVar, token.span, literal: token.slice))
+            id = @arena.add_typed(InstanceVarNode.new(token.span, token.slice))
             advance
             id
           when Token::Kind::ClassVar
             # Phase 76: Class variable (@@var)
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::ClassVar, token.span, literal: token.slice))
+            id = @arena.add_typed(ClassVarNode.new(token.span, token.slice))
             advance
             id
           when Token::Kind::GlobalVar
             # Phase 75: Global variable ($var)
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Global, token.span, literal: token.slice))
+            id = @arena.add_typed(GlobalNode.new(token.span, token.slice))
             advance
             id
           when Token::Kind::Number
-            id = @arena.add(ExpressionNode.new(
-              ExpressionNode::Kind::Number,
-              token.span,
-              literal: token.slice,
-              number_kind: token.number_kind
-            ))
+            id = @arena.add_typed(NumberNode.new(token.span, token.slice, token.number_kind.not_nil!))
             advance
             id
           when Token::Kind::String
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::String, token.span, literal: token.slice))
+            id = @arena.add_typed(StringNode.new(token.span, token.slice))
             advance
             id
           when Token::Kind::Char
             # Phase 56: Character literals
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Char, token.span, literal: token.slice))
+            id = @arena.add_typed(CharNode.new(token.span, token.slice))
             advance
             id
           when Token::Kind::Regex
             # Phase 57: Regex literals
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Regex, token.span, literal: token.slice))
+            id = @arena.add_typed(RegexNode.new(token.span, token.slice))
             advance
             id
           when Token::Kind::StringInterpolation
@@ -4160,7 +4167,7 @@ module CrystalGPT5
             parse_string_interpolation(token)
           when Token::Kind::Symbol
             # Phase 16: Symbol literal
-            id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::Symbol, token.span, literal: token.slice))
+            id = @arena.add_typed(SymbolNode.new(token.span, token.slice))
             advance
             id
           when Token::Kind::ColonColon
@@ -4175,7 +4182,7 @@ module CrystalGPT5
             return PREFIX_ERROR if right.invalid?
             operand_span = node_span(right)
             unary_span = op.span.cover(operand_span)
-            @arena.add(ExpressionNode.new(ExpressionNode::Kind::Unary, unary_span, operator: op.slice, right: right))
+            @arena.add_typed(UnaryNode.new(unary_span, op.slice, right))
           when Token::Kind::LParen
             parse_grouping
           when Token::Kind::LBracket
@@ -4457,7 +4464,7 @@ module CrystalGPT5
           when Token::Kind::Colon
             # ":" → check if first_elem is identifier for named tuple
             first_node = @arena[first_elem]
-            if first_node.kind == ExpressionNode::Kind::Identifier
+            if Frontend.node_kind(first_node) == ExpressionNode::Kind::Identifier
               # identifier: value → named tuple
               return parse_named_tuple_literal_continued(lbrace, first_elem)
             else
@@ -4528,7 +4535,7 @@ module CrystalGPT5
 
           # Get first key from first_key_expr (we know it's Identifier)
           first_key_node = @arena[first_key_expr]
-          first_key = String.new(first_key_node.literal.not_nil!)
+          first_key = String.new(Frontend.node_literal(first_key_node).not_nil!)
           first_key_span = first_key_node.span
 
           # Expect colon
@@ -4904,7 +4911,7 @@ module CrystalGPT5
           @arena.add(ExpressionNode.new(
             node.kind,
             node.span,
-            literal: node.literal,
+            literal: Frontend.node_literal(node),
             number_kind: node.number_kind,
             operator: node.operator,
             left: remap.call(node.left),
@@ -4971,17 +4978,47 @@ module CrystalGPT5
           # Empty call: foo()
           unless current_token.kind == Token::Kind::RParen
             loop do
-              # Parse first expression/identifier
-              arg_expr = parse_expression(0)
-              return PREFIX_ERROR if arg_expr.invalid?
+              # Phase 101: Check for block shorthand (&.method)
+              # This creates: { |__arg0| __arg0.method }
+              if current_token.kind == Token::Kind::Amp
+                # Save position in case this is not block shorthand
+                amp_token = current_token
+                advance
+                skip_trivia
+
+                # Check if followed by dot (member access)
+                if current_token.kind == Token::Kind::Operator
+                  # This is block shorthand: try &.method (with space: Amp + Operator)
+                  arg_expr = parse_block_shorthand(amp_token)
+                  return PREFIX_ERROR if arg_expr.invalid?
+                else
+                  # Not block shorthand, rewind and parse normally
+                  # This handles cases like: foo(& other_expr)
+                  @index -= 1  # Go back to Amp token
+                  arg_expr = parse_expression(0)
+                  return PREFIX_ERROR if arg_expr.invalid?
+                end
+              elsif current_token.kind == Token::Kind::AmpDot
+                # Phase 101: Block shorthand without space: try &.method (AmpDot token)
+                # In argument context, AmpDot is block shorthand, not safe navigation
+                amp_token = current_token
+                advance
+                skip_trivia
+                arg_expr = parse_block_shorthand(amp_token)
+                return PREFIX_ERROR if arg_expr.invalid?
+              else
+                # Parse first expression/identifier
+                arg_expr = parse_expression(0)
+                return PREFIX_ERROR if arg_expr.invalid?
+              end
               skip_trivia
 
               # Check if this is named argument (identifier followed by colon)
               if current_token.kind == Token::Kind::Colon
                 arg_node = @arena[arg_expr]
-                if arg_node.kind == ExpressionNode::Kind::Identifier
+                if Frontend.node_kind(arg_node) == ExpressionNode::Kind::Identifier
                   # Named argument: name: value
-                  name = String.new(arg_node.literal.not_nil!)
+                  name = String.new(Frontend.node_literal(arg_node).not_nil!)
                   name_span = arg_node.span
 
                   advance  # consume ':'
@@ -5092,6 +5129,23 @@ module CrystalGPT5
           end
 
           if member_token.kind == Token::Kind::Identifier
+            spans = [] of Span
+            spans << node_span(receiver)
+            spans << dot.span
+            spans << member_token.span
+            member_span = Span.cover_all(spans)
+            node = @arena.add(
+              ExpressionNode.new(
+                ExpressionNode::Kind::MemberAccess,
+                member_span,
+                left: receiver,
+                member: member_token.slice,
+              )
+            )
+            advance
+            node
+          elsif !member_token.slice.empty?
+            # Phase 101: Keywords can be method names after dot (e.g., .class, .select, .begin)
             spans = [] of Span
             spans << node_span(receiver)
             spans << dot.span
@@ -5560,13 +5614,12 @@ module CrystalGPT5
         end
 
         private def build_binary(left : ExprId, token : Token, right : ExprId) : ExprId
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Binary,
+          @arena.add_typed(
+            BinaryNode.new(
               cover_optional_spans(node_span(left), token.span, node_span(right)),
-              operator: token.slice,
-              left: left,
-              right: right,
+              token.slice,
+              left,
+              right
             )
           )
         end
@@ -5968,6 +6021,138 @@ module CrystalGPT5
           Token::Kind::StarStar  => 25,  # Exponentiation (Phase 19, highest precedence)
           Token::Kind::AmpStarStar => 25, # Wrapping exponentiation (Phase 89)
         }
+
+        # Phase 101: Parse block shorthand (&.method)
+        # Transforms: try &.each_value
+        # Into: try { |__arg0| __arg0.each_value }
+        private def parse_block_shorthand(amp_token : Token) : ExprId
+          location_start = amp_token.span
+
+          # Generate temporary variable name
+          temp_name = temp_var_name
+          temp_name_slice = Slice(UInt8).new(temp_name.to_unsafe, temp_name.bytesize)
+
+          # Create identifier node for temp variable
+          temp_var = @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::Identifier,
+            location_start,  # Will be updated later
+            literal: temp_name_slice
+          ))
+
+          # Handle dot consumption and parsing based on token type
+          if amp_token.kind == Token::Kind::Amp
+            # Separate tokens: need to consume Operator (dot)
+            if current_token.kind == Token::Kind::Operator
+              advance
+              skip_trivia
+            else
+              @diagnostics << Diagnostic.new("Expected '.' after '&' in block shorthand", current_token.span)
+              return PREFIX_ERROR
+            end
+
+            # After consuming dot, manually create MemberAccess (dot already consumed)
+            # Same logic as AmpDot case
+            if current_token.kind == Token::Kind::LBracket
+              # Indexing: &.[0]
+              call_expr = parse_index(temp_var)
+            else
+              # Everything else: identifier, keyword, or operator as method name
+              method_name = current_token.slice
+              method_span = current_token.span
+              advance
+
+              # Create MemberAccess: temp_var.method
+              member_span = location_start.cover(method_span)
+              call_expr = @arena.add(ExpressionNode.new(
+                ExpressionNode::Kind::MemberAccess,
+                member_span,
+                left: temp_var,
+                member: method_name
+              ))
+            end
+
+            # Phase 101: Check for trailing do...end or {...} block (Amp case)
+            # This handles: &.each_value do |x| ... end
+            skip_trivia
+            if current_token.kind == Token::Kind::Do || current_token.kind == Token::Kind::LBrace
+              trailing_block = parse_block
+              return PREFIX_ERROR if trailing_block.invalid?
+
+              # Convert MemberAccess to Call with block argument
+              call_expr_node = @arena[call_expr]
+              call_span = call_expr_node.span.cover(@arena[trailing_block].span)
+              call_expr = @arena.add(ExpressionNode.new(
+                ExpressionNode::Kind::Call,
+                call_span,
+                callee: call_expr,
+                args: [trailing_block]
+              ))
+            end
+          elsif amp_token.kind == Token::Kind::AmpDot
+            # AmpDot is a single token, dot already consumed
+            # Current token can be: identifier, keyword (select), operator (+), or [ for indexing
+            if current_token.kind == Token::Kind::LBracket
+              # Indexing: &.[0]
+              call_expr = parse_index(temp_var)
+            else
+              # Everything else: identifier, keyword, or operator as method name
+              # In Crystal, keywords and operators can be method names after dot
+              method_name = current_token.slice
+              method_span = current_token.span
+              advance
+
+              # Create MemberAccess: temp_var.method
+              member_span = location_start.cover(method_span)
+              call_expr = @arena.add(ExpressionNode.new(
+                ExpressionNode::Kind::MemberAccess,
+                member_span,
+                left: temp_var,
+                member: method_name
+              ))
+            end
+
+            # Phase 101: Check for trailing do...end or {...} block (AmpDot case)
+            # This handles: &.each_value do |x| ... end
+            skip_trivia
+            if current_token.kind == Token::Kind::Do || current_token.kind == Token::Kind::LBrace
+              trailing_block = parse_block
+              return PREFIX_ERROR if trailing_block.invalid?
+
+              # Convert MemberAccess to Call with block argument
+              call_expr_node = @arena[call_expr]
+              call_span = call_expr_node.span.cover(@arena[trailing_block].span)
+              call_expr = @arena.add(ExpressionNode.new(
+                ExpressionNode::Kind::Call,
+                call_span,
+                callee: call_expr,
+                args: [trailing_block]
+              ))
+            end
+          else
+            @diagnostics << Diagnostic.new("Expected '&' or '&.' for block shorthand", current_token.span)
+            return PREFIX_ERROR
+          end
+
+          return PREFIX_ERROR if call_expr.invalid?
+
+          # Get full span
+          call_span = @arena[call_expr].span
+          full_span = location_start.cover(call_span)
+
+          # Create parameter for block: |__arg0|
+          param = Parameter.new(temp_name, span: location_start, name_span: location_start)
+
+
+          # Create block: { |__arg0| __arg0.method }
+          block_id = @arena.add(ExpressionNode.new(
+            ExpressionNode::Kind::Block,
+            full_span,
+            block_params: [param],
+            block_body: [call_expr]
+          ))
+
+          block_id
+        end
 
         UNARY_OPERATORS = [Token::Kind::Plus, Token::Kind::Minus, Token::Kind::AmpPlus, Token::Kind::AmpMinus, Token::Kind::Not, Token::Kind::Tilde]
       end

@@ -104,7 +104,7 @@ describe Semantic::NameResolver do
 
     greet_method = AstFixtures.make_def(arena, "greet")
     call_id = AstFixtures.make_call(arena, "greet")
-    call_node = arena[call_id]
+    call_node = arena[call_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
     callee_id = call_node.callee.not_nil!
     say_hello = AstFixtures.make_def(arena, "say_hello", body: [call_id])
     class_id = AstFixtures.make_class(arena, "Greeter", body: [greet_method, say_hello])

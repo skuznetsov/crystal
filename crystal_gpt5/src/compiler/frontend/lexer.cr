@@ -1125,10 +1125,22 @@ module CrystalGPT5
               Token::Kind::Not
             end
           when '&'.ord.to_u8
-            # Check for &. (safe navigation)
+            # Phase 101: Check for &. (safe navigation vs block shorthand)
+            # AmpDot is only safe navigation when there's NO whitespace before &
+            # "obj&.method" → AmpDot (safe navigation)
+            # "obj.try &.method" → Amp, then Operator (block shorthand)
             if @offset < @rope.size && current_byte == '.'.ord.to_u8
-              advance  # consume '.'
-              Token::Kind::AmpDot
+              # Check if there was whitespace before &
+              had_whitespace_before = from > 0 && whitespace?(@rope.bytes[from - 1])
+
+              if had_whitespace_before
+                # Block shorthand context: don't create AmpDot
+                Token::Kind::Amp
+              else
+                # Safe navigation: create AmpDot
+                advance  # consume '.'
+                Token::Kind::AmpDot
+              end
             # Check for &&= and &&
             elsif @offset < @rope.size && current_byte == '&'.ord.to_u8
               advance  # consume second '&'
