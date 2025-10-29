@@ -2449,7 +2449,8 @@ module CrystalGPT5
         private def infer_break(node, expr_id : ExprId) : Type
           # Break can have an optional value
           # (Type will be set by infer_expression)
-          break_type = if value_id = Frontend.node_break_value(node)
+          value_id = Frontend.node_break_value(node)
+          break_type = if value_id
             infer_expression(value_id)
           else
             @context.nil_type

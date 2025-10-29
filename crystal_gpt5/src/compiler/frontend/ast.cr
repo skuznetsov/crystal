@@ -2188,6 +2188,10 @@ module CrystalGPT5
         node.break_value
       end
 
+      def self.node_break_value(node : BreakNode)
+        node.value
+      end
+
       def self.node_break_value(node : TypedNode)
         nil
       end
