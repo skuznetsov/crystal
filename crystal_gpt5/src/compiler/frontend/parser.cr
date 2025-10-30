@@ -397,13 +397,14 @@ module CrystalGPT5
               rhs_span = node_span(rhs)
               binary_span = left_node.span.cover(rhs_span)
 
-              @arena.add(ExpressionNode.new(
-                ExpressionNode::Kind::Binary,
-                binary_span,
-                operator: operator.to_slice,
-                left: left,
-                right: rhs
-              ))
+              @arena.add_typed(
+                BinaryNode.new(
+                  binary_span,
+                  operator.to_slice,
+                  left,
+                  rhs
+                )
+              )
             else
               # Regular assignment: just use rhs
               rhs
@@ -2855,13 +2856,14 @@ module CrystalGPT5
 
           # If it's an identifier, convert it to a call (e.g., "three_times do |n| ... end")
           if Frontend.node_kind(call_node) == ExpressionNode::Kind::Identifier
-            return @arena.add(ExpressionNode.new(
-              ExpressionNode::Kind::Call,
-              call_span,
-              callee: call_expr,
-              args: [] of ExprId,
-              call_block: block_id
-            ))
+            return @arena.add_typed(
+              CallNode.new(
+                call_span,
+                call_expr,
+                [] of ExprId,
+                block_id
+              )
+            )
           end
 
           # Verify it's a Call or MemberAccess
@@ -2870,21 +2872,46 @@ module CrystalGPT5
             return PREFIX_ERROR
           end
 
-          # Create new Call node with block attached
-          # Note: Call and MemberAccess are not yet migrated to typed nodes, so call_node is always ExpressionNode
+          # Create new node with block attached
           if call_node.is_a?(ExpressionNode)
-            @arena.add(ExpressionNode.new(
-              call_node.kind,
-              call_span,
-              callee: call_node.callee,
-              member: call_node.member,
-              args: call_node.args,
-              call_block: block_id
-            ))
+            # Handle ExpressionNode Call vs MemberAccess
+            if call_node.kind == ExpressionNode::Kind::Call
+              # Migrate Call to CallNode
+              @arena.add_typed(
+                CallNode.new(
+                  call_span,
+                  call_node.callee.not_nil!,
+                  call_node.args.not_nil!,
+                  block_id
+                )
+              )
+            else
+              # MemberAccess: keep as ExpressionNode (not yet migrated)
+              @arena.add(ExpressionNode.new(
+                call_node.kind,
+                call_span,
+                callee: call_node.callee,
+                member: call_node.member,
+                args: call_node.args,
+                call_block: block_id
+              ))
+            end
           else
-            # Typed CallNode/MemberAccessNode (future migration)
-            @diagnostics << Diagnostic.new("Block attachment to typed Call/MemberAccess not yet supported", call_node.span)
-            return PREFIX_ERROR
+            # Handle TypedNode (CallNode already migrated)
+            if call_node.is_a?(CallNode)
+              @arena.add_typed(
+                CallNode.new(
+                  call_span,
+                  call_node.callee,
+                  call_node.args,
+                  block_id
+                )
+              )
+            else
+              # MemberAccessNode or other: not yet supported
+              @diagnostics << Diagnostic.new("Block attachment to typed MemberAccess not yet supported", call_node.span)
+              return PREFIX_ERROR
+            end
           end
         end
 
@@ -3926,17 +3953,18 @@ module CrystalGPT5
                   callee = if left_kind == ExpressionNode::Kind::MemberAccess
                     left
                   else
-                    Frontend.node_callee(left_node)
+                    Frontend.node_callee(left_node).not_nil!
                   end
 
                   span = left_node.span.cover(@arena[block_arg].span)
 
-                  left = @arena.add(ExpressionNode.new(
-                    ExpressionNode::Kind::Call,
-                    span,
-                    callee: callee,
-                    args: [block_arg]
-                  ))
+                  left = @arena.add_typed(
+                    CallNode.new(
+                      span,
+                      callee,
+                      [block_arg]
+                    )
+                  )
                   next
                 else
                   # Not block shorthand, rewind
@@ -4000,13 +4028,12 @@ module CrystalGPT5
                 break
               end
 
-              left = @arena.add(
-                ExpressionNode.new(
-                  ExpressionNode::Kind::Ternary,
+              left = @arena.add_typed(
+                TernaryNode.new(
                   cover_optional_spans(node_span(left), token.span, node_span(false_branch)),
-                  ternary_condition: left,
-                  ternary_true_branch: right,
-                  ternary_false_branch: false_branch,
+                  left,
+                  right,
+                  false_branch
                 )
               )
             else

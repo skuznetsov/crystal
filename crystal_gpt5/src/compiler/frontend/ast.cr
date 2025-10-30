@@ -736,6 +736,10 @@ module CrystalGPT5
 
         def initialize(@span : Span, @operator : Slice(UInt8), @left : ExprId, @right : ExprId)
         end
+
+        def operator_string
+          String.new(operator)
+        end
       end
 
       # CallNode: Method and function calls
