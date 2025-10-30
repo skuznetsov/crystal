@@ -1165,12 +1165,11 @@ module CrystalGPT5
             select_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Select,
+          @arena.add_typed(
+            SelectNode.new(
               select_span,
-              select_branches: select_branches,
-              select_else: else_body,
+              select_branches,
+              else_body
             )
           )
         end
@@ -2805,12 +2804,11 @@ module CrystalGPT5
           advance
 
           proc_span = arrow_token.span.cover(end_token.span)
-          @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::ProcLiteral,
+          @arena.add_typed(ProcLiteralNode.new(
             proc_span,
-            block_params: params,
-            block_body: body,
-            proc_return_type: return_type
+            params,
+            return_type,
+            body
           ))
         end
 
@@ -3466,11 +3464,10 @@ module CrystalGPT5
 
           annotation_span = annotation_token.span.cover(end_token.span)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Annotation,
+          @arena.add_typed(
+            AnnotationNode.new(
               annotation_span,
-              annotation_name: name_token.slice,
+              name_token.slice
             )
           )
         end
