@@ -5146,12 +5146,11 @@ module CrystalGPT5
             spans << dot.span
             spans << member_token.span
             member_span = Span.cover_all(spans)
-            node = @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::MemberAccess,
+            node = @arena.add_typed(
+              MemberAccessNode.new(
                 member_span,
-                left: receiver,
-                member: member_token.slice,
+                receiver,
+                member_token.slice
               )
             )
             advance
@@ -5163,12 +5162,11 @@ module CrystalGPT5
             spans << dot.span
             spans << member_token.span
             member_span = Span.cover_all(spans)
-            node = @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::MemberAccess,
+            node = @arena.add_typed(
+              MemberAccessNode.new(
                 member_span,
-                left: receiver,
-                member: member_token.slice,
+                receiver,
+                member_token.slice
               )
             )
             advance
@@ -5192,11 +5190,10 @@ module CrystalGPT5
             return left
           end
 
-          right_id = @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Identifier,
+          right_id = @arena.add_typed(
+            IdentifierNode.new(
               right_token.span,
-              literal: right_token.slice,
+              right_token.slice
             )
           )
           advance
@@ -5227,11 +5224,10 @@ module CrystalGPT5
             return PREFIX_ERROR
           end
 
-          right_id = @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Identifier,
+          right_id = @arena.add_typed(
+            IdentifierNode.new(
               identifier_token.span,
-              literal: identifier_token.slice,
+              identifier_token.slice
             )
           )
           advance
@@ -5521,10 +5517,9 @@ module CrystalGPT5
               end
 
               type_arg_token = current_token
-              type_arg = @arena.add(ExpressionNode.new(
-                ExpressionNode::Kind::Identifier,
+              type_arg = @arena.add_typed(IdentifierNode.new(
                 type_arg_token.span,
-                literal: type_arg_token.slice
+                type_arg_token.slice
               ))
               type_args << type_arg
               advance
@@ -5552,10 +5547,9 @@ module CrystalGPT5
           advance
 
           # Create base type name node
-          name_node = @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::Identifier,
+          name_node = @arena.add_typed(IdentifierNode.new(
             name_token.span,
-            literal: name_token.slice
+            name_token.slice
           ))
 
           # Calculate span covering entire generic expression
@@ -6075,11 +6069,10 @@ module CrystalGPT5
 
               # Create MemberAccess: temp_var.method
               member_span = location_start.cover(method_span)
-              call_expr = @arena.add(ExpressionNode.new(
-                ExpressionNode::Kind::MemberAccess,
+              call_expr = @arena.add_typed(MemberAccessNode.new(
                 member_span,
-                left: temp_var,
-                member: method_name
+                temp_var,
+                method_name
               ))
             end
 
@@ -6115,11 +6108,10 @@ module CrystalGPT5
 
               # Create MemberAccess: temp_var.method
               member_span = location_start.cover(method_span)
-              call_expr = @arena.add(ExpressionNode.new(
-                ExpressionNode::Kind::MemberAccess,
+              call_expr = @arena.add_typed(MemberAccessNode.new(
                 member_span,
-                left: temp_var,
-                member: method_name
+                temp_var,
+                method_name
               ))
             end
 

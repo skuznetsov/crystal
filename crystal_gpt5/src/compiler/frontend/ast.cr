@@ -2061,6 +2061,14 @@ module CrystalGPT5
         node.object
       end
 
+      def self.node_left(node : MemberAccessNode) : ExprId
+        node.object
+      end
+
+      def self.node_left(node : SafeNavigationNode) : ExprId
+        node.object
+      end
+
       def self.node_left(node : TypedNode) : ExprId?
         nil
       end
@@ -2307,6 +2315,14 @@ module CrystalGPT5
       # member_string: Get member string
       def self.node_member_string(node : ExpressionNode)
         node.member_string
+      end
+
+      def self.node_member_string(node : MemberAccessNode)
+        String.new(node.member)
+      end
+
+      def self.node_member_string(node : SafeNavigationNode)
+        String.new(node.member)
       end
 
       def self.node_member_string(node : TypedNode)
