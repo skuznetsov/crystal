@@ -1516,18 +1516,20 @@ module CrystalGPT5
 
       struct MacroLiteralNode
         getter span : Span
-        getter value : Slice(UInt8)
+        getter pieces : Array(MacroPiece)
+        getter trim_left : Bool
+        getter trim_right : Bool
 
-        def initialize(@span : Span, @value : Slice(UInt8))
+        def initialize(@span : Span, @pieces : Array(MacroPiece), @trim_left : Bool, @trim_right : Bool)
         end
       end
 
       struct MacroDefNode
         getter span : Span
         getter name : Slice(UInt8)
-        getter pieces : Array(MacroPiece)
+        getter body : ExprId
 
-        def initialize(@span : Span, @name : Slice(UInt8), @pieces : Array(MacroPiece))
+        def initialize(@span : Span, @name : Slice(UInt8), @body : ExprId)
         end
       end
 

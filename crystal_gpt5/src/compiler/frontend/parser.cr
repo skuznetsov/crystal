@@ -517,22 +517,20 @@ module CrystalGPT5
           body_span = end_span ? name_token.span.cover(end_span) : name_token.span
           macro_span = end_span ? macro_token.span.cover(end_span) : macro_token.span
 
-          body_id = @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::MacroLiteral,
+          body_id = @arena.add_typed(
+            MacroLiteralNode.new(
               body_span,
-              macro_pieces: pieces,
-              trim_left: trim_left,
-              trim_right: trim_right
+              pieces,
+              trim_left,
+              trim_right
             )
           )
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::MacroDef,
+          @arena.add_typed(
+            MacroDefNode.new(
               macro_span,
-              left: body_id,
-              macro_name: name_token.slice
+              name_token.slice,
+              body_id
             )
           )
         end
