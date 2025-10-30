@@ -20,13 +20,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       lib_node = arena[program.roots[0]]
       CrystalGPT5::Compiler::Frontend.node_kind(lib_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Lib)
 
-      body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node).not_nil!
+      body = lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).body.not_nil!
       body.size.should eq(1)
 
       fun_node = arena[body[0]]
       CrystalGPT5::Compiler::Frontend.node_kind(fun_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Fun)
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(fun_node).not_nil!).should eq("exit")
-      CrystalGPT5::Compiler::Frontend.node_def_body(fun_node).should be_nil  # No body for fun
+      String.new(fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).name).should eq("exit")
+      nil # FunNode has no body field.should be_nil  # No body for fun
     end
 
     it "parses fun with parameters" do
@@ -43,13 +43,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       lib_node = arena[program.roots[0]]
-      body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node).not_nil!
+      body = lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).body.not_nil!
       fun_node = arena[body[0]]
 
       CrystalGPT5::Compiler::Frontend.node_kind(fun_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Fun)
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(fun_node).not_nil!).should eq("printf")
+      String.new(fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).name).should eq("printf")
 
-      params = CrystalGPT5::Compiler::Frontend.node_def_params(fun_node).not_nil!
+      params = fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).params.not_nil!
       params.size.should eq(1)
       params[0].name.should eq("format")
       params[0].type_annotation.should eq("UInt8")
@@ -69,13 +69,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       lib_node = arena[program.roots[0]]
-      body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node).not_nil!
+      body = lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).body.not_nil!
       fun_node = arena[body[0]]
 
       CrystalGPT5::Compiler::Frontend.node_kind(fun_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Fun)
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(fun_node).not_nil!).should eq("getpid")
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_return_type(fun_node).not_nil!).should eq("Int32")
-      CrystalGPT5::Compiler::Frontend.node_def_body(fun_node).should be_nil
+      String.new(fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).name).should eq("getpid")
+      String.new(fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).return_type.not_nil!).should eq("Int32")
+      nil # FunNode has no body field.should be_nil
     end
 
     it "parses fun with parameters and return type" do
@@ -92,19 +92,19 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       lib_node = arena[program.roots[0]]
-      body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node).not_nil!
+      body = lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).body.not_nil!
       fun_node = arena[body[0]]
 
       CrystalGPT5::Compiler::Frontend.node_kind(fun_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Fun)
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(fun_node).not_nil!).should eq("malloc")
+      String.new(fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).name).should eq("malloc")
 
-      params = CrystalGPT5::Compiler::Frontend.node_def_params(fun_node).not_nil!
+      params = fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).params.not_nil!
       params.size.should eq(1)
       params[0].name.should eq("size")
       params[0].type_annotation.should eq("UInt64")
 
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_return_type(fun_node).not_nil!).should eq("Void")
-      CrystalGPT5::Compiler::Frontend.node_def_body(fun_node).should be_nil
+      String.new(fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).return_type.not_nil!).should eq("Void")
+      nil # FunNode has no body field.should be_nil
     end
 
     it "parses multiple fun declarations in lib" do
@@ -123,23 +123,23 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       lib_node = arena[program.roots[0]]
-      body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node).not_nil!
+      body = lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).body.not_nil!
       body.size.should eq(3)
 
       # First fun: getpid
       fun1 = arena[body[0]]
       CrystalGPT5::Compiler::Frontend.node_kind(fun1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Fun)
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(fun1).not_nil!).should eq("getpid")
+      String.new(fun1.as(CrystalGPT5::Compiler::Frontend::FunNode).name).should eq("getpid")
 
       # Second fun: exit
       fun2 = arena[body[1]]
       CrystalGPT5::Compiler::Frontend.node_kind(fun2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Fun)
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(fun2).not_nil!).should eq("exit")
+      String.new(fun2.as(CrystalGPT5::Compiler::Frontend::FunNode).name).should eq("exit")
 
       # Third fun: malloc
       fun3 = arena[body[2]]
       CrystalGPT5::Compiler::Frontend.node_kind(fun3).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Fun)
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(fun3).not_nil!).should eq("malloc")
+      String.new(fun3.as(CrystalGPT5::Compiler::Frontend::FunNode).name).should eq("malloc")
     end
 
     it "parses fun with multiple parameters" do
@@ -156,13 +156,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       lib_node = arena[program.roots[0]]
-      body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node).not_nil!
+      body = lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).body.not_nil!
       fun_node = arena[body[0]]
 
       CrystalGPT5::Compiler::Frontend.node_kind(fun_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Fun)
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(fun_node).not_nil!).should eq("strncmp")
+      String.new(fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).name).should eq("strncmp")
 
-      params = CrystalGPT5::Compiler::Frontend.node_def_params(fun_node).not_nil!
+      params = fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).params.not_nil!
       params.size.should eq(3)
 
       params[0].name.should eq("s1")
@@ -174,7 +174,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       params[2].name.should eq("n")
       params[2].type_annotation.should eq("UInt64")
 
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_return_type(fun_node).not_nil!).should eq("Int32")
+      String.new(fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).return_type.not_nil!).should eq("Int32")
     end
 
     it "parses fun without return type has nil return type" do
@@ -191,11 +191,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       lib_node = arena[program.roots[0]]
-      body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node).not_nil!
+      body = lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).body.not_nil!
       fun_node = arena[body[0]]
 
       CrystalGPT5::Compiler::Frontend.node_kind(fun_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Fun)
-      CrystalGPT5::Compiler::Frontend.node_def_return_type(fun_node).should be_nil
+      fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).return_type.should be_nil
     end
 
     it "parses fun with no parameters as empty array" do
@@ -212,11 +212,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       lib_node = arena[program.roots[0]]
-      body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node).not_nil!
+      body = lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).body.not_nil!
       fun_node = arena[body[0]]
 
       CrystalGPT5::Compiler::Frontend.node_kind(fun_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Fun)
-      params = CrystalGPT5::Compiler::Frontend.node_def_params(fun_node)
+      params = fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).params
       (params.nil? || params.size == 0).should be_true
     end
 
@@ -234,11 +234,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       lib_node = arena[program.roots[0]]
-      body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node).not_nil!
+      body = lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).body.not_nil!
       fun_node = arena[body[0]]
 
       CrystalGPT5::Compiler::Frontend.node_kind(fun_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Fun)
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(fun_node).not_nil!).should eq("malloc")
+      String.new(fun_node.as(CrystalGPT5::Compiler::Frontend::FunNode).name).should eq("malloc")
     end
 
     it "parses lib with mixed fun and other declarations" do
@@ -256,7 +256,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       lib_node = arena[program.roots[0]]
-      body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node).not_nil!
+      body = lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).body.not_nil!
       body.size.should eq(2)
 
       # Both should be fun declarations

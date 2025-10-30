@@ -18,8 +18,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       lib_node = arena[program.roots.first]
 
       CrystalGPT5::Compiler::Frontend.node_kind(lib_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Lib)
-      String.new(CrystalGPT5::Compiler::Frontend.node_lib_name(lib_node).not_nil!).should eq("LibC")
-      body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node)
+      String.new(lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).name).should eq("LibC")
+      body = lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).body
       body.should_not be_nil
       body.not_nil!.size.should eq(0)
     end
@@ -37,16 +37,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      lib_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      lib_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::LibNode)
 
-      String.new(lib_node.lib_name.not_nil!).should eq("LibC")
+      String.new(lib_node.name).should eq("LibC")
 
-      lib_body = lib_node.lib_body.not_nil!
+      lib_body = lib_node.body.not_nil!
       lib_body.size.should eq(1)
 
       method_node = arena[lib_body[0]]
       CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method_node).not_nil!).should eq("strlen")
+      String.new(method_node.as(CrystalGPT5::Compiler::Frontend::DefNode).name).should eq("strlen")
     end
 
     it "parses lib with multiple method definitions" do
@@ -65,18 +65,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      lib_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      lib_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::LibNode)
 
-      lib_body = lib_node.lib_body.not_nil!
+      lib_body = lib_node.body.not_nil!
       lib_body.size.should eq(2)
 
       # First method
       method1 = arena[lib_body[0]]
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method1).not_nil!).should eq("strlen")
+      String.new(method1.as(CrystalGPT5::Compiler::Frontend::DefNode).name).should eq("strlen")
 
       # Second method
       method2 = arena[lib_body[1]]
-      String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method2).not_nil!).should eq("strcmp")
+      String.new(method2.as(CrystalGPT5::Compiler::Frontend::DefNode).name).should eq("strcmp")
     end
 
     it "parses nested lib" do
@@ -101,7 +101,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       lib_node = arena[class_body[0]]
       CrystalGPT5::Compiler::Frontend.node_kind(lib_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Lib)
-      String.new(CrystalGPT5::Compiler::Frontend.node_lib_name(lib_node).not_nil!).should eq("LibC")
+      String.new(lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).name).should eq("LibC")
     end
 
     it "parses lib in module" do
@@ -119,14 +119,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      module_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      module_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ModuleNode)
 
-      module_body = module_node.module_body.not_nil!
+      module_body = module_node.body.not_nil!
       module_body.size.should eq(1)
 
       lib_node = arena[module_body[0]]
       CrystalGPT5::Compiler::Frontend.node_kind(lib_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Lib)
-      String.new(CrystalGPT5::Compiler::Frontend.node_lib_name(lib_node).not_nil!).should eq("LibC")
+      String.new(lib_node.as(CrystalGPT5::Compiler::Frontend::LibNode).name).should eq("LibC")
     end
 
     it "parses lib with struct definition" do
@@ -142,9 +142,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      lib_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      lib_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::LibNode)
 
-      lib_body = lib_node.lib_body.not_nil!
+      lib_body = lib_node.body.not_nil!
       lib_body.size.should eq(1)
 
       struct_node = arena[lib_body[0]]
@@ -164,9 +164,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      lib_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      lib_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::LibNode)
 
-      lib_body = lib_node.lib_body.not_nil!
+      lib_body = lib_node.body.not_nil!
       lib_body.size.should eq(1)
 
       alias_node = arena[lib_body[0]]
@@ -223,9 +223,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      lib_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      lib_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::LibNode)
 
-      lib_body = lib_node.lib_body.not_nil!
+      lib_body = lib_node.body.not_nil!
       lib_body.size.should eq(3)
 
       # Alias

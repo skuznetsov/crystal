@@ -601,16 +601,15 @@ module CrystalGPT5
           else
             def_token.span
           end
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Def,
+          @arena.add_typed(
+            DefNode.new(
               def_span,
-              def_name: name_token.slice,
-              def_params: params,
-              def_return_type: return_type,
-              def_body: body_ids,
-              def_is_abstract: is_abstract,
-              def_visibility: visibility,
+              name_token.slice,
+              params,
+              return_type,
+              body_ids,
+              is_abstract,
+              visibility
             )
           )
         end
@@ -654,14 +653,12 @@ module CrystalGPT5
 
           # Fun declarations have no body (external linkage)
           fun_span = fun_token.span.cover(current_token.span)
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Fun,
+          @arena.add_typed(
+            FunNode.new(
               fun_span,
-              def_name: name_token.slice,
-              def_params: params,
-              def_return_type: return_type,
-              def_body: nil,  # No body for fun
+              name_token.slice,
+              params,
+              return_type
             )
           )
         end
@@ -3270,12 +3267,11 @@ module CrystalGPT5
             lib_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Lib,
+          @arena.add_typed(
+            LibNode.new(
               lib_span,
-              lib_name: name_token.slice,
-              lib_body: body_ids,
+              name_token.slice,
+              body_ids
             )
           )
         end
