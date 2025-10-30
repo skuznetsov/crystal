@@ -3368,13 +3368,12 @@ module CrystalGPT5
             enum_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Enum,
+          @arena.add_typed(
+            EnumNode.new(
               enum_span,
-              enum_name: name_token.slice,
-              enum_base_type: base_type_token.try(&.slice),
-              enum_members: members,
+              name_token.slice,
+              base_type_token.try(&.slice),
+              members
             )
           )
         end
@@ -3546,13 +3545,12 @@ module CrystalGPT5
             module_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Module,
+          @arena.add_typed(
+            ModuleNode.new(
               module_span,
-              module_name: name_token.slice,
-              module_body: body_ids,
-              module_type_params: type_params,  # Phase 61: Generic type parameters
+              name_token.slice,
+              body_ids,
+              type_params
             )
           )
         end

@@ -1180,8 +1180,9 @@ module CrystalGPT5
         getter span : Span
         getter name : Slice(UInt8)
         getter body : Array(ExprId)?
+        getter type_params : Array(Slice(UInt8))?
 
-        def initialize(@span : Span, @name : Slice(UInt8), @body : Array(ExprId)?)
+        def initialize(@span : Span, @name : Slice(UInt8), @body : Array(ExprId)?, @type_params : Array(Slice(UInt8))?)
         end
       end
 

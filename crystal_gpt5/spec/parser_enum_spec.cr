@@ -130,9 +130,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program = parser.parse_program
 
       arena = program.arena
-      enum_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      enum_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::EnumNode)
 
-      members = enum_node.enum_members.not_nil!
+      members = enum_node.members
       members.size.should eq(4)
 
       # Low = 1 (has value)
@@ -165,9 +165,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program = parser.parse_program
 
       arena = program.arena
-      enum_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      enum_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::EnumNode)
 
-      base_type = String.new(enum_node.enum_base_type.not_nil!)
+      base_type = String.new(enum_node.base_type.not_nil!)
       base_type.should eq("Int32")
 
       members = CrystalGPT5::Compiler::Frontend.node_enum_members(enum_node).not_nil!
@@ -250,9 +250,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program = parser.parse_program
 
       arena = program.arena
-      enum_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      enum_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::EnumNode)
 
-      members = enum_node.enum_members.not_nil!
+      members = enum_node.members
       members.size.should eq(4)
 
       # All members should have values
