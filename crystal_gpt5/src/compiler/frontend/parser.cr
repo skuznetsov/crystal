@@ -2660,11 +2660,10 @@ module CrystalGPT5
           advance
 
           block_span = start_token.span.cover(end_token.span)
-          @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::Block,
+          @arena.add_typed(BlockNode.new(
             block_span,
-            block_params: params,
-            block_body: body
+            params,
+            body
           ))
         end
 
@@ -6107,11 +6106,10 @@ module CrystalGPT5
 
 
           # Create block: { |__arg0| __arg0.method }
-          block_id = @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::Block,
+          block_id = @arena.add_typed(BlockNode.new(
             full_span,
-            block_params: [param],
-            block_body: [call_expr]
+            [param],
+            [call_expr]
           ))
 
           block_id
