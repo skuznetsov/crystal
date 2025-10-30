@@ -48,8 +48,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
 
       # Check base type name
-      name = arena[CrystalGPT5::Compiler::Frontend.node_generic_name(generic).not_nil!].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      String.new(name.literal.not_nil!).should eq("Hash")
+      name = arena[CrystalGPT5::Compiler::Frontend.node_generic_name(generic).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(name).not_nil!).should eq("Hash")
 
       # Check type arguments
       type_args = CrystalGPT5::Compiler::Frontend.node_generic_type_args(generic).not_nil!
@@ -72,10 +72,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      generic = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      generic = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
 
-      name = arena[generic.generic_name.not_nil!].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      String.new(name.literal.not_nil!).should eq("Array")
+      name = arena[CrystalGPT5::Compiler::Frontend.node_generic_name(generic).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(name).not_nil!).should eq("Array")
 
       type_args = CrystalGPT5::Compiler::Frontend.node_generic_type_args(generic).not_nil!
       type_args.size.should eq(1)
@@ -95,15 +95,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       call = arena[program.roots[0]]
       CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
 
-      args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       # Argument is generic
       generic = arena[args[0]]
       CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
 
-      name = arena[CrystalGPT5::Compiler::Frontend.node_generic_name(generic).not_nil!].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      String.new(name.literal.not_nil!).should eq("Box")
+      name = arena[CrystalGPT5::Compiler::Frontend.node_generic_name(generic).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(name).not_nil!).should eq("Box")
     end
 
     it "parses generic in array literal" do
@@ -140,9 +140,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      generic = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      generic = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
 
-      type_args = generic.generic_type_args.not_nil!
+      type_args = CrystalGPT5::Compiler::Frontend.node_generic_type_args(generic).not_nil!
       type_args.size.should eq(3)
 
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(arena[type_args[0]]).not_nil!).should eq("Int32")
@@ -180,8 +180,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       generic = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
       CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
 
-      name = arena[CrystalGPT5::Compiler::Frontend.node_generic_name(generic).not_nil!].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      String.new(name.literal.not_nil!).should eq("Pointer")
+      name = arena[CrystalGPT5::Compiler::Frontend.node_generic_name(generic).not_nil!]
+      String.new(CrystalGPT5::Compiler::Frontend.node_literal(name).not_nil!).should eq("Pointer")
 
       type_args = CrystalGPT5::Compiler::Frontend.node_generic_type_args(generic).not_nil!
       type_args.size.should eq(1)

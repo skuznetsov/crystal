@@ -1677,11 +1677,10 @@ module CrystalGPT5
           path_span = node_span(path)
           require_span = require_token.span.cover(path_span)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Require,
+          @arena.add_typed(
+            RequireNode.new(
               require_span,
-              require_path: path
+              path
             )
           )
         end
@@ -3424,12 +3423,11 @@ module CrystalGPT5
 
           alias_span = alias_token.span.cover(type_token.span)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Alias,
+          @arena.add_typed(
+            AliasNode.new(
               alias_span,
-              alias_name: name_token.slice,
-              alias_value: type_token.slice,
+              name_token.slice,
+              type_token.slice
             )
           )
         end
@@ -5533,12 +5531,11 @@ module CrystalGPT5
           generic_span = Span.cover_all(spans)
 
           # Create Generic node
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Generic,
+          @arena.add_typed(
+            GenericNode.new(
               generic_span,
-              generic_name: name_node,
-              generic_type_args: type_args,
+              name_node,
+              type_args
             )
           )
         end
@@ -5559,12 +5556,11 @@ module CrystalGPT5
             spans << member_token.span
             safe_nav_span = Span.cover_all(spans)
 
-            node = @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::SafeNavigation,
+            node = @arena.add_typed(
+              SafeNavigationNode.new(
                 safe_nav_span,
-                left: receiver,
-                member: member_token.slice,
+                receiver,
+                member_token.slice
               )
             )
             advance
