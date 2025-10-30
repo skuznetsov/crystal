@@ -287,12 +287,11 @@ module CrystalGPT5
 
               # It's a global variable declaration: $var : Type
               decl_span = left_node.span.cover(type_token.span)
-              return @arena.add(
-                ExpressionNode.new(
-                  ExpressionNode::Kind::GlobalVarDecl,
+              return @arena.add_typed(
+                GlobalVarDeclNode.new(
                   decl_span,
-                  literal: Frontend.node_literal(left_node),        # $var
-                  ivar_decl_type: type_token.slice,  # Type (reusing field)
+                  Frontend.node_literal(left_node).not_nil!,        # $var
+                  type_token.slice  # Type
                 )
               )
             end
@@ -331,12 +330,11 @@ module CrystalGPT5
               return PREFIX_ERROR if value_expr.invalid?
 
               constant_span = left_node.span.cover(@arena[value_expr].span)
-              return @arena.add(
-                ExpressionNode.new(
-                  ExpressionNode::Kind::Constant,
+              return @arena.add_typed(
+                ConstantNode.new(
                   constant_span,
-                  constant_name: Frontend.node_literal(left_node),
-                  constant_value: value_expr,
+                  Frontend.node_literal(left_node).not_nil!,
+                  value_expr
                 )
               )
             end
@@ -3750,12 +3748,11 @@ module CrystalGPT5
 
           decl_span = gvar_token.span.cover(type_token.span)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::GlobalVarDecl,
+          @arena.add_typed(
+            GlobalVarDeclNode.new(
               decl_span,
-              literal: gvar_token.slice,        # $var
-              ivar_decl_type: type_token.slice  # Type (reusing field)
+              gvar_token.slice,        # $var
+              type_token.slice  # Type
             )
           )
         end
