@@ -256,12 +256,11 @@ module CrystalGPT5
 
               # It's a standalone type declaration: x : Type
               type_decl_span = left_node.span.cover(type_token.span)
-              return @arena.add(
-                ExpressionNode.new(
-                  ExpressionNode::Kind::TypeDeclaration,
+              return @arena.add_typed(
+                TypeDeclarationNode.new(
                   type_decl_span,
-                  type_decl_name: Frontend.node_literal(left_node),
-                  type_decl_type: type_token.slice,
+                  Frontend.node_literal(left_node).not_nil!,
+                  type_token.slice
                 )
               )
             # Phase 77: Global variable declaration: $var : Type
@@ -1560,13 +1559,12 @@ module CrystalGPT5
             begin_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Begin,
+          @arena.add_typed(
+            BeginNode.new(
               begin_span,
-              begin_body: body_ids,
-              rescue_clauses: rescue_clauses,
-              ensure_body: ensure_body,
+              body_ids,
+              rescue_clauses,
+              ensure_body
             )
           )
         end
@@ -4805,10 +4803,9 @@ module CrystalGPT5
           end
 
           advance
-          @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::StringInterpolation,
+          @arena.add_typed(StringInterpolationNode.new(
             token.span,
-            string_pieces: pieces
+            pieces
           ))
         end
 
@@ -6009,10 +6006,9 @@ module CrystalGPT5
           temp_name_slice = Slice(UInt8).new(temp_name.to_unsafe, temp_name.bytesize)
 
           # Create identifier node for temp variable
-          temp_var = @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::Identifier,
+          temp_var = @arena.add_typed(IdentifierNode.new(
             location_start,  # Will be updated later
-            literal: temp_name_slice
+            temp_name_slice
           ))
 
           # Handle dot consumption and parsing based on token type
