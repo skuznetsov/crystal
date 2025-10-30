@@ -5155,12 +5155,11 @@ module CrystalGPT5
 
           # Create Path node
           path_span = cover_optional_spans(node_span(left), colon_colon.span, node_span(right_id))
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Path,
+          @arena.add_typed(
+            PathNode.new(
               path_span,
-              left: left,
-              right: right_id,
+              left,
+              right_id
             )
           )
         end
@@ -5189,12 +5188,11 @@ module CrystalGPT5
 
           # Create Path node with nil left (indicates absolute path)
           path_span = colon_colon.span.cover(node_span(right_id))
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Path,
+          @arena.add_typed(
+            PathNode.new(
               path_span,
-              left: nil,  # No left side = absolute path
-              right: right_id,
+              nil,  # No left side = absolute path
+              right_id
             )
           )
         end

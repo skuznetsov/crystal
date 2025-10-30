@@ -1501,9 +1501,10 @@ module CrystalGPT5
 
       struct PathNode
         getter span : Span
-        getter segments : Array(Slice(UInt8))
+        getter left : ExprId?
+        getter right : ExprId
 
-        def initialize(@span : Span, @segments : Array(Slice(UInt8)))
+        def initialize(@span : Span, @left : ExprId?, @right : ExprId)
         end
       end
 

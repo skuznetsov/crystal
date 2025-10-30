@@ -21,12 +21,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_kind(path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
 
       # Check left side (Foo)
-      left = arena[CrystalGPT5::Compiler::Frontend.node_left(path).not_nil!]
+      left = arena[path.as(CrystalGPT5::Compiler::Frontend::PathNode).left.not_nil!]
       CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(left).not_nil!).should eq("Foo")
 
       # Check right side (Bar)
-      right = arena[CrystalGPT5::Compiler::Frontend.node_right(path).not_nil!]
+      right = arena[path.as(CrystalGPT5::Compiler::Frontend::PathNode).right.not_nil!]
       CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(right).not_nil!).should eq("Bar")
     end
@@ -47,18 +47,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_kind(outer_path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
 
       # Left is Path(A, B)
-      inner_path = arena[CrystalGPT5::Compiler::Frontend.node_left(outer_path).not_nil!]
+      inner_path = arena[outer_path.as(CrystalGPT5::Compiler::Frontend::PathNode).left.not_nil!]
       CrystalGPT5::Compiler::Frontend.node_kind(inner_path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
 
       # Inner path: A::B
-      a_node = arena[CrystalGPT5::Compiler::Frontend.node_left(inner_path).not_nil!]
+      a_node = arena[inner_path.as(CrystalGPT5::Compiler::Frontend::PathNode).left.not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(a_node).not_nil!).should eq("A")
 
-      b_node = arena[CrystalGPT5::Compiler::Frontend.node_right(inner_path).not_nil!]
+      b_node = arena[inner_path.as(CrystalGPT5::Compiler::Frontend::PathNode).right.not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(b_node).not_nil!).should eq("B")
 
       # Outer right: C
-      c_node = arena[CrystalGPT5::Compiler::Frontend.node_right(outer_path).not_nil!]
+      c_node = arena[outer_path.as(CrystalGPT5::Compiler::Frontend::PathNode).right.not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(c_node).not_nil!).should eq("C")
     end
 
@@ -78,10 +78,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_kind(path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
 
       # Left is nil (indicates absolute path)
-      CrystalGPT5::Compiler::Frontend.node_left(path).should be_nil
+      path.as(CrystalGPT5::Compiler::Frontend::PathNode).left.should be_nil
 
       # Right is TopLevel
-      right = arena[CrystalGPT5::Compiler::Frontend.node_right(path).not_nil!]
+      right = arena[path.as(CrystalGPT5::Compiler::Frontend::PathNode).right.not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(right).not_nil!).should eq("TopLevel")
     end
 
@@ -101,15 +101,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_kind(outer_path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
 
       # Left is Path(nil, A)
-      inner_path = arena[CrystalGPT5::Compiler::Frontend.node_left(outer_path).not_nil!]
+      inner_path = arena[outer_path.as(CrystalGPT5::Compiler::Frontend::PathNode).left.not_nil!]
       CrystalGPT5::Compiler::Frontend.node_kind(inner_path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
-      CrystalGPT5::Compiler::Frontend.node_left(inner_path).should be_nil
+      inner_path.as(CrystalGPT5::Compiler::Frontend::PathNode).left.should be_nil
 
-      a_node = arena[CrystalGPT5::Compiler::Frontend.node_right(inner_path).not_nil!]
+      a_node = arena[inner_path.as(CrystalGPT5::Compiler::Frontend::PathNode).right.not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(a_node).not_nil!).should eq("A")
 
       # Right is B
-      b_node = arena[CrystalGPT5::Compiler::Frontend.node_right(outer_path).not_nil!]
+      b_node = arena[outer_path.as(CrystalGPT5::Compiler::Frontend::PathNode).right.not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(b_node).not_nil!).should eq("B")
     end
 
@@ -132,10 +132,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       path = arena[args[0]]
       CrystalGPT5::Compiler::Frontend.node_kind(path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
 
-      left = arena[CrystalGPT5::Compiler::Frontend.node_left(path).not_nil!]
+      left = arena[path.as(CrystalGPT5::Compiler::Frontend::PathNode).left.not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(left).not_nil!).should eq("HTTP")
 
-      right = arena[CrystalGPT5::Compiler::Frontend.node_right(path).not_nil!]
+      right = arena[path.as(CrystalGPT5::Compiler::Frontend::PathNode).right.not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(right).not_nil!).should eq("Server")
     end
 
@@ -179,11 +179,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_kind(path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
 
       # Verify it's a path (detailed checking would be recursive)
-      CrystalGPT5::Compiler::Frontend.node_left(path).should_not be_nil
-      CrystalGPT5::Compiler::Frontend.node_right(path).should_not be_nil
+      path.as(CrystalGPT5::Compiler::Frontend::PathNode).left.should_not be_nil
+      path.as(CrystalGPT5::Compiler::Frontend::PathNode).right.should_not be_nil
 
       # Right should be D
-      right = arena[CrystalGPT5::Compiler::Frontend.node_right(path).not_nil!]
+      right = arena[path.as(CrystalGPT5::Compiler::Frontend::PathNode).right.not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(right).not_nil!).should eq("D")
     end
 
@@ -203,11 +203,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_kind(path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
 
       # This is Path(Path(Lib, C), Int)
-      inner = arena[CrystalGPT5::Compiler::Frontend.node_left(path).not_nil!]
+      inner = arena[path.as(CrystalGPT5::Compiler::Frontend::PathNode).left.not_nil!]
       CrystalGPT5::Compiler::Frontend.node_kind(inner).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
 
       # Verify it parses correctly
-      CrystalGPT5::Compiler::Frontend.node_right(path).should_not be_nil
+      path.as(CrystalGPT5::Compiler::Frontend::PathNode).right.should_not be_nil
     end
 
     it "parses multiple statements with paths" do
@@ -227,19 +227,19 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       assign1 = arena[program.roots[0]]
       path1 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign1).not_nil!]
       CrystalGPT5::Compiler::Frontend.node_kind(path1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
-      CrystalGPT5::Compiler::Frontend.node_left(path1).should_not be_nil
+      path1.as(CrystalGPT5::Compiler::Frontend::PathNode).left.should_not be_nil
 
       # Second: ::TopLevel
       assign2 = arena[program.roots[1]]
       path2 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign2).not_nil!]
       CrystalGPT5::Compiler::Frontend.node_kind(path2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
-      CrystalGPT5::Compiler::Frontend.node_left(path2).should be_nil  # Absolute path
+      path2.as(CrystalGPT5::Compiler::Frontend::PathNode).left.should be_nil  # Absolute path
 
       # Third: A::B::C
       assign3 = arena[program.roots[2]]
       path3 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign3).not_nil!]
       CrystalGPT5::Compiler::Frontend.node_kind(path3).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
-      CrystalGPT5::Compiler::Frontend.node_left(path3).should_not be_nil
+      path3.as(CrystalGPT5::Compiler::Frontend::PathNode).left.should_not be_nil
     end
 
     it "distinguishes path from method call" do
@@ -274,10 +274,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       path = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
       CrystalGPT5::Compiler::Frontend.node_kind(path).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
 
-      left = arena[CrystalGPT5::Compiler::Frontend.node_left(path).not_nil!]
+      left = arena[path.as(CrystalGPT5::Compiler::Frontend::PathNode).left.not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(left).not_nil!).should eq("Foo")
 
-      right = arena[CrystalGPT5::Compiler::Frontend.node_right(path).not_nil!]
+      right = arena[path.as(CrystalGPT5::Compiler::Frontend::PathNode).right.not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(right).not_nil!).should eq("Bar")
     end
   end
