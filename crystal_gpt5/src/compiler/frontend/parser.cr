@@ -2224,11 +2224,10 @@ module CrystalGPT5
           rparen_token = current_token
           advance
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Typeof,
+          @arena.add_typed(
+            TypeofNode.new(
               typeof_token.span.cover(rparen_token.span),
-              typeof_args: args
+              args
             )
           )
         end
@@ -2317,11 +2316,10 @@ module CrystalGPT5
           rparen_token = current_token
           advance
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Pointerof,
+          @arena.add_typed(
+            PointerofNode.new(
               pointerof_token.span.cover(rparen_token.span),
-              pointerof_args: args
+              args
             )
           )
         end
@@ -2355,11 +2353,10 @@ module CrystalGPT5
           rparen_token = current_token
           advance
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Uninitialized,
+          @arena.add_typed(
+            UninitializedNode.new(
               uninitialized_token.span.cover(rparen_token.span),
-              uninitialized_type: type_expr
+              type_expr
             )
           )
         end
@@ -2547,11 +2544,10 @@ module CrystalGPT5
           rparen_token = current_token
           advance
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Asm,
+          @arena.add_typed(
+            AsmNode.new(
               asm_token.span.cover(rparen_token.span),
-              asm_args: args
+              args
             )
           )
         end
