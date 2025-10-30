@@ -2076,11 +2076,10 @@ module CrystalGPT5
             if current_token.kind == Token::Kind::RParen
               rparen_token = current_token
               advance  # consume )
-              return @arena.add(
-                ExpressionNode.new(
-                  ExpressionNode::Kind::Super,
+              return @arena.add_typed(
+                SuperNode.new(
                   super_token.span.cover(rparen_token.span),
-                  super_args: args  # Empty array = explicit no args
+                  args  # Empty array = explicit no args
                 )
               )
             end
@@ -2106,20 +2105,18 @@ module CrystalGPT5
             rparen_token = current_token
             advance
 
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Super,
+            @arena.add_typed(
+              SuperNode.new(
                 super_token.span.cover(rparen_token.span),
-                super_args: args
+                args
               )
             )
           else
             # No parentheses: super (implicit - pass all method args)
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Super,
+            @arena.add_typed(
+              SuperNode.new(
                 super_token.span,
-                super_args: nil  # nil = implicit args (pass all)
+                nil  # nil = implicit args (pass all)
               )
             )
           end
@@ -2145,11 +2142,10 @@ module CrystalGPT5
             if current_token.kind == Token::Kind::RParen
               rparen_token = current_token
               advance  # consume )
-              return @arena.add(
-                ExpressionNode.new(
-                  ExpressionNode::Kind::PreviousDef,
+              return @arena.add_typed(
+                PreviousDefNode.new(
                   previous_def_token.span.cover(rparen_token.span),
-                  previous_def_args: args  # Empty array = explicit no args
+                  args  # Empty array = explicit no args
                 )
               )
             end
@@ -2175,20 +2171,18 @@ module CrystalGPT5
             rparen_token = current_token
             advance
 
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::PreviousDef,
+            @arena.add_typed(
+              PreviousDefNode.new(
                 previous_def_token.span.cover(rparen_token.span),
-                previous_def_args: args
+                args
               )
             )
           else
             # No parentheses: previous_def (implicit - pass all method args)
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::PreviousDef,
+            @arena.add_typed(
+              PreviousDefNode.new(
                 previous_def_token.span,
-                previous_def_args: nil  # nil = implicit args (pass all)
+                nil  # nil = implicit args (pass all)
               )
             )
           end
