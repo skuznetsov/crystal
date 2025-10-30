@@ -2568,11 +2568,10 @@ module CrystalGPT5
           identifier_token = current_token
           advance
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Out,
+          @arena.add_typed(
+            OutNode.new(
               out_token.span.cover(identifier_token.span),
-              out_identifier: identifier_token.slice
+              identifier_token.slice
             )
           )
         end
@@ -5267,12 +5266,11 @@ module CrystalGPT5
           spans << rparen.span
           as_span = Span.cover_all(spans)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::As,
+          @arena.add_typed(
+            AsNode.new(
               as_span,
-              as_value: receiver,
-              as_target_type: target_type,
+              receiver,
+              target_type
             )
           )
         end
@@ -5319,12 +5317,11 @@ module CrystalGPT5
           spans << rparen.span
           as_question_span = Span.cover_all(spans)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::AsQuestion,
+          @arena.add_typed(
+            AsQuestionNode.new(
               as_question_span,
-              as_question_value: receiver,
-              as_question_target_type: target_type,
+              receiver,
+              target_type
             )
           )
         end
@@ -5371,12 +5368,11 @@ module CrystalGPT5
           spans << rparen.span
           is_a_span = Span.cover_all(spans)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::IsA,
+          @arena.add_typed(
+            IsANode.new(
               is_a_span,
-              is_a_value: receiver,
-              is_a_target_type: target_type,
+              receiver,
+              target_type
             )
           )
         end
