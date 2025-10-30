@@ -1442,13 +1442,12 @@ module CrystalGPT5
             for_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::For,
+          @arena.add_typed(
+            ForNode.new(
               for_span,
-              for_variable: variable_token.slice,
-              for_collection: collection,
-              for_body: body_ids
+              variable_token.slice,
+              collection,
+              body_ids
             )
           )
         end
@@ -1641,12 +1640,11 @@ module CrystalGPT5
             with_token.span
           end
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::With,
+          @arena.add_typed(
+            WithNode.new(
               with_span,
-              with_receiver: receiver,
-              with_body: body_ids,
+              receiver,
+              body_ids
             )
           )
         end
@@ -5936,7 +5934,7 @@ module CrystalGPT5
           skip_whitespace = right_trim || newline_escape
 
           macro_span = closing_span ? start_token.span.cover(closing_span) : start_token.span
-          macro_expr_id = @arena.add(ExpressionNode.new(ExpressionNode::Kind::MacroExpression, macro_span, macro_expr: expr))
+          macro_expr_id = @arena.add_typed(MacroExpressionNode.new(macro_span, expr))
           piece = MacroPiece.expression(macro_expr_id, left_trim, right_trim, macro_span)
           {piece, skip_whitespace}
         end
