@@ -1774,11 +1774,10 @@ module CrystalGPT5
 
           getter_span = getter_token.span
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Getter,
+          @arena.add_typed(
+            GetterNode.new(
               getter_span,
-              accessor_specs: specs
+              specs
             )
           )
         end
@@ -1862,11 +1861,10 @@ module CrystalGPT5
 
           setter_span = setter_token.span
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Setter,
+          @arena.add_typed(
+            SetterNode.new(
               setter_span,
-              accessor_specs: specs
+              specs
             )
           )
         end
@@ -1950,11 +1948,10 @@ module CrystalGPT5
 
           property_span = property_token.span
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::Property,
+          @arena.add_typed(
+            PropertyNode.new(
               property_span,
-              accessor_specs: specs
+              specs
             )
           )
         end
