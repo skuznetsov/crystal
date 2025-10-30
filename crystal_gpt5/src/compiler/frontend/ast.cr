@@ -1312,9 +1312,9 @@ module CrystalGPT5
       struct RespondsToNode
         getter span : Span
         getter expression : ExprId
-        getter method_name : Slice(UInt8)
+        getter method_name : ExprId
 
-        def initialize(@span : Span, @expression : ExprId, @method_name : Slice(UInt8))
+        def initialize(@span : Span, @expression : ExprId, @method_name : ExprId)
         end
       end
 

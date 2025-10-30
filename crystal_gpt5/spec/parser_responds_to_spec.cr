@@ -23,12 +23,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_kind(responds_to_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::RespondsTo)
 
       # Check receiver (obj)
-      receiver = arena[CrystalGPT5::Compiler::Frontend.node_responds_to_value(responds_to_node).not_nil!]
+      receiver = arena[responds_to_node.as(CrystalGPT5::Compiler::Frontend::RespondsToNode).expression]
       CrystalGPT5::Compiler::Frontend.node_kind(receiver).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(receiver).not_nil!).should eq("obj")
 
       # Check method name (symbol :to_s)
-      method_name = arena[CrystalGPT5::Compiler::Frontend.node_responds_to_method_name(responds_to_node).not_nil!]
+      method_name = arena[responds_to_node.as(CrystalGPT5::Compiler::Frontend::RespondsToNode).method_name]
       CrystalGPT5::Compiler::Frontend.node_kind(method_name).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Symbol)
     end
 
@@ -47,7 +47,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_kind(responds_to_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::RespondsTo)
 
       # Check method name is string
-      method_name = arena[CrystalGPT5::Compiler::Frontend.node_responds_to_method_name(responds_to_node).not_nil!]
+      method_name = arena[responds_to_node.as(CrystalGPT5::Compiler::Frontend::RespondsToNode).method_name]
       CrystalGPT5::Compiler::Frontend.node_kind(method_name).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
     end
 
@@ -87,7 +87,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_kind(responds_to_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::RespondsTo)
 
       # Receiver should be member access (obj.foo)
-      receiver = arena[CrystalGPT5::Compiler::Frontend.node_responds_to_value(responds_to_node).not_nil!]
+      receiver = arena[responds_to_node.as(CrystalGPT5::Compiler::Frontend::RespondsToNode).expression]
       CrystalGPT5::Compiler::Frontend.node_kind(receiver).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
     end
 
@@ -202,7 +202,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_kind(responds_to_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::RespondsTo)
 
       # Receiver is instance variable
-      receiver = arena[CrystalGPT5::Compiler::Frontend.node_responds_to_value(responds_to_node).not_nil!]
+      receiver = arena[responds_to_node.as(CrystalGPT5::Compiler::Frontend::RespondsToNode).expression]
       CrystalGPT5::Compiler::Frontend.node_kind(receiver).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceVar)
     end
 

@@ -5388,12 +5388,11 @@ module CrystalGPT5
           spans << rparen.span
           responds_to_span = Span.cover_all(spans)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::RespondsTo,
+          @arena.add_typed(
+            RespondsToNode.new(
               responds_to_span,
-              responds_to_value: receiver,
-              responds_to_method_name: method_name_expr,
+              receiver,
+              method_name_expr
             )
           )
         end
@@ -6035,12 +6034,14 @@ module CrystalGPT5
               # Convert MemberAccess to Call with block argument
               call_expr_node = @arena[call_expr]
               call_span = call_expr_node.span.cover(@arena[trailing_block].span)
-              call_expr = @arena.add(ExpressionNode.new(
-                ExpressionNode::Kind::Call,
-                call_span,
-                callee: call_expr,
-                args: [trailing_block]
-              ))
+              call_expr = @arena.add_typed(
+                CallNode.new(
+                  call_span,
+                  call_expr,
+                  [trailing_block],
+                  nil
+                )
+              )
             end
           elsif amp_token.kind == Token::Kind::AmpDot
             # AmpDot is a single token, dot already consumed
@@ -6074,12 +6075,14 @@ module CrystalGPT5
               # Convert MemberAccess to Call with block argument
               call_expr_node = @arena[call_expr]
               call_span = call_expr_node.span.cover(@arena[trailing_block].span)
-              call_expr = @arena.add(ExpressionNode.new(
-                ExpressionNode::Kind::Call,
-                call_span,
-                callee: call_expr,
-                args: [trailing_block]
-              ))
+              call_expr = @arena.add_typed(
+                CallNode.new(
+                  call_span,
+                  call_expr,
+                  [trailing_block],
+                  nil
+                )
+              )
             end
           else
             @diagnostics << Diagnostic.new("Expected '&' or '&.' for block shorthand", current_token.span)
