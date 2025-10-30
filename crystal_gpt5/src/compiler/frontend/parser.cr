@@ -1310,11 +1310,11 @@ module CrystalGPT5
               spawn_token.span
             end
 
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Spawn,
+            @arena.add_typed(
+              SpawnNode.new(
                 spawn_span,
-                spawn_body: body_ids,
+                nil,
+                body_ids
               )
             )
           else
@@ -1325,11 +1325,11 @@ module CrystalGPT5
             expr_span = node_span(expr)
             spawn_span = spawn_token.span.cover(expr_span)
 
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Spawn,
+            @arena.add_typed(
+              SpawnNode.new(
                 spawn_span,
-                spawn_expression: expr,
+                expr,
+                nil
               )
             )
           end
@@ -1584,11 +1584,10 @@ module CrystalGPT5
           token = current_token
           if token.kind.in?(Token::Kind::Newline, Token::Kind::EOF, Token::Kind::End, Token::Kind::Else, Token::Kind::Elsif, Token::Kind::Rescue, Token::Kind::Ensure)
             # Bare raise (re-raise current exception)
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Raise,
+            @arena.add_typed(
+              RaiseNode.new(
                 raise_token.span,
-                raise_value: nil
+                nil
               )
             )
           else
@@ -1599,11 +1598,10 @@ module CrystalGPT5
             value_span = node_span(value)
             raise_span = raise_token.span.cover(value_span)
 
-            @arena.add(
-              ExpressionNode.new(
-                ExpressionNode::Kind::Raise,
+            @arena.add_typed(
+              RaiseNode.new(
                 raise_span,
-                raise_value: value
+                value
               )
             )
           end
