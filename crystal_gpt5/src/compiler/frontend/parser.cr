@@ -4241,7 +4241,7 @@ module CrystalGPT5
           expect_operator(Token::Kind::RParen)
           closing_span = previous_token.try(&.span)
           grouping_span = cover_optional_spans(lparen.span, node_span(expr), closing_span)
-          @arena.add(ExpressionNode.new(ExpressionNode::Kind::Grouping, grouping_span, left: expr))
+          @arena.add_typed(GroupingNode.new(grouping_span, expr))
         end
 
         # Phase 9: Parse array literal [1, 2, 3] or [] of Type
@@ -5111,7 +5111,7 @@ module CrystalGPT5
             spans << closing_span
           end
           index_span = Span.cover_all(spans)
-          @arena.add(ExpressionNode.new(ExpressionNode::Kind::Index, index_span, left: target, args: indexes))
+          @arena.add_typed(IndexNode.new(index_span, target, indexes))
         end
 
         private def parse_member_access(receiver : ExprId) : ExprId

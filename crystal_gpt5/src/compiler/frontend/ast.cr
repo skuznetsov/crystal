@@ -1066,9 +1066,9 @@ module CrystalGPT5
       struct IndexNode
         getter span : Span
         getter object : ExprId
-        getter index : ExprId
+        getter indexes : Array(ExprId)
 
-        def initialize(@span : Span, @object : ExprId, @index : ExprId)
+        def initialize(@span : Span, @object : ExprId, @indexes : Array(ExprId))
         end
       end
 
@@ -2051,6 +2051,14 @@ module CrystalGPT5
 
       def self.node_left(node : BinaryNode) : ExprId
         node.left
+      end
+
+      def self.node_left(node : GroupingNode) : ExprId
+        node.expression
+      end
+
+      def self.node_left(node : IndexNode) : ExprId
+        node.object
       end
 
       def self.node_left(node : TypedNode) : ExprId?
@@ -3388,6 +3396,10 @@ end
 
 def self.node_args(node : CallNode) : Array(ExprId)?
   node.args
+end
+
+def self.node_args(node : IndexNode) : Array(ExprId)
+  node.indexes
 end
 
 def self.node_args(node : TypedNode) : Array(ExprId)?

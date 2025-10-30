@@ -3735,11 +3735,10 @@ describe TypeInferenceEngine do
       # Should be Binary(+) with left = Grouping(Ternary)
 
       left_id = add_node.left
-      left_node = program.arena[left_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      left_node.kind.should eq(ExpressionNode::Kind::Grouping)
+      left_node = program.arena[left_id].as(CrystalGPT5::Compiler::Frontend::GroupingNode)
 
       # Inside grouping is ternary
-      inner_id = left_node.left.not_nil!
+      inner_id = left_node.expression
       inner_node = program.arena[inner_id]
 
       result_type = engine.context.get_type(add_expr_id)
