@@ -218,11 +218,10 @@ module CrystalGPT5
             multi_assign_span = first_target_span.cover(value_span)
 
             # Create MultipleAssign node
-            return @arena.add(ExpressionNode.new(
-              ExpressionNode::Kind::MultipleAssign,
+            return @arena.add_typed(MultipleAssignNode.new(
               multi_assign_span,
-              assign_targets: targets,
-              assign_value: value
+              targets,
+              value
             ))
           end
 
@@ -3644,14 +3643,11 @@ module CrystalGPT5
 
           decl_span = ivar_token.span.cover(type_token.span)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::InstanceVarDecl,
-              decl_span,
-              literal: ivar_token.slice,       # @var
-              ivar_decl_type: type_token.slice  # Type
-            )
-          )
+          @arena.add_typed(InstanceVarDeclNode.new(
+            decl_span,
+            ivar_token.slice,
+            type_token.slice
+          ))
         end
 
         # Phase 77: Parse class variable declaration: @@var : Type
@@ -3684,14 +3680,11 @@ module CrystalGPT5
 
           decl_span = cvar_token.span.cover(type_token.span)
 
-          @arena.add(
-            ExpressionNode.new(
-              ExpressionNode::Kind::ClassVarDecl,
-              decl_span,
-              literal: cvar_token.slice,        # @@var
-              ivar_decl_type: type_token.slice  # Type (reusing field)
-            )
-          )
+          @arena.add_typed(ClassVarDeclNode.new(
+            decl_span,
+            cvar_token.slice,
+            type_token.slice
+          ))
         end
 
         # Phase 77: Parse global variable declaration: $var : Type
