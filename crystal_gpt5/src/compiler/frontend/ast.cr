@@ -3016,6 +3016,7 @@ end
           @nodes = [] of TypedNode
         end
 
+        @[AlwaysInline]
         def add(node : TypedNode) : ExprId
           id = ExprId.new(@nodes.size)
           @nodes << node
@@ -3023,19 +3024,24 @@ end
         end
 
         # Compatibility shim while callers migrate off add_typed
+        @[AlwaysInline]
         def add_typed(node : TypedNode) : ExprId
           add(node)
         end
 
+        # Phase 103: Inline for performance (compiler will optimize bounds check)
+        @[AlwaysInline]
         def [](id : ExprId) : TypedNode
           @nodes[id.index]
         end
 
         # Compatibility helpers while callers migrate off legacy helper signatures
+        @[AlwaysInline]
         def typed?(id : ExprId) : Bool
           true
         end
 
+        @[AlwaysInline]
         def get_typed(id : ExprId) : TypedNode
           @nodes[id.index]
         end

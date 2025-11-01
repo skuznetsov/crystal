@@ -411,14 +411,19 @@ module CrystalGPT5
           @diagnostics
         end
 
+        # Phase 103: Inline hot path - called thousands of times
+        @[AlwaysInline]
         private def current_token
           @tokens[@index]
         end
 
+        @[AlwaysInline]
         private def previous_token
           @previous_token
         end
 
+        # Phase 103: Inline hot path - called after every token
+        @[AlwaysInline]
         private def advance
           @previous_token = current_token
           @index += 1 if @index < @tokens.size - 1
@@ -432,6 +437,8 @@ module CrystalGPT5
           name
         end
 
+        # Phase 103: Inline hot path - called after every token advance
+        @[AlwaysInline]
         private def skip_trivia
           loop do
             case current_token.kind
@@ -6013,6 +6020,8 @@ module CrystalGPT5
           {piece, skip_whitespace}
         end
 
+        # Phase 103: Inline hot path - frequently used for span calculations
+        @[AlwaysInline]
         private def node_span(id : ExprId) : Span
           @arena[id].span
         end
