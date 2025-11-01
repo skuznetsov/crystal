@@ -20,3 +20,13 @@
 /coverage/
 /tmp/
 /.junit/
+
+# Ignoring local caches
+.crystal-cache/
+.agents/
+
+# CrystalGPT5 temporary files
+crystal_gpt5/bin/
+test_*.cr
+benchmark_original*.cr
+check_lexer.cr

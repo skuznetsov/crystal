@@ -38,7 +38,7 @@ module CrystalGPT5
 
         getter diagnostics : Array(Diagnostic)
 
-        def initialize(@program : Program, @arena : Frontend::AstArena)
+        def initialize(@program : Program, @arena : Frontend::ArenaLike)
           @diagnostics = [] of Diagnostic
           @depth = 0
         end

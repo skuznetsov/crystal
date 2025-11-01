@@ -3051,11 +3051,139 @@ end
         end
       end
 
+      # VirtualArena: Multi-file arena with offset mapping
+      #
+      # For LSP server: maintains per-file arenas while providing
+      # unified global addressing through offset calculation.
+      #
+      # Benefits:
+      # - Zero-copy: keeps original per-file arenas
+      # - Incremental: can replace single file's arena
+      # - Traceable: maps global ExprId back to source file
+      # - Fast: O(log N) lookup via binary search
+      # - Mutable: supports adding generated nodes (accessor expansion, etc)
+      class VirtualArena
+        getter file_arenas : Array(AstArena)
+        getter file_paths : Array(String)  # arena index → file path
+        @offsets : Array(Int32)  # offsets[i] = global start for arena[i]
+        @generated_arena : AstArena  # For newly created nodes (macro expansion, etc)
+
+        def initialize
+          @file_arenas = [] of AstArena
+          @file_paths = [] of String
+          @offsets = [0]
+          @generated_arena = AstArena.new
+        end
+
+        # Add a file's arena (for LSP: track which file)
+        def add_file_arena(path : String, arena : AstArena)
+          @file_arenas << arena
+          @file_paths << path
+          @offsets << (@offsets.last + arena.size)
+        end
+
+        # Add node to generated arena (for macro expansion, accessor generation, etc)
+        def add(node : TypedNode) : ExprId
+          local_id = @generated_arena.add(node)
+          # Offset by all file arenas
+          ExprId.new(local_id.index + @offsets.last)
+        end
+
+        # Compatibility shim
+        def add_typed(node : TypedNode) : ExprId
+          add(node)
+        end
+
+        # Access node by global ExprId (O(log N) where N = number of files)
+        def [](id : ExprId) : TypedNode
+          # Check if in generated arena first (most recent additions)
+          if id.index >= @offsets.last
+            local_idx = id.index - @offsets.last
+            return @generated_arena[ExprId.new(local_idx)]
+          end
+
+          # Otherwise search in file arenas
+          arena_idx, local_idx = decompose_id(id.index)
+          @file_arenas[arena_idx][ExprId.new(local_idx)]
+        end
+
+        # For LSP: find which file contains this global ID
+        def file_for_id(id : ExprId) : String?
+          arena_idx, _ = decompose_id(id.index)
+          @file_paths[arena_idx]?
+        end
+
+        # For LSP: get arena for specific file
+        def arena_for_file(path : String) : AstArena?
+          idx = @file_paths.index(path)
+          idx ? @file_arenas[idx] : nil
+        end
+
+        # For LSP: replace file's arena (incremental recompilation)
+        def replace_file_arena(path : String, new_arena : AstArena)
+          idx = @file_paths.index(path)
+          return unless idx
+
+          @file_arenas[idx] = new_arena
+          recalculate_offsets
+        end
+
+        def size
+          @offsets.last + @generated_arena.size
+        end
+
+        # Compatibility helpers
+        def typed?(id : ExprId) : Bool
+          true
+        end
+
+        def get_typed(id : ExprId) : TypedNode
+          self[id]
+        end
+
+        private def decompose_id(global_id : Int32) : {Int32, Int32}
+          # Binary search to find which arena contains this ID
+          left = 0
+          right = @file_arenas.size - 1
+
+          while left <= right
+            mid = (left + right) // 2
+
+            if global_id < @offsets[mid]
+              right = mid - 1
+            elsif mid + 1 < @offsets.size && global_id >= @offsets[mid + 1]
+              left = mid + 1
+            else
+              # Found: arena[mid] contains this ID
+              local_id = global_id - @offsets[mid]
+              return {mid, local_id}
+            end
+          end
+
+          # Fallback: last arena
+          last_idx = @file_arenas.size - 1
+          local_id = global_id - @offsets[last_idx]
+          {last_idx, local_id}
+        end
+
+        private def recalculate_offsets
+          @offsets = [0]
+          offset = 0
+          @file_arenas.each do |arena|
+            offset += arena.size
+            @offsets << offset
+          end
+        end
+      end
+
+      # Arena type that can be either single-file or multi-file
+      alias ArenaLike = AstArena | VirtualArena
+
       struct Program
-        getter arena : AstArena
+        getter arena : ArenaLike
         getter roots : Array(ExprId)
 
-        def initialize(@arena : AstArena, @roots : Array(ExprId))
+        def initialize(@arena : ArenaLike, @roots : Array(ExprId))
         end
       end
     end
