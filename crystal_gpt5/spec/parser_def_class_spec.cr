@@ -16,7 +16,7 @@ describe CrystalGPT5::Compiler::Frontend::Parser do
     program.roots.size.should eq(1)
     arena = program.arena
     def_node = arena[program.roots.first]
-    CrystalGPT5::Compiler::Frontend.node_kind(def_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+    CrystalGPT5::Compiler::Frontend.node_kind(def_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
     String.new(CrystalGPT5::Compiler::Frontend.node_def_name(def_node).not_nil!).should eq("greet")
     CrystalGPT5::Compiler::Frontend.node_def_params(def_node).not_nil!.map(&.name).should eq(["name"])
     CrystalGPT5::Compiler::Frontend.node_def_body(def_node).not_nil!.size.should eq(1)
@@ -35,7 +35,7 @@ describe CrystalGPT5::Compiler::Frontend::Parser do
     program.roots.size.should eq(1)
     arena = program.arena
     class_node = arena[program.roots.first]
-    CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+    CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
     String.new(CrystalGPT5::Compiler::Frontend.node_class_name(class_node).not_nil!).should eq("Greeter")
     CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!.size.should eq(1)
   end
@@ -52,7 +52,7 @@ describe CrystalGPT5::Compiler::Frontend::Parser do
     program = parser.parse_program
 
     program.roots.size.should eq(1)
-    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::DefNode)
 
     params = CrystalGPT5::Compiler::Frontend.node_def_params(def_node).not_nil!
     params.size.should eq(1)
@@ -71,7 +71,7 @@ describe CrystalGPT5::Compiler::Frontend::Parser do
     program = parser.parse_program
 
     program.roots.size.should eq(1)
-    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::DefNode)
 
     params = CrystalGPT5::Compiler::Frontend.node_def_params(def_node).not_nil!
     params.size.should eq(2)
@@ -92,7 +92,7 @@ describe CrystalGPT5::Compiler::Frontend::Parser do
     program = parser.parse_program
 
     program.roots.size.should eq(1)
-    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::DefNode)
 
     params = CrystalGPT5::Compiler::Frontend.node_def_params(def_node).not_nil!
     params.size.should eq(3)
@@ -115,7 +115,7 @@ describe CrystalGPT5::Compiler::Frontend::Parser do
     program = parser.parse_program
 
     program.roots.size.should eq(1)
-    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::DefNode)
 
     params = CrystalGPT5::Compiler::Frontend.node_def_params(def_node).not_nil!
     params.size.should eq(0)
@@ -133,7 +133,7 @@ describe CrystalGPT5::Compiler::Frontend::Parser do
     program = parser.parse_program
 
     program.roots.size.should eq(1)
-    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::DefNode)
 
     return_type = CrystalGPT5::Compiler::Frontend.node_def_return_type(def_node)
     return_type.should_not be_nil
@@ -151,7 +151,7 @@ describe CrystalGPT5::Compiler::Frontend::Parser do
     program = parser.parse_program
 
     program.roots.size.should eq(1)
-    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+    def_node = program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::DefNode)
 
     # Check params
     params = CrystalGPT5::Compiler::Frontend.node_def_params(def_node).not_nil!

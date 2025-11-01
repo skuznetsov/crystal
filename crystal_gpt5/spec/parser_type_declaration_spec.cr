@@ -14,7 +14,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
 
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("x")
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("Int32")
@@ -30,7 +30,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
 
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("name")
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("String")
@@ -46,7 +46,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
 
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("user")
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("User")
@@ -67,19 +67,19 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First declaration
       decl1 = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(decl1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(decl1).not_nil!).should eq("x")
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(decl1).not_nil!).should eq("Int32")
 
       # Second declaration
       decl2 = arena[program.roots[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(decl2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(decl2).not_nil!).should eq("y")
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(decl2).not_nil!).should eq("String")
 
       # Third declaration
       decl3 = arena[program.roots[2]]
-      CrystalGPT5::Compiler::Frontend.node_kind(decl3).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl3).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(decl3).not_nil!).should eq("z")
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(decl3).not_nil!).should eq("Bool")
     end
@@ -98,11 +98,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First: type declaration
       decl = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
 
       # Second: assignment
       assign = arena[program.roots[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
     end
 
     it "parses type declaration inside class" do
@@ -119,13 +119,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
 
       body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       body.size.should eq(1)
 
       decl = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(decl).not_nil!).should eq("x")
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(decl).not_nil!).should eq("Int32")
     end
@@ -144,13 +144,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
 
       body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       body.size.should eq(1)
 
       decl = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
     end
 
     it "parses type declaration with spaces" do
@@ -163,7 +163,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("x")
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("Int32")
     end
@@ -178,7 +178,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("items")
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("Array")
     end
@@ -193,7 +193,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       type_decl = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TypeDeclaration)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TypeDeclaration)
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_name(type_decl).not_nil!).should eq("data")
       String.new(CrystalGPT5::Compiler::Frontend.node_type_decl_type(type_decl).not_nil!).should eq("Hash")
     end

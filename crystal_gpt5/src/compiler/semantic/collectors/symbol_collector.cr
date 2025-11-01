@@ -64,7 +64,7 @@ module CrystalGPT5
           end
         end
 
-        private def handle_macro_def(node_id : Frontend::ExprId, node : ExpressionNode | TypedNode)
+        private def handle_macro_def(node_id : Frontend::ExprId, node : Frontend::TypedNode)
           name_slice = Frontend.node_macro_name(node)
           return unless name_slice
 
@@ -86,7 +86,7 @@ module CrystalGPT5
           end
         end
 
-        private def handle_def(node_id : Frontend::ExprId, node : ExpressionNode | TypedNode)
+        private def handle_def(node_id : Frontend::ExprId, node : Frontend::TypedNode)
           name_slice = Frontend.node_def_name(node)
           return unless name_slice
 
@@ -126,7 +126,7 @@ module CrystalGPT5
           pop_table
         end
 
-        private def handle_class(node_id : Frontend::ExprId, node : ExpressionNode | TypedNode)
+        private def handle_class(node_id : Frontend::ExprId, node : Frontend::TypedNode)
           name_slice = Frontend.node_class_name(node)
           return unless name_slice
 
@@ -169,30 +169,30 @@ module CrystalGPT5
         #
         # Uses immediate visit() pattern - generates AST node and immediately
         # processes it to register as MethodSymbol. No AST mutation needed.
-        private def expand_accessor_macro(node_id : Frontend::ExprId, node : ExpressionNode | TypedNode)
+        private def expand_accessor_macro(node_id : Frontend::ExprId, node : Frontend::TypedNode)
           specs = Frontend.node_accessor_specs(node)
           return unless specs
 
           specs.each do |spec|
             case Frontend.node_kind(node)
-            when ExpressionNode::Kind::Getter
+            when Frontend::NodeKind::Getter
               # Generate: def name : Type; @name; end
               def_node = build_getter_def(spec, node.span)
-              def_id = @arena.add(def_node)
+              def_id = @arena.add_typed(def_node)
               visit(def_id)  # Immediately register as MethodSymbol
 
-            when ExpressionNode::Kind::Setter
+            when Frontend::NodeKind::Setter
               # Generate: def name=(value : Type); @name = value; end
               def_node = build_setter_def(spec, node.span)
-              def_id = @arena.add(def_node)
+              def_id = @arena.add_typed(def_node)
               visit(def_id)
 
-            when ExpressionNode::Kind::Property
+            when Frontend::NodeKind::Property
               # Generate both getter and setter
               getter_node = build_getter_def(spec, node.span)
               setter_node = build_setter_def(spec, node.span)
-              visit(@arena.add(getter_node))
-              visit(@arena.add(setter_node))
+              visit(@arena.add_typed(getter_node))
+              visit(@arena.add_typed(setter_node))
             end
           end
         end
@@ -203,28 +203,26 @@ module CrystalGPT5
         # Output: def name : String
         #           @name
         #         end
-        private def build_getter_def(spec : Frontend::AccessorSpec, base_span : Frontend::Span) : ExpressionNode
+        private def build_getter_def(spec : Frontend::AccessorSpec, base_span : Frontend::Span) : Frontend::DefNode
           # Create instance variable access node: @name
           ivar_name = "@#{spec.name}"
           ivar_bytes = ivar_name.to_slice
-          ivar_node = ExpressionNode.new(
-            ExpressionNode::Kind::InstanceVar,
+          ivar_node = Frontend::InstanceVarNode.new(
             spec.name_span,
-            literal: ivar_bytes
+            ivar_bytes
           )
-          ivar_id = @arena.add(ivar_node)
+          ivar_id = @arena.add_typed(ivar_node)
 
           # Create def node with instance variable as body
           method_name_bytes = spec.name.to_slice
           return_type_bytes = spec.type_annotation.try(&.to_slice)
 
-          ExpressionNode.new(
-            ExpressionNode::Kind::Def,
+          Frontend::DefNode.new(
             base_span,
-            def_name: method_name_bytes,
-            def_return_type: return_type_bytes,
-            def_body: [ivar_id],
-            def_params: nil  # Getter has no parameters
+            method_name_bytes,
+            nil,
+            return_type_bytes,
+            [ivar_id]
           )
         end
 
@@ -234,7 +232,7 @@ module CrystalGPT5
         # Output: def name=(value : String)
         #           @name = value
         #         end
-        private def build_setter_def(spec : Frontend::AccessorSpec, base_span : Frontend::Span) : ExpressionNode
+        private def build_setter_def(spec : Frontend::AccessorSpec, base_span : Frontend::Span) : Frontend::DefNode
           # Create parameter: value : Type
           # Parameter.new expects String?, but def_return_type expects Slice(UInt8)?
           param_type_str = spec.type_annotation  # String? for Parameter
@@ -244,48 +242,45 @@ module CrystalGPT5
             "value",
             param_type_str,  # Pass String? to Parameter
             nil,  # No default value for setter parameter
+            spec.name_span,
             spec.name_span
           )
 
           # Create instance variable node: @name
           ivar_name = "@#{spec.name}"
           ivar_bytes = ivar_name.to_slice
-          ivar_node = ExpressionNode.new(
-            ExpressionNode::Kind::InstanceVar,
+          ivar_node = Frontend::InstanceVarNode.new(
             spec.name_span,
-            literal: ivar_bytes
+            ivar_bytes
           )
-          ivar_id = @arena.add(ivar_node)
+          ivar_id = @arena.add_typed(ivar_node)
 
           # Create identifier node: value
           value_bytes = "value".to_slice
-          value_node = ExpressionNode.new(
-            ExpressionNode::Kind::Identifier,
+          value_node = Frontend::IdentifierNode.new(
             spec.name_span,
-            literal: value_bytes
+            value_bytes
           )
-          value_id = @arena.add(value_node)
+          value_id = @arena.add_typed(value_node)
 
           # Create assignment: @name = value
-          assign_node = ExpressionNode.new(
-            ExpressionNode::Kind::Assign,
+          assign_node = Frontend::AssignNode.new(
             base_span,
-            assign_target: ivar_id,
-            assign_value: value_id
+            ivar_id,
+            value_id
           )
-          assign_id = @arena.add(assign_node)
+          assign_id = @arena.add_typed(assign_node)
 
           # Create def node with assignment as body
           setter_name = "#{spec.name}="
           setter_name_bytes = setter_name.to_slice
 
-          ExpressionNode.new(
-            ExpressionNode::Kind::Def,
+          Frontend::DefNode.new(
             base_span,
-            def_name: setter_name_bytes,
-            def_return_type: param_type_bytes,  # Setter returns same type (Slice(UInt8)?)
-            def_body: [assign_id],
-            def_params: [param]
+            setter_name_bytes,
+            [param],
+            param_type_bytes,
+            [assign_id]
           )
         end
 
@@ -294,7 +289,7 @@ module CrystalGPT5
         # Checks if a method call is actually a macro invocation.
         # If yes: expands the macro and visits the result.
         # If no: ignores (will be handled during type inference).
-        private def handle_potential_macro_call(node_id : Frontend::ExprId, node : ExpressionNode | TypedNode)
+        private def handle_potential_macro_call(node_id : Frontend::ExprId, node : Frontend::TypedNode)
           # Extract method name from call
           callee_slice = Frontend.node_member(node)
           return unless callee_slice

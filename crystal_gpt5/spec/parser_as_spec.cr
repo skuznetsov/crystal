@@ -16,18 +16,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       # Right side is As node
       as_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
 
       # Check target type
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(as_node).not_nil!).should eq("Int32")
 
       # Check value being cast
       value_node = arena[CrystalGPT5::Compiler::Frontend.node_as_value(as_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(value_node).not_nil!).should eq("value")
     end
 
@@ -44,13 +44,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign_node = arena[program.roots[0]]
       as_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
 
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(as_node).not_nil!).should eq("String")
 
       # Value is a grouping with binary expression inside
       grouping_node = arena[CrystalGPT5::Compiler::Frontend.node_as_value(as_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(grouping_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Grouping)
+      CrystalGPT5::Compiler::Frontend.node_kind(grouping_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Grouping)
     end
 
     it "parses chained type casts" do
@@ -68,17 +68,17 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Outer cast to Int64
       outer_as = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(outer_as).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_as).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(outer_as).not_nil!).should eq("Int64")
 
       # Inner cast to Int32
       inner_as = arena[CrystalGPT5::Compiler::Frontend.node_as_value(outer_as).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(inner_as).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_as).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(inner_as).not_nil!).should eq("Int32")
 
       # Original value
       value_node = arena[CrystalGPT5::Compiler::Frontend.node_as_value(inner_as).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(value_node).not_nil!).should eq("x")
     end
 
@@ -94,14 +94,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
       # Check argument is type cast
-      args = call_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call_node).not_nil!
       args.size.should eq(1)
 
       as_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(as_node).not_nil!).should eq("String")
     end
 
@@ -118,19 +118,19 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign_node = arena[program.roots[0]]
       array_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
 
       elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array_node).not_nil!
       elements.size.should eq(2)
 
       # First element
       first_as = arena[elements[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(first_as).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(first_as).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(first_as).not_nil!).should eq("Int32")
 
       # Second element
       second_as = arena[elements[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(second_as).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(second_as).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(second_as).not_nil!).should eq("Int32")
     end
 
@@ -148,11 +148,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       if_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(if_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::If)
+      CrystalGPT5::Compiler::Frontend.node_kind(if_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::If)
 
       # Condition is type cast
       condition_node = arena[CrystalGPT5::Compiler::Frontend.node_condition(if_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(condition_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(condition_node).not_nil!).should eq("Bool")
     end
 
@@ -169,7 +169,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign_node = arena[program.roots[0]]
       as_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
 
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(as_node).not_nil!).should eq("MyClass")
     end
@@ -192,7 +192,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       method_body.size.should eq(1)
 
       as_node = arena[method_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(as_node).not_nil!).should eq("Int32")
     end
 
@@ -217,12 +217,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
 
       as_node = arena[method_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(as_node).not_nil!).should eq("String")
 
       # Value is instance variable
       ivar_node = arena[CrystalGPT5::Compiler::Frontend.node_as_value(as_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(ivar_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceVar)
+      CrystalGPT5::Compiler::Frontend.node_kind(ivar_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceVar)
     end
 
     it "parses type cast after method call" do
@@ -238,12 +238,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign_node = arena[program.roots[0]]
       as_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(as_node).not_nil!).should eq("Int32")
 
       # Value is method call (actually MemberAccess without parens)
       member_node = arena[CrystalGPT5::Compiler::Frontend.node_as_value(as_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(member_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+      CrystalGPT5::Compiler::Frontend.node_kind(member_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::MemberAccess)
       String.new(CrystalGPT5::Compiler::Frontend.node_member(member_node).not_nil!).should eq("method")
     end
 
@@ -260,12 +260,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign_node = arena[program.roots[0]]
       as_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(as_node).not_nil!).should eq("Int64")
 
       # Value is number literal
       number_node = arena[CrystalGPT5::Compiler::Frontend.node_as_value(as_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(number_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      CrystalGPT5::Compiler::Frontend.node_kind(number_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Number)
     end
 
     it "parses type cast in return statement" do
@@ -285,11 +285,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
 
       return_node = arena[method_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(return_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Return)
+      CrystalGPT5::Compiler::Frontend.node_kind(return_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Return)
 
       # Return value is type cast
       as_node = arena[CrystalGPT5::Compiler::Frontend.node_return_value(return_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::As)
+      CrystalGPT5::Compiler::Frontend.node_kind(as_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::As)
       String.new(CrystalGPT5::Compiler::Frontend.node_as_target_type(as_node).not_nil!).should eq("String")
     end
   end

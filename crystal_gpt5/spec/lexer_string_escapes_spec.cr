@@ -16,11 +16,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       # Value is string with processed escape
       string = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(string).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      CrystalGPT5::Compiler::Frontend.node_kind(string).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::String)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("hello\nworld")
     end
 
@@ -166,7 +166,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign = arena[program.roots[0]]
       array = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
 
       elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array).not_nil!
       elements.size.should eq(2)
@@ -190,13 +190,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
       args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       string = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(string).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      CrystalGPT5::Compiler::Frontend.node_kind(string).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::String)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(string).not_nil!).should eq("hello\nworld")
     end
 

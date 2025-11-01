@@ -14,11 +14,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       # Value should be offsetof
       value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Offsetof)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Offsetof)
 
       # Should have exactly 2 arguments
       args = CrystalGPT5::Compiler::Frontend.node_offsetof_args(value).not_nil!
@@ -26,12 +26,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First argument should be Person (identifier)
       type_arg = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_arg).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(type_arg).not_nil!).should eq("Person")
 
       # Second argument should be :name (symbol)
       field_arg = arena[args[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(field_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Symbol)
+      CrystalGPT5::Compiler::Frontend.node_kind(field_arg).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Symbol)
     end
 
     it "parses offsetof with different field name" do
@@ -45,19 +45,19 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign = arena[program.roots[0]]
       value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Offsetof)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Offsetof)
 
       args = CrystalGPT5::Compiler::Frontend.node_offsetof_args(value).not_nil!
       args.size.should eq(2)
 
       # Type argument
       type_arg = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_arg).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(type_arg).not_nil!).should eq("MyStruct")
 
       # Field argument (symbol)
       field_arg = arena[args[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(field_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Symbol)
+      CrystalGPT5::Compiler::Frontend.node_kind(field_arg).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Symbol)
     end
 
     it "parses offsetof with generic type" do
@@ -71,18 +71,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign = arena[program.roots[0]]
       value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Offsetof)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Offsetof)
 
       args = CrystalGPT5::Compiler::Frontend.node_offsetof_args(value).not_nil!
       args.size.should eq(2)
 
       # Type argument should be generic
       type_arg = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_arg).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Generic)
 
       # Field argument should be symbol
       field_arg = arena[args[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(field_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Symbol)
+      CrystalGPT5::Compiler::Frontend.node_kind(field_arg).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Symbol)
     end
 
     it "parses offsetof as function argument" do
@@ -96,11 +96,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Root should be a call
       call = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
       # Argument should be offsetof
-      arg = arena[call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil![0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Offsetof)
+      arg = arena[CrystalGPT5::Compiler::Frontend.node_args(call).not_nil![0]]
+      CrystalGPT5::Compiler::Frontend.node_kind(arg).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Offsetof)
 
       args = CrystalGPT5::Compiler::Frontend.node_offsetof_args(arg).not_nil!
       args.size.should eq(2)
@@ -116,11 +116,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       ret = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(ret).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Return)
+      CrystalGPT5::Compiler::Frontend.node_kind(ret).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Return)
 
       # Return value should be offsetof
       value = arena[CrystalGPT5::Compiler::Frontend.node_return_value(ret).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Offsetof)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Offsetof)
 
       args = CrystalGPT5::Compiler::Frontend.node_offsetof_args(value).not_nil!
       args.size.should eq(2)
@@ -137,14 +137,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign = arena[program.roots[0]]
       value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Offsetof)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Offsetof)
 
       args = CrystalGPT5::Compiler::Frontend.node_offsetof_args(value).not_nil!
       args.size.should eq(2)
 
       # Type argument should be path expression (Foo::Bar)
       type_arg = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Path)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_arg).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Path)
     end
 
     it "parses offsetof in if condition" do
@@ -161,14 +161,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       if_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(if_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::If)
+      CrystalGPT5::Compiler::Frontend.node_kind(if_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::If)
 
       # Condition should be comparison with offsetof on left
       condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(if_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
 
       left = arena[CrystalGPT5::Compiler::Frontend.node_left(condition).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Offsetof)
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Offsetof)
 
       args = CrystalGPT5::Compiler::Frontend.node_offsetof_args(left).not_nil!
       args.size.should eq(2)
@@ -189,14 +189,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       # First assignment
       assign1 = arena[program.roots[0]]
       value1 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign1).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Offsetof)
+      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Offsetof)
       args1 = CrystalGPT5::Compiler::Frontend.node_offsetof_args(value1).not_nil!
       args1.size.should eq(2)
 
       # Second assignment
       assign2 = arena[program.roots[1]]
       value2 = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign2).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Offsetof)
+      CrystalGPT5::Compiler::Frontend.node_kind(value2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Offsetof)
       args2 = CrystalGPT5::Compiler::Frontend.node_offsetof_args(value2).not_nil!
       args2.size.should eq(2)
     end

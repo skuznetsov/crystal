@@ -17,7 +17,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign = arena[program.roots[0]]
       string_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(string_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      CrystalGPT5::Compiler::Frontend.node_kind(string_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::String)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(string_node).not_nil!).should eq("A")
     end
 
@@ -118,7 +118,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign = arena[program.roots[0]]
       char_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(char_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Char)
+      CrystalGPT5::Compiler::Frontend.node_kind(char_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Char)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(char_node).not_nil!).should eq("A")
     end
 

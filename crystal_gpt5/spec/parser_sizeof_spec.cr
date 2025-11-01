@@ -16,12 +16,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       # Value side is sizeof
       sizeof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       sizeof_node = arena[sizeof_expr]
-      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Sizeof)
+      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Sizeof)
 
       # Check arguments
       args = CrystalGPT5::Compiler::Frontend.node_sizeof_args(sizeof_node).not_nil!
@@ -29,7 +29,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Argument is identifier Int32
       arg_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(arg_node).not_nil!).should eq("Int32")
     end
 
@@ -50,14 +50,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       sizeof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       sizeof_node = arena[sizeof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Sizeof)
+      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Sizeof)
 
       args = CrystalGPT5::Compiler::Frontend.node_sizeof_args(sizeof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is identifier x
       arg_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(arg_node).not_nil!).should eq("x")
     end
 
@@ -76,14 +76,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       sizeof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       sizeof_node = arena[sizeof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Sizeof)
+      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Sizeof)
 
       args = CrystalGPT5::Compiler::Frontend.node_sizeof_args(sizeof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is binary expression
       arg_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
     end
 
     it "parses sizeof with array literal" do
@@ -101,14 +101,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       sizeof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       sizeof_node = arena[sizeof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Sizeof)
+      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Sizeof)
 
       args = CrystalGPT5::Compiler::Frontend.node_sizeof_args(sizeof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is array literal
       arg_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
     end
 
     it "parses sizeof in method definition" do
@@ -131,7 +131,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Last statement is sizeof
       sizeof_node = arena[method_body[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Sizeof)
+      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Sizeof)
     end
 
     it "parses sizeof in class" do
@@ -157,7 +157,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Last statement is sizeof
       sizeof_node = arena[method_body[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Sizeof)
+      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Sizeof)
     end
 
     it "parses nested sizeof" do
@@ -175,7 +175,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       outer_sizeof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       outer_sizeof = arena[outer_sizeof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(outer_sizeof).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Sizeof)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_sizeof).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Sizeof)
 
       # Outer sizeof has one argument
       outer_args = CrystalGPT5::Compiler::Frontend.node_sizeof_args(outer_sizeof).not_nil!
@@ -183,14 +183,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # That argument is also a sizeof
       inner_sizeof = arena[outer_args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(inner_sizeof).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Sizeof)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_sizeof).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Sizeof)
 
       # Inner sizeof has one argument (Int32)
       inner_args = CrystalGPT5::Compiler::Frontend.node_sizeof_args(inner_sizeof).not_nil!
       inner_args.size.should eq(1)
 
       identifier_node = arena[inner_args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(identifier_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(identifier_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
     end
 
     it "parses sizeof with method call" do
@@ -208,14 +208,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       sizeof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       sizeof_node = arena[sizeof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Sizeof)
+      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Sizeof)
 
       args = CrystalGPT5::Compiler::Frontend.node_sizeof_args(sizeof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is member access (foo.bar)
       arg_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::MemberAccess)
     end
 
     it "parses sizeof with self" do
@@ -240,14 +240,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Method body has sizeof
       sizeof_node = arena[method_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Sizeof)
+      CrystalGPT5::Compiler::Frontend.node_kind(sizeof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Sizeof)
 
       args = CrystalGPT5::Compiler::Frontend.node_sizeof_args(sizeof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is self
       arg_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Self)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Self)
     end
   end
 end

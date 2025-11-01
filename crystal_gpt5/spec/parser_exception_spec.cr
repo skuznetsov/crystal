@@ -20,7 +20,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       begin_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
+      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Begin)
 
       # Check begin body
       body = CrystalGPT5::Compiler::Frontend.node_begin_body(begin_node).not_nil!
@@ -48,7 +48,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       begin_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
+      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Begin)
 
       # Check rescue clause with type
       rescue_clauses = CrystalGPT5::Compiler::Frontend.node_rescue_clauses(begin_node).not_nil!
@@ -212,11 +212,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       raise_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(raise_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Raise)
+      CrystalGPT5::Compiler::Frontend.node_kind(raise_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Raise)
 
       raise_value = CrystalGPT5::Compiler::Frontend.node_raise_value(raise_node).not_nil!
       value_node = arena[raise_value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::String)
     end
 
     it "parses bare raise (re-raise)" do
@@ -242,7 +242,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       rescue_body.size.should eq(1)
 
       raise_node = arena[rescue_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(raise_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Raise)
+      CrystalGPT5::Compiler::Frontend.node_kind(raise_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Raise)
       CrystalGPT5::Compiler::Frontend.node_raise_value(raise_node).should be_nil  # Bare raise
     end
   end

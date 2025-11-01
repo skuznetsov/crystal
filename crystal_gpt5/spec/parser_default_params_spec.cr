@@ -18,7 +18,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
 
       params = CrystalGPT5::Compiler::Frontend.node_def_params(method_node).not_nil!
       params.size.should eq(1)
@@ -114,7 +114,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       default_value = params[0].default_value.not_nil!
       default_node = arena[default_value]
-      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
     end
 
     it "parses method with identifier as default value" do
@@ -136,7 +136,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       default_value = params[0].default_value.not_nil!
       default_node = arena[default_value]
-      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
     end
 
     it "parses method with string literal as default value" do
@@ -158,7 +158,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       default_value = params[0].default_value.not_nil!
       default_node = arena[default_value]
-      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::String)
     end
 
     it "parses method with array literal as default value" do
@@ -180,7 +180,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       default_value = params[0].default_value.not_nil!
       default_node = arena[default_value]
-      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
     end
 
     it "parses method with default after splat" do
@@ -253,13 +253,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
 
       class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(1)
 
       method_node = arena[class_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
 
       params = CrystalGPT5::Compiler::Frontend.node_def_params(method_node).not_nil!
       params.size.should eq(1)
@@ -285,7 +285,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       default_value = params[0].default_value.not_nil!
       default_node = arena[default_value]
-      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Nil)
+      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Nil)
     end
 
     it "parses method with boolean as default value" do
@@ -307,7 +307,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       default_value = params[0].default_value.not_nil!
       default_node = arena[default_value]
-      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Bool)
+      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Bool)
     end
 
     it "parses method with complex expression as default value" do
@@ -330,7 +330,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       default_value = params[0].default_value.not_nil!
       default_node = arena[default_value]
       # Complex expression: 1 + (2 * 3)
-      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
     end
   end
 end

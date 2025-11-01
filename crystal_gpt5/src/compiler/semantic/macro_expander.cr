@@ -1,4 +1,6 @@
 require "../frontend/ast"
+require "../frontend/lexer"
+require "../frontend/parser"
 require "./symbol"
 require "./diagnostic"
 
@@ -130,9 +132,9 @@ module CrystalGPT5
         end
 
         private def evaluate_macro_body(body_id : ExprId, context : Context) : String
-          # Get MacroLiteral node
+          # Get MacroLiteral node (works with typed or legacy nodes)
           body_node = @arena[body_id]
-          pieces = body_node.as(ExpressionNode).macro_pieces
+          pieces = Frontend.node_macro_pieces(body_node)
 
           return "" unless pieces
 
@@ -520,7 +522,7 @@ module CrystalGPT5
 
         # Phase 87B-4A: Expand range to array of string values
         # Returns Array(String) if successful, nil if error (diagnostic emitted)
-        private def expand_range_to_strings(range_node : (ExpressionNode | TypedNode)) : Array(String)?
+        private def expand_range_to_strings(range_node : Frontend::TypedNode) : Array(String)?
           # Extract bounds using helpers (handles field name mismatch: RangeNode.begin_expr vs ExpressionNode.range_begin)
           range_begin = Frontend.node_range_begin(range_node)
           range_end = Frontend.node_range_end(range_node)

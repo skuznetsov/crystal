@@ -14,7 +14,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       named_tuple = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
 
       entries = CrystalGPT5::Compiler::Frontend.node_named_tuple_entries(named_tuple).not_nil!
       entries.size.should eq(1)
@@ -31,7 +31,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       named_tuple = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
 
       entries = CrystalGPT5::Compiler::Frontend.node_named_tuple_entries(named_tuple).not_nil!
       entries.size.should eq(2)
@@ -49,7 +49,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       named_tuple = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
 
       entries = CrystalGPT5::Compiler::Frontend.node_named_tuple_entries(named_tuple).not_nil!
       entries.size.should eq(2)
@@ -65,14 +65,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       named_tuple = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
 
       entries = CrystalGPT5::Compiler::Frontend.node_named_tuple_entries(named_tuple).not_nil!
       entries.size.should eq(2)
 
       # Values are binary expressions
       value1 = arena[entries[0].value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
     end
 
     it "parses named tuple with identifier values" do
@@ -85,14 +85,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       named_tuple = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
 
       entries = CrystalGPT5::Compiler::Frontend.node_named_tuple_entries(named_tuple).not_nil!
       entries.size.should eq(2)
 
       # Values are identifiers
       value1 = arena[entries[0].value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
     end
 
     it "parses nested named tuples" do
@@ -105,7 +105,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       outer = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(outer).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
 
       entries = CrystalGPT5::Compiler::Frontend.node_named_tuple_entries(outer).not_nil!
       entries.size.should eq(1)
@@ -113,7 +113,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Inner is also named tuple
       inner = arena[entries[0].value]
-      CrystalGPT5::Compiler::Frontend.node_kind(inner).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
     end
 
     it "parses named tuple in assignment" do
@@ -126,10 +126,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
     end
 
     it "parses named tuple in method call" do
@@ -142,13 +142,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
-      args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       arg = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
     end
 
     it "parses named tuple in array literal" do
@@ -161,17 +161,17 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
 
       array_elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array).not_nil!
       array_elements.size.should eq(2)
 
       # Both elements are named tuples
       elem1 = arena[array_elements[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(elem1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(elem1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
 
       elem2 = arena[array_elements[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(elem2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(elem2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
     end
 
     it "disambiguates named tuple from hash (colon vs arrow)" do
@@ -184,7 +184,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
     end
 
     it "disambiguates hash from named tuple (arrow)" do
@@ -197,7 +197,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::HashLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::HashLiteral)
     end
 
     it "disambiguates tuple from named tuple (comma vs colon)" do
@@ -210,7 +210,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TupleLiteral)
     end
 
     it "parses empty braces as hash not named tuple" do
@@ -224,7 +224,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       node = arena[program.roots[0]]
       # Empty {} is hash by default (existing behavior)
-      CrystalGPT5::Compiler::Frontend.node_kind(node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::HashLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::HashLiteral)
     end
 
     it "parses named tuple with many entries" do
@@ -237,7 +237,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       named_tuple = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::NamedTupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(named_tuple).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::NamedTupleLiteral)
 
       entries = CrystalGPT5::Compiler::Frontend.node_named_tuple_entries(named_tuple).not_nil!
       entries.size.should eq(5)

@@ -72,7 +72,7 @@ module CrystalGPT5
           end
         end
 
-        private def resolve_identifier(node_id : ExprId, node : ExpressionNode | TypedNode)
+        private def resolve_identifier(node_id : ExprId, node : Frontend::TypedNode)
           slice = Frontend.node_literal(node)
           return unless slice
           name = String.new(slice)
@@ -84,7 +84,7 @@ module CrystalGPT5
           end
         end
 
-        private def visit_macro_literal(node : ExpressionNode | TypedNode)
+        private def visit_macro_literal(node : Frontend::TypedNode)
           pieces = Frontend.node_macro_pieces(node)
           return unless pieces
 
@@ -103,7 +103,7 @@ module CrystalGPT5
           end
         end
 
-        private def visit_def(node : ExpressionNode | TypedNode)
+        private def visit_def(node : Frontend::TypedNode)
           name_slice = Frontend.node_def_name(node)
           return unless name_slice
 
@@ -124,7 +124,7 @@ module CrystalGPT5
           @current_table = prev_table
         end
 
-        private def visit_class(node : ExpressionNode | TypedNode)
+        private def visit_class(node : Frontend::TypedNode)
           name_slice = Frontend.node_class_name(node)
           return unless name_slice
 

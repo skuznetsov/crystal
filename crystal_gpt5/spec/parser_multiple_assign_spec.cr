@@ -14,16 +14,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       multi_assign = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(multi_assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MultipleAssign)
+      CrystalGPT5::Compiler::Frontend.node_kind(multi_assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::MultipleAssign)
 
       targets = multi_assign.as(CrystalGPT5::Compiler::Frontend::MultipleAssignNode).targets
       targets.size.should eq(2)
 
       target1 = arena[targets[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(target1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(target1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
 
       target2 = arena[targets[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(target2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(target2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
     end
 
     it "parses three-target assignment" do
@@ -54,7 +54,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       targets.size.should eq(2)
 
       value = arena[multi_assign.as(CrystalGPT5::Compiler::Frontend::MultipleAssignNode).value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::TupleLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::TupleLiteral)
     end
 
     it "parses assignment with expressions on right side" do
@@ -82,7 +82,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       multi_assign = arena[program.roots[0]]
       value = arena[multi_assign.as(CrystalGPT5::Compiler::Frontend::MultipleAssignNode).value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
     end
 
     it "parses assignment with method call on right side" do
@@ -96,7 +96,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       multi_assign = arena[program.roots[0]]
       value = arena[multi_assign.as(CrystalGPT5::Compiler::Frontend::MultipleAssignNode).value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
     end
 
     it "parses assignment with identifier on right side" do
@@ -110,7 +110,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       multi_assign = arena[program.roots[0]]
       value = arena[multi_assign.as(CrystalGPT5::Compiler::Frontend::MultipleAssignNode).value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
     end
 
     it "parses assignment inside method body" do
@@ -127,13 +127,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
 
       body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       body.size.should eq(1)
 
       multi_assign = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(multi_assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MultipleAssign)
+      CrystalGPT5::Compiler::Frontend.node_kind(multi_assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::MultipleAssign)
     end
 
     it "parses multiple assignments in sequence" do
@@ -149,10 +149,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       multi_assign1 = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(multi_assign1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MultipleAssign)
+      CrystalGPT5::Compiler::Frontend.node_kind(multi_assign1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::MultipleAssign)
 
       multi_assign2 = arena[program.roots[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(multi_assign2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MultipleAssign)
+      CrystalGPT5::Compiler::Frontend.node_kind(multi_assign2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::MultipleAssign)
     end
 
     it "parses assignment with string literals" do
@@ -165,7 +165,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       multi_assign = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(multi_assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MultipleAssign)
+      CrystalGPT5::Compiler::Frontend.node_kind(multi_assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::MultipleAssign)
     end
 
     it "parses assignment with nil and boolean values" do
@@ -207,7 +207,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign = arena[program.roots[0]]
       # Should be regular Assign, not MultipleAssign
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
     end
 
     it "parses four or more targets" do

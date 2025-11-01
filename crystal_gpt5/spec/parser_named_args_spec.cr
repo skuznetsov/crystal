@@ -14,9 +14,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
-      named_args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      named_args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       named_args.size.should eq(1)
       named_args[0].name.should eq("x")
     end
@@ -31,7 +31,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      named_args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      named_args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       named_args.size.should eq(2)
       named_args[0].name.should eq("x")
       named_args[1].name.should eq("y")
@@ -47,12 +47,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      named_args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      named_args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       named_args.size.should eq(2)
 
       # Values are expressions
       value1 = arena[named_args[0].value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
     end
 
     it "parses method call with only positional arguments" do
@@ -65,9 +65,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
+      args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).args.not_nil!
       args.size.should eq(2)
-      call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.should be_nil
+      call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.should be_nil
     end
 
     it "parses method call with mixed positional and named arguments" do
@@ -80,10 +80,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
+      args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).args.not_nil!
       args.size.should eq(1)
 
-      named_args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      named_args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       named_args.size.should eq(1)
       named_args[0].name.should eq("y")
     end
@@ -98,10 +98,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
+      args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).args.not_nil!
       args.size.should eq(2)
 
-      named_args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      named_args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       named_args.size.should eq(2)
       named_args[0].name.should eq("x")
       named_args[1].name.should eq("y")
@@ -117,9 +117,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
-      call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.should be_nil
-      call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.should be_nil
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
+      call.as(CrystalGPT5::Compiler::Frontend::CallNode).args.empty?.should be_true
+      call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.should be_nil
     end
 
     it "parses named arguments with string values" do
@@ -132,11 +132,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      named_args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      named_args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       named_args.size.should eq(2)
 
       value1 = arena[named_args[0].value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::String)
     end
 
     it "parses named arguments with array values" do
@@ -149,11 +149,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      named_args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      named_args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       named_args.size.should eq(1)
 
       value = arena[named_args[0].value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
     end
 
     it "parses named arguments with identifier values" do
@@ -166,11 +166,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      named_args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      named_args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       named_args.size.should eq(2)
 
       value1 = arena[named_args[0].value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
     end
 
     it "parses member access with named arguments" do
@@ -183,12 +183,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
-      callee = arena[call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).callee.not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(callee).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::MemberAccess)
+      callee = arena[call.as(CrystalGPT5::Compiler::Frontend::CallNode).callee.not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(callee).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::MemberAccess)
 
-      named_args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      named_args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       named_args.size.should eq(1)
       named_args[0].name.should eq("x")
     end
@@ -203,14 +203,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      named_args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      named_args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       named_args.size.should eq(2)
 
       value1 = arena[named_args[0].value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Bool)
+      CrystalGPT5::Compiler::Frontend.node_kind(value1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Bool)
 
       value2 = arena[named_args[1].value]
-      CrystalGPT5::Compiler::Frontend.node_kind(value2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Nil)
+      CrystalGPT5::Compiler::Frontend.node_kind(value2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Nil)
     end
 
     it "parses nested calls with named arguments" do
@@ -223,20 +223,20 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       outer_call = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(outer_call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
       # outer has positional arg (inner call) and named arg
-      outer_args = outer_call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
+      outer_args = outer_call.as(CrystalGPT5::Compiler::Frontend::CallNode).args.not_nil!
       outer_args.size.should eq(1)
 
       inner_call = arena[outer_args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(inner_call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
-      inner_named_args = inner_call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      inner_named_args = inner_call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       inner_named_args.size.should eq(1)
       inner_named_args[0].name.should eq("x")
 
-      outer_named_args = outer_call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      outer_named_args = outer_call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       outer_named_args.size.should eq(1)
       outer_named_args[0].name.should eq("y")
     end
@@ -251,7 +251,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      named_args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).named_args.not_nil!
+      named_args = call.as(CrystalGPT5::Compiler::Frontend::CallNode).named_args.not_nil!
       named_args.size.should eq(2)
     end
   end

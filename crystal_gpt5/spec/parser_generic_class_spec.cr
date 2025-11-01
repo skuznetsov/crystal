@@ -21,13 +21,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       klass = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(klass).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(klass).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
 
       # Check class name
       String.new(CrystalGPT5::Compiler::Frontend.node_class_name(klass).not_nil!).should eq("Box")
 
       # Check type parameters
-      type_params = klass.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_type_params.not_nil!
+      type_params = klass.as(CrystalGPT5::Compiler::Frontend::ClassNode).type_params.not_nil!
       type_params.size.should eq(1)
       String.new(type_params[0]).should eq("T")
     end
@@ -49,7 +49,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       klass = arena[program.roots[0]]
 
       # Check type parameters
-      type_params = klass.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_type_params.not_nil!
+      type_params = klass.as(CrystalGPT5::Compiler::Frontend::ClassNode).type_params.not_nil!
       type_params.size.should eq(2)
       String.new(type_params[0]).should eq("K")
       String.new(type_params[1]).should eq("V")
@@ -69,7 +69,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       klass = arena[program.roots[0]]
 
-      type_params = klass.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_type_params.not_nil!
+      type_params = klass.as(CrystalGPT5::Compiler::Frontend::ClassNode).type_params.not_nil!
       type_params.size.should eq(3)
       String.new(type_params[0]).should eq("A")
       String.new(type_params[1]).should eq("B")
@@ -92,7 +92,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       String.new(CrystalGPT5::Compiler::Frontend.node_class_name(klass).not_nil!).should eq("Foo")
 
       # No type parameters
-      klass.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_type_params.should be_nil
+      klass.as(CrystalGPT5::Compiler::Frontend::ClassNode).type_params.should be_nil
     end
 
     # Struct tests
@@ -112,13 +112,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       struct_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
+      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Struct)
 
       # Check struct name
       String.new(CrystalGPT5::Compiler::Frontend.node_class_name(struct_node).not_nil!).should eq("Point")
 
       # Check type parameters
-      type_params = struct_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_type_params.not_nil!
+      type_params = struct_node.as(CrystalGPT5::Compiler::Frontend::ClassNode).type_params.not_nil!
       type_params.size.should eq(1)
       String.new(type_params[0]).should eq("T")
     end
@@ -137,7 +137,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       struct_node = arena[program.roots[0]]
 
-      type_params = struct_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_type_params.not_nil!
+      type_params = struct_node.as(CrystalGPT5::Compiler::Frontend::ClassNode).type_params.not_nil!
       type_params.size.should eq(2)
       String.new(type_params[0]).should eq("K")
       String.new(type_params[1]).should eq("V")
@@ -160,13 +160,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       mod = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(mod).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Module)
+      CrystalGPT5::Compiler::Frontend.node_kind(mod).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Module)
 
       # Check module name
       String.new(CrystalGPT5::Compiler::Frontend.node_module_name(mod).not_nil!).should eq("Enumerable")
 
       # Check type parameters
-      type_params = mod.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).module_type_params.not_nil!
+      type_params = mod.as(CrystalGPT5::Compiler::Frontend::ModuleNode).type_params.not_nil!
       type_params.size.should eq(1)
       String.new(type_params[0]).should eq("T")
     end
@@ -185,7 +185,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       mod = arena[program.roots[0]]
 
-      type_params = mod.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).module_type_params.not_nil!
+      type_params = mod.as(CrystalGPT5::Compiler::Frontend::ModuleNode).type_params.not_nil!
       type_params.size.should eq(2)
       String.new(type_params[0]).should eq("T")
       String.new(type_params[1]).should eq("U")
@@ -208,7 +208,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       klass = arena[program.roots[0]]
 
       # Check type parameters
-      type_params = klass.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_type_params.not_nil!
+      type_params = klass.as(CrystalGPT5::Compiler::Frontend::ClassNode).type_params.not_nil!
       type_params.size.should eq(1)
       String.new(type_params[0]).should eq("T")
 
@@ -234,7 +234,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       CrystalGPT5::Compiler::Frontend.node_class_is_abstract(klass).should be_true
 
       # Check type parameters
-      type_params = klass.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_type_params.not_nil!
+      type_params = klass.as(CrystalGPT5::Compiler::Frontend::ClassNode).type_params.not_nil!
       type_params.size.should eq(1)
       String.new(type_params[0]).should eq("T")
     end
@@ -259,13 +259,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Check all have type parameters
       klass = arena[program.roots[0]]
-      klass.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_type_params.not_nil!.size.should eq(1)
+      klass.as(CrystalGPT5::Compiler::Frontend::ClassNode).type_params.not_nil!.size.should eq(1)
 
       struct_node = arena[program.roots[1]]
-      struct_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_type_params.not_nil!.size.should eq(1)
+      struct_node.as(CrystalGPT5::Compiler::Frontend::ClassNode).type_params.not_nil!.size.should eq(1)
 
       mod = arena[program.roots[2]]
-      mod.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).module_type_params.not_nil!.size.should eq(1)
+      mod.as(CrystalGPT5::Compiler::Frontend::ModuleNode).type_params.not_nil!.size.should eq(1)
     end
 
     it "parses nested generic classes" do
@@ -284,15 +284,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       outer = arena[program.roots[0]]
       String.new(CrystalGPT5::Compiler::Frontend.node_class_name(outer).not_nil!).should eq("Outer")
-      type_params = outer.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_type_params.not_nil!
+      type_params = outer.as(CrystalGPT5::Compiler::Frontend::ClassNode).type_params.not_nil!
       type_params.size.should eq(1)
       String.new(type_params[0]).should eq("T")
 
       # Check inner class
       inner_id = CrystalGPT5::Compiler::Frontend.node_class_body(outer).not_nil![0]
-      inner = arena[inner_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      String.new(inner.class_name.not_nil!).should eq("Inner")
-      inner_params = inner.class_type_params.not_nil!
+      inner = arena[inner_id].as(CrystalGPT5::Compiler::Frontend::ClassNode)
+      String.new(CrystalGPT5::Compiler::Frontend.node_class_name(inner).not_nil!).should eq("Inner")
+      inner_params = inner.type_params.not_nil!
       inner_params.size.should eq(1)
       String.new(inner_params[0]).should eq("U")
     end

@@ -2,7 +2,6 @@ require "spec"
 
 require "../src/compiler/frontend/parser"
 
-alias ExprNode = CrystalGPT5::Compiler::Frontend::ExpressionNode
 
 describe CrystalGPT5::Compiler::Frontend::Parser do
   it "produces AST nodes with arena storage" do
@@ -16,8 +15,7 @@ bar")
     first_id = program.roots.first
 
     # Check if it's a typed node (BinaryNode is migrated to typed)
-    arena.typed?(first_id).should be_true
-    first = arena.get_typed(first_id)
+    first = arena[first_id]
     first.should be_a(CrystalGPT5::Compiler::Frontend::BinaryNode)
   end
 
@@ -30,24 +28,19 @@ bar")
     arena = program.arena
     root_id = program.roots.first
 
-    # UnaryNode is migrated to typed
-    arena.typed?(root_id).should be_true
-    root = arena.get_typed(root_id)
+    root = arena[root_id]
     root.should be_a(CrystalGPT5::Compiler::Frontend::UnaryNode)
 
-    # Grouping is not migrated yet, use legacy API
     grouping_id = root.as(CrystalGPT5::Compiler::Frontend::UnaryNode).operand
     grouping = arena[grouping_id]
-    CrystalGPT5::Compiler::Frontend.node_kind(grouping).should eq(ExprNode::Kind::Grouping)
+    CrystalGPT5::Compiler::Frontend.node_kind(grouping).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Grouping)
 
     call_node = arena[CrystalGPT5::Compiler::Frontend.node_left(grouping).not_nil!]
-    CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(ExprNode::Kind::Call)
+    CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
     CrystalGPT5::Compiler::Frontend.node_args(call_node).not_nil!.size.should eq(1)
 
-    # Argument is BinaryNode (1 + 2), which is typed
     arg_id = CrystalGPT5::Compiler::Frontend.node_args(call_node).not_nil!.first
-    arena.typed?(arg_id).should be_true
-    arg = arena.get_typed(arg_id)
+    arg = arena[arg_id]
     arg.should be_a(CrystalGPT5::Compiler::Frontend::BinaryNode)
   end
 
@@ -60,14 +53,14 @@ bar")
     arena = program.arena
 
     root = arena[program.roots.first]
-    CrystalGPT5::Compiler::Frontend.node_kind(root).should eq(ExprNode::Kind::Index)
+    CrystalGPT5::Compiler::Frontend.node_kind(root).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Index)
 
     # Index uses 'left' field, not 'callee'
     call_node = arena[CrystalGPT5::Compiler::Frontend.node_left(root).not_nil!]
-    CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(ExprNode::Kind::Call)
+    CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
     member = arena[CrystalGPT5::Compiler::Frontend.node_callee(call_node).not_nil!]
-    CrystalGPT5::Compiler::Frontend.node_kind(member).should eq(ExprNode::Kind::MemberAccess)
+    CrystalGPT5::Compiler::Frontend.node_kind(member).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::MemberAccess)
     CrystalGPT5::Compiler::Frontend.node_member(member).try { |m| String.new(m) }.should eq("bar")
   end
 
@@ -84,11 +77,11 @@ bar")
     program.roots.size.should eq(1)
     arena = program.arena
     macro_def = arena[program.roots.first]
-    CrystalGPT5::Compiler::Frontend.node_kind(macro_def).should eq(ExprNode::Kind::MacroDef)
+    CrystalGPT5::Compiler::Frontend.node_kind(macro_def).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::MacroDef)
     CrystalGPT5::Compiler::Frontend.node_macro_name(macro_def).try { |slice| String.new(slice) }.should eq("my_macro")
 
     body = arena[CrystalGPT5::Compiler::Frontend.node_left(macro_def).not_nil!]
-    CrystalGPT5::Compiler::Frontend.node_kind(body).should eq(ExprNode::Kind::MacroLiteral)
+    CrystalGPT5::Compiler::Frontend.node_kind(body).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::MacroLiteral)
     pieces = CrystalGPT5::Compiler::Frontend.node_macro_pieces(body).not_nil!
     pieces.map(&.kind).should contain(CrystalGPT5::Compiler::Frontend::MacroPiece::Kind::Expression)
   end

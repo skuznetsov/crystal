@@ -15,6 +15,8 @@ module CrystalGPT5
   module Compiler
     module Semantic
       alias NumberKind = Frontend::NumberKind
+      alias ExpressionNode = Frontend::ExpressionNode
+      alias Parameter = Frontend::Parameter
 
       # Type Inference Engine for Stage 3
       #

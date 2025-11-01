@@ -18,15 +18,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
 
       method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       super_node = arena[method_body[0]]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Super)
+      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
       CrystalGPT5::Compiler::Frontend.node_super_args(super_node).should be_nil  # nil = implicit args
     end
 
@@ -44,15 +44,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
 
       method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       super_node = arena[method_body[0]]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Super)
+      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
       args = CrystalGPT5::Compiler::Frontend.node_super_args(super_node).not_nil!
       args.size.should eq(0)  # Empty array = explicit no args
     end
@@ -71,21 +71,21 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
 
       method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       super_node = arena[method_body[0]]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Super)
+      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
       args = CrystalGPT5::Compiler::Frontend.node_super_args(super_node).not_nil!
       args.size.should eq(1)
 
       # Check argument is a binary expression (x + 1)
       arg_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
     end
 
     it "parses super with multiple arguments" do
@@ -102,15 +102,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
 
       method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       super_node = arena[method_body[0]]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Super)
+      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
       args = CrystalGPT5::Compiler::Frontend.node_super_args(super_node).not_nil!
       args.size.should eq(2)
     end
@@ -129,21 +129,21 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
 
       method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       if_node = arena[method_body[0]]
 
       # Should be an If node (postfix if)
-      CrystalGPT5::Compiler::Frontend.node_kind(if_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::If)
+      CrystalGPT5::Compiler::Frontend.node_kind(if_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::If)
 
       # Then branch should contain super
       if_then = CrystalGPT5::Compiler::Frontend.node_if_then(if_node).not_nil!
       super_node = arena[if_then[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Super)
+      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
     end
 
     it "parses super in multiple methods" do
@@ -164,9 +164,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(2)
 
       # First method: super without args
@@ -198,9 +198,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
 
       method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
@@ -208,7 +208,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First statement is super
       super_node = arena[method_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Super)
+      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
 
       # Find the method call (might not be immediately after due to parsing)
       # Just verify super is first and there are other statements
@@ -229,25 +229,25 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
 
       method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
       super_node = arena[method_body[0]]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Super)
+      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
       args = CrystalGPT5::Compiler::Frontend.node_super_args(super_node).not_nil!
       args.size.should eq(2)
 
       # First arg is binary expression
       arg1 = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
 
       # Second arg is ternary expression
       arg2 = arena[args[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Ternary)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Ternary)
     end
 
     it "distinguishes super(), super and super(args)" do
@@ -272,9 +272,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(3)
 
       # Method foo: super (nil = implicit args)

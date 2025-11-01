@@ -16,7 +16,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
 
       # Empty array
       elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array_node)
@@ -28,7 +28,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       of_type.should_not be_nil
 
       type_node = arena[of_type.not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(type_node).not_nil!).should eq("Int32")
     end
 
@@ -44,7 +44,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
 
       # Has 3 elements
       elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array_node).not_nil!
@@ -55,7 +55,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       of_type.should_not be_nil
 
       type_node = arena[of_type.not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(type_node).not_nil!).should eq("Int32")
     end
 
@@ -71,7 +71,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
 
       # Has 3 elements
       elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array_node).not_nil!
@@ -82,7 +82,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       of_type.should_not be_nil
 
       type_node = arena[of_type.not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
       String.new(CrystalGPT5::Compiler::Frontend.node_operator(type_node).not_nil!).should eq("|")
     end
 
@@ -98,7 +98,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
 
       # Empty array
       CrystalGPT5::Compiler::Frontend.node_array_elements(array_node).not_nil!.should be_empty
@@ -106,7 +106,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       # Type is String
       of_type = CrystalGPT5::Compiler::Frontend.node_array_of_type(array_node).not_nil!
       type_node = arena[of_type]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(type_node).not_nil!).should eq("String")
     end
 
@@ -152,7 +152,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       # Union type
       of_type = CrystalGPT5::Compiler::Frontend.node_array_of_type(array_node).not_nil!
       type_node = arena[of_type]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
       String.new(CrystalGPT5::Compiler::Frontend.node_operator(type_node).not_nil!).should eq("|")
     end
 
@@ -176,7 +176,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       # Type is Generic (Array(Int32))
       of_type = CrystalGPT5::Compiler::Frontend.node_array_of_type(array_node).not_nil!
       type_node = arena[of_type]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Generic)
     end
 
     it "parses array without 'of' clause" do
@@ -212,11 +212,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       # Right side is array with 'of'
       array_node = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
 
       CrystalGPT5::Compiler::Frontend.node_array_of_type(array_node).should_not be_nil
     end
@@ -233,14 +233,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
       # Argument is array with 'of'
       args = CrystalGPT5::Compiler::Frontend.node_args(call_node).not_nil!
       args.size.should eq(1)
 
       array_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
       CrystalGPT5::Compiler::Frontend.node_array_of_type(array_node).should_not be_nil
     end
   end

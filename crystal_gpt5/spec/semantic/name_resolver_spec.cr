@@ -4,8 +4,12 @@ require "./ast_fixtures"
 require "../../src/compiler/frontend/ast"
 require "../../src/compiler/semantic/analyzer"
 
-alias Frontend = CrystalGPT5::Compiler::Frontend
-alias Semantic = CrystalGPT5::Compiler::Semantic
+module NameResolverSpecAliases
+  alias Frontend = CrystalGPT5::Compiler::Frontend
+  alias Semantic = CrystalGPT5::Compiler::Semantic
+end
+
+include NameResolverSpecAliases
 
 private def test_span
   Frontend::Span.new(0, 0, 1, 1, 1, 1)
@@ -15,37 +19,31 @@ describe Semantic::NameResolver do
   it "resolves identifiers to macro symbols" do
     arena = Frontend::AstArena.new
 
-    macro_body = Frontend::ExpressionNode.new(
-      Frontend::ExpressionNode::Kind::MacroLiteral,
+    body_id = arena.add(Frontend::MacroLiteralNode.new(
       test_span,
-      macro_pieces: [] of Frontend::MacroPiece,
-      trim_left: false,
-      trim_right: false
-    )
-    body_id = arena.add(macro_body)
+      [] of Frontend::MacroPiece,
+      false,
+      false
+    ))
 
-    macro_def = Frontend::ExpressionNode.new(
-      Frontend::ExpressionNode::Kind::MacroDef,
+    macro_id = arena.add(Frontend::MacroDefNode.new(
       test_span,
-      left: body_id,
-      macro_name: "greet".to_slice
-    )
-    macro_id = arena.add(macro_def)
+      "greet".to_slice,
+      body_id
+    ))
 
-    identifier = Frontend::ExpressionNode.new(
-      Frontend::ExpressionNode::Kind::Identifier,
+    callee_id = arena.add(Frontend::IdentifierNode.new(
       test_span,
-      literal: "greet".to_slice
-    )
-    callee_id = arena.add(identifier)
+      "greet".to_slice
+    ))
 
-    call = Frontend::ExpressionNode.new(
-      Frontend::ExpressionNode::Kind::Call,
+    call_id = arena.add(Frontend::CallNode.new(
       test_span,
-      callee: callee_id,
-      args: [] of Frontend::ExprId
-    )
-    call_id = arena.add(call)
+      callee_id,
+      [] of Frontend::ExprId,
+      nil,
+      nil
+    ))
 
     program = Frontend::Program.new(arena, [macro_id, call_id])
     analyzer = Semantic::Analyzer.new(program)
@@ -59,20 +57,18 @@ describe Semantic::NameResolver do
   it "emits diagnostics for undefined identifiers" do
     arena = Frontend::AstArena.new
 
-    identifier = Frontend::ExpressionNode.new(
-      Frontend::ExpressionNode::Kind::Identifier,
+    callee_id = arena.add(Frontend::IdentifierNode.new(
       test_span,
-      literal: "missing".to_slice
-    )
-    callee_id = arena.add(identifier)
+      "missing".to_slice
+    ))
 
-    call = Frontend::ExpressionNode.new(
-      Frontend::ExpressionNode::Kind::Call,
+    call_id = arena.add(Frontend::CallNode.new(
       test_span,
-      callee: callee_id,
-      args: [] of Frontend::ExprId
-    )
-    call_id = arena.add(call)
+      callee_id,
+      [] of Frontend::ExprId,
+      nil,
+      nil
+    ))
 
     program = Frontend::Program.new(arena, [call_id])
     analyzer = Semantic::Analyzer.new(program)
@@ -104,8 +100,9 @@ describe Semantic::NameResolver do
 
     greet_method = AstFixtures.make_def(arena, "greet")
     call_id = AstFixtures.make_call(arena, "greet")
-    call_node = arena[call_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-    callee_id = call_node.callee.not_nil!
+    call_node = arena[call_id]
+    call_node.should be_a(Frontend::CallNode)
+    callee_id = call_node.as(Frontend::CallNode).callee
     say_hello = AstFixtures.make_def(arena, "say_hello", body: [call_id])
     class_id = AstFixtures.make_class(arena, "Greeter", body: [greet_method, say_hello])
 

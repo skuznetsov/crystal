@@ -17,12 +17,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       struct_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
+      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Struct)
 
       struct_name = String.new(CrystalGPT5::Compiler::Frontend.node_class_name(struct_node).not_nil!)
       struct_name.should eq("Point")
 
-      struct_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_struct.should eq(true)
+      struct_node.as(CrystalGPT5::Compiler::Frontend::ClassNode).is_struct.should eq(true)
 
       struct_body = CrystalGPT5::Compiler::Frontend.node_class_body(struct_node).not_nil!
       struct_body.size.should eq(0)
@@ -41,18 +41,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       arena = program.arena
       struct_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
+      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Struct)
 
       struct_body = CrystalGPT5::Compiler::Frontend.node_class_body(struct_node).not_nil!
       struct_body.size.should eq(2)
 
       # First instance variable
       ivar1 = arena[struct_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(ivar1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceVarDecl)
+      CrystalGPT5::Compiler::Frontend.node_kind(ivar1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceVarDecl)
 
       # Second instance variable
       ivar2 = arena[struct_body[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(ivar2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceVarDecl)
+      CrystalGPT5::Compiler::Frontend.node_kind(ivar2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceVarDecl)
     end
 
     it "parses struct with methods" do
@@ -72,19 +72,19 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       arena = program.arena
       struct_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
-      struct_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_struct.should eq(true)
+      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Struct)
+      struct_node.as(CrystalGPT5::Compiler::Frontend::ClassNode).is_struct.should eq(true)
 
       struct_body = CrystalGPT5::Compiler::Frontend.node_class_body(struct_node).not_nil!
       struct_body.size.should eq(2)
 
       # initialize method
       init_method = arena[struct_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(init_method).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(init_method).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
 
       # distance method
       distance_method = arena[struct_body[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(distance_method).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(distance_method).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
     end
 
     it "parses struct with getter/setter" do
@@ -101,22 +101,22 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       arena = program.arena
       struct_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
+      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Struct)
 
       struct_body = CrystalGPT5::Compiler::Frontend.node_class_body(struct_node).not_nil!
       struct_body.size.should eq(3)
 
       # Getter
       getter_node = arena[struct_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(getter_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Getter)
+      CrystalGPT5::Compiler::Frontend.node_kind(getter_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Getter)
 
       # Setter
       setter_node = arena[struct_body[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(setter_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Setter)
+      CrystalGPT5::Compiler::Frontend.node_kind(setter_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Setter)
 
       # Property
       property_node = arena[struct_body[2]]
-      CrystalGPT5::Compiler::Frontend.node_kind(property_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Property)
+      CrystalGPT5::Compiler::Frontend.node_kind(property_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Property)
     end
 
     it "parses struct with superclass" do
@@ -133,8 +133,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       arena = program.arena
       struct_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
-      struct_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_struct.should eq(true)
+      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Struct)
+      struct_node.as(CrystalGPT5::Compiler::Frontend::ClassNode).is_struct.should eq(true)
 
       struct_name = String.new(CrystalGPT5::Compiler::Frontend.node_class_name(struct_node).not_nil!)
       struct_name.should eq("Rectangle")
@@ -157,15 +157,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       arena = program.arena
       class_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
 
       class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(1)
 
       # Nested struct
       struct_node = arena[class_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
-      struct_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_struct.should eq(true)
+      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Struct)
+      struct_node.as(CrystalGPT5::Compiler::Frontend::ClassNode).is_struct.should eq(true)
     end
 
     it "parses struct with include and extend" do
@@ -183,22 +183,22 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       arena = program.arena
       struct_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
+      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Struct)
 
       struct_body = CrystalGPT5::Compiler::Frontend.node_class_body(struct_node).not_nil!
       struct_body.size.should eq(3)
 
       # Include
       include_node = arena[struct_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(include_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Include)
+      CrystalGPT5::Compiler::Frontend.node_kind(include_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Include)
 
       # Extend
       extend_node = arena[struct_body[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(extend_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Extend)
+      CrystalGPT5::Compiler::Frontend.node_kind(extend_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Extend)
 
       # Getter
       getter_node = arena[struct_body[2]]
-      CrystalGPT5::Compiler::Frontend.node_kind(getter_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Getter)
+      CrystalGPT5::Compiler::Frontend.node_kind(getter_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Getter)
     end
 
     it "distinguishes between class and struct" do
@@ -218,13 +218,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First is class
       class_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
-      class_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_struct.should be_falsey  # nil or false
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
+      class_node.as(CrystalGPT5::Compiler::Frontend::ClassNode).is_struct.should be_falsey  # nil or false
 
       # Second is struct
       struct_node = arena[program.roots[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
-      struct_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_struct.should eq(true)
+      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Struct)
+      struct_node.as(CrystalGPT5::Compiler::Frontend::ClassNode).is_struct.should eq(true)
     end
   end
 end

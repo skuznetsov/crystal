@@ -17,11 +17,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Root should be a while node
       while_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(while_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::While)
+      CrystalGPT5::Compiler::Frontend.node_kind(while_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::While)
 
       # Condition should be identifier "has_more"
       condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(while_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       CrystalGPT5::Compiler::Frontend.node_literal_string(condition).should eq("has_more")
 
       # Body should contain the call
@@ -29,7 +29,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       body.size.should eq(1)
 
       call = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
     end
 
     it "parses postfix until modifier" do
@@ -45,11 +45,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Root should be an until node
       until_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Until)
+      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Until)
 
       # Condition should be identifier "ready"
       condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(until_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       CrystalGPT5::Compiler::Frontend.node_literal_string(condition).should eq("ready")
 
       # Body should contain the call
@@ -57,7 +57,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       body.size.should eq(1)
 
       call = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
     end
 
     it "parses postfix while with assignment" do
@@ -72,14 +72,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       while_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(while_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::While)
+      CrystalGPT5::Compiler::Frontend.node_kind(while_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::While)
 
       # Body should be assignment
       body = CrystalGPT5::Compiler::Frontend.node_while_body(while_node).not_nil!
       body.size.should eq(1)
 
       assign = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
     end
 
     it "parses postfix until with assignment" do
@@ -94,14 +94,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       until_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Until)
+      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Until)
 
       # Body should be assignment
       body = CrystalGPT5::Compiler::Frontend.node_while_body(until_node).not_nil!
       body.size.should eq(1)
 
       assign = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
     end
 
     it "parses postfix while with complex condition" do
@@ -116,11 +116,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       while_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(while_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::While)
+      CrystalGPT5::Compiler::Frontend.node_kind(while_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::While)
 
       # Condition should be binary AND
       condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(while_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
       String.new(CrystalGPT5::Compiler::Frontend.node_operator(condition).not_nil!).should eq("&&")
     end
 
@@ -137,7 +137,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Should be plain call, not wrapped in while/until
       call = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
     end
   end
 end

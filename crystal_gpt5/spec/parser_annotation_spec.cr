@@ -17,7 +17,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       annotation_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(annotation_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Annotation)
+      CrystalGPT5::Compiler::Frontend.node_kind(annotation_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Annotation)
 
       # Check name
       name = CrystalGPT5::Compiler::Frontend.node_annotation_name(annotation_node)
@@ -40,13 +40,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
 
       class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(1)
 
       annotation_node = arena[class_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(annotation_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Annotation)
+      CrystalGPT5::Compiler::Frontend.node_kind(annotation_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Annotation)
       String.new(CrystalGPT5::Compiler::Frontend.node_annotation_name(annotation_node).not_nil!).should eq("Internal")
     end
 
@@ -65,13 +65,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       module_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(module_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Module)
+      CrystalGPT5::Compiler::Frontend.node_kind(module_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Module)
 
       module_body = CrystalGPT5::Compiler::Frontend.node_module_body(module_node).not_nil!
       module_body.size.should eq(1)
 
       annotation_node = arena[module_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(annotation_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Annotation)
+      CrystalGPT5::Compiler::Frontend.node_kind(annotation_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Annotation)
       String.new(CrystalGPT5::Compiler::Frontend.node_annotation_name(annotation_node).not_nil!).should eq("Helper")
     end
 
@@ -95,17 +95,17 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First annotation
       ann1 = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(ann1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Annotation)
+      CrystalGPT5::Compiler::Frontend.node_kind(ann1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Annotation)
       String.new(CrystalGPT5::Compiler::Frontend.node_annotation_name(ann1).not_nil!).should eq("First")
 
       # Second annotation
       ann2 = arena[program.roots[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(ann2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Annotation)
+      CrystalGPT5::Compiler::Frontend.node_kind(ann2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Annotation)
       String.new(CrystalGPT5::Compiler::Frontend.node_annotation_name(ann2).not_nil!).should eq("Second")
 
       # Third annotation
       ann3 = arena[program.roots[2]]
-      CrystalGPT5::Compiler::Frontend.node_kind(ann3).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Annotation)
+      CrystalGPT5::Compiler::Frontend.node_kind(ann3).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Annotation)
       String.new(CrystalGPT5::Compiler::Frontend.node_annotation_name(ann3).not_nil!).should eq("Third")
     end
 
@@ -124,7 +124,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       annotation_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(annotation_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Annotation)
+      CrystalGPT5::Compiler::Frontend.node_kind(annotation_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Annotation)
       String.new(CrystalGPT5::Compiler::Frontend.node_annotation_name(annotation_node).not_nil!).should eq("MyAnnotation")
 
       # Phase 92A: Body is skipped/ignored for now
@@ -148,11 +148,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First root is annotation
       ann = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(ann).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Annotation)
+      CrystalGPT5::Compiler::Frontend.node_kind(ann).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Annotation)
 
       # Second root is class
       cls = arena[program.roots[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(cls).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(cls).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
     end
   end
 end

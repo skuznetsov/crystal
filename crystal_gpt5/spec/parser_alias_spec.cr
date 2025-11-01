@@ -13,7 +13,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
     arena = program.arena
     alias_node = arena[program.roots.first]
 
-    CrystalGPT5::Compiler::Frontend.node_kind(alias_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alias)
+    CrystalGPT5::Compiler::Frontend.node_kind(alias_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alias)
     CrystalGPT5::Compiler::Frontend.node_alias_name(alias_node).should_not be_nil
     String.new(CrystalGPT5::Compiler::Frontend.node_alias_name(alias_node).not_nil!).should eq("MyInt")
     CrystalGPT5::Compiler::Frontend.node_alias_value(alias_node).should_not be_nil
@@ -35,7 +35,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
     # First alias
     alias1 = arena[program.roots[0]]
-    CrystalGPT5::Compiler::Frontend.node_kind(alias1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alias)
+    CrystalGPT5::Compiler::Frontend.node_kind(alias1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alias)
     String.new(CrystalGPT5::Compiler::Frontend.node_alias_name(alias1).not_nil!).should eq("MyInt")
     String.new(CrystalGPT5::Compiler::Frontend.node_alias_value(alias1).not_nil!).should eq("Int32")
 
@@ -63,13 +63,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
     program.roots.size.should eq(1)
     arena = program.arena
     class_node = arena[program.roots.first]
-    CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+    CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
 
     class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
     class_body.size.should eq(1)
 
     alias_node = arena[class_body[0]]
-    CrystalGPT5::Compiler::Frontend.node_kind(alias_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alias)
+    CrystalGPT5::Compiler::Frontend.node_kind(alias_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alias)
     String.new(CrystalGPT5::Compiler::Frontend.node_alias_name(alias_node).not_nil!).should eq("MyType")
     String.new(CrystalGPT5::Compiler::Frontend.node_alias_value(alias_node).not_nil!).should eq("String")
   end
@@ -87,13 +87,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
     program.roots.size.should eq(1)
     arena = program.arena
     module_node = arena[program.roots.first]
-    CrystalGPT5::Compiler::Frontend.node_kind(module_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Module)
+    CrystalGPT5::Compiler::Frontend.node_kind(module_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Module)
 
     module_body = CrystalGPT5::Compiler::Frontend.node_module_body(module_node).not_nil!
     module_body.size.should eq(1)
 
     alias_node = arena[module_body[0]]
-    CrystalGPT5::Compiler::Frontend.node_kind(alias_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alias)
+    CrystalGPT5::Compiler::Frontend.node_kind(alias_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alias)
     String.new(CrystalGPT5::Compiler::Frontend.node_alias_name(alias_node).not_nil!).should eq("MyType")
     String.new(CrystalGPT5::Compiler::Frontend.node_alias_value(alias_node).not_nil!).should eq("Int32")
   end
@@ -137,7 +137,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
     arena = program.arena
     alias_node = arena[program.roots.first]
 
-    CrystalGPT5::Compiler::Frontend.node_kind(alias_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alias)
+    CrystalGPT5::Compiler::Frontend.node_kind(alias_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alias)
     String.new(CrystalGPT5::Compiler::Frontend.node_alias_name(alias_node).not_nil!).should eq("MyType")
     String.new(CrystalGPT5::Compiler::Frontend.node_alias_value(alias_node).not_nil!).should eq("HTTP")
   end

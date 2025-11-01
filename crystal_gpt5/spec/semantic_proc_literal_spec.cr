@@ -15,28 +15,33 @@ require "../src/compiler/semantic/types/union_type"
 require "../src/compiler/semantic/types/type_context"
 require "../src/compiler/semantic/type_inference_engine"
 
-include CrystalGPT5::Compiler::Frontend
+module ProcLiteralSpecAliases
+  alias Frontend = CrystalGPT5::Compiler::Frontend
+  alias Semantic = CrystalGPT5::Compiler::Semantic
+end
+
+include ProcLiteralSpecAliases
 include CrystalGPT5::Compiler::Semantic
 
 # Helper: Parse source and run full semantic pipeline
 private def infer_types(source : String)
-  lexer = Lexer.new(source)
-  parser = Parser.new(lexer)
+  lexer = Frontend::Lexer.new(source)
+  parser = Frontend::Parser.new(lexer)
   program = parser.parse_program
 
   # Run semantic analysis (symbol collection + name resolution)
-  analyzer = Analyzer.new(program)
+  analyzer = Semantic::Analyzer.new(program)
   analyzer.collect_symbols
   name_result = analyzer.resolve_names
 
   # Run type inference with global symbol table for fallback lookup
-  engine = TypeInferenceEngine.new(program, name_result.identifier_symbols, analyzer.global_context.symbol_table)
+  engine = Semantic::TypeInferenceEngine.new(program, name_result.identifier_symbols, analyzer.global_context.symbol_table)
   engine.infer_types
 
   {program, analyzer, engine}
 end
 
-describe TypeInferenceEngine do
+describe Semantic::TypeInferenceEngine do
   describe "Phase 74: Proc literal type inference (PRODUCTION-READY)" do
     it "infers Proc type for parameterless proc" do
       source = "-> { 42 }"
@@ -78,7 +83,7 @@ describe TypeInferenceEngine do
 
       arena = program.arena
       proc_node = arena[program.roots[0]]
-      body = CrystalGPT5::Compiler::Frontend.node_block_body(proc_node).not_nil!
+      body = Frontend.node_block_body(proc_node).not_nil!
 
       # Body expression should have a type inferred
       body_expr_type = engine.context.get_type(body[0])

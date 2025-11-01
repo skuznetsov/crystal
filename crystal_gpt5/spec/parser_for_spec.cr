@@ -18,13 +18,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       for_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::For)
+      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::For)
       String.new(for_node.as(CrystalGPT5::Compiler::Frontend::ForNode).variable).should eq("item")
 
       # Check collection
       collection_id = for_node.as(CrystalGPT5::Compiler::Frontend::ForNode).collection
       collection = arena[collection_id]
-      CrystalGPT5::Compiler::Frontend.node_kind(collection).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(collection).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(collection).not_nil!).should eq("collection")
 
       # Check body
@@ -46,7 +46,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       for_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::For)
+      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::For)
       String.new(for_node.as(CrystalGPT5::Compiler::Frontend::ForNode).variable.not_nil!).should eq("x")
     end
 
@@ -64,12 +64,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       for_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::For)
+      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::For)
 
       # Collection is array literal
       collection_id = for_node.as(CrystalGPT5::Compiler::Frontend::ForNode).collection.not_nil!
       collection = arena[collection_id]
-      CrystalGPT5::Compiler::Frontend.node_kind(collection).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(collection).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
     end
 
     it "parses for loop with range" do
@@ -86,12 +86,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       for_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::For)
+      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::For)
 
       # Collection is range
       collection_id = for_node.as(CrystalGPT5::Compiler::Frontend::ForNode).collection.not_nil!
       collection = arena[collection_id]
-      CrystalGPT5::Compiler::Frontend.node_kind(collection).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Range)
+      CrystalGPT5::Compiler::Frontend.node_kind(collection).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Range)
     end
 
     it "parses for loop with multiple statements in body" do
@@ -110,7 +110,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       for_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::For)
+      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::For)
 
       # Body has 3 statements
       body = for_node.as(CrystalGPT5::Compiler::Frontend::ForNode).body.not_nil!
@@ -131,12 +131,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       for_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::For)
+      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::For)
 
       # Collection is method call
       collection_id = for_node.as(CrystalGPT5::Compiler::Frontend::ForNode).collection.not_nil!
       collection = arena[collection_id]
-      CrystalGPT5::Compiler::Frontend.node_kind(collection).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(collection).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
     end
 
     it "parses empty for loop" do
@@ -152,7 +152,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       for_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::For)
+      CrystalGPT5::Compiler::Frontend.node_kind(for_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::For)
 
       # Empty body
       body = for_node.as(CrystalGPT5::Compiler::Frontend::ForNode).body.not_nil!
@@ -175,7 +175,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       outer_for = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(outer_for).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::For)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_for).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::For)
       String.new(outer_for.as(CrystalGPT5::Compiler::Frontend::ForNode).variable).should eq("i")
 
       # Body contains inner for loop
@@ -183,7 +183,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       outer_body.size.should eq(1)
 
       inner_for = arena[outer_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(inner_for).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::For)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_for).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::For)
       String.new(inner_for.as(CrystalGPT5::Compiler::Frontend::ForNode).variable).should eq("j")
     end
 

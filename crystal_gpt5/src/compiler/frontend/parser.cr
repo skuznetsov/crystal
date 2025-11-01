@@ -2819,7 +2819,7 @@ module CrystalGPT5
           call_span = call_node.span.cover(block_span)
 
           # If it's an identifier, convert it to a call (e.g., "three_times do |n| ... end")
-          if Frontend.node_kind(call_node) == ExpressionNode::Kind::Identifier
+          if Frontend.node_kind(call_node) == Frontend::NodeKind::Identifier
             return @arena.add_typed(
               CallNode.new(
                 call_span,
@@ -2831,51 +2831,34 @@ module CrystalGPT5
           end
 
           # Verify it's a Call or MemberAccess
-          unless Frontend.node_kind(call_node).in?(ExpressionNode::Kind::Call, ExpressionNode::Kind::MemberAccess)
+          unless Frontend.node_kind(call_node).in?(Frontend::NodeKind::Call, Frontend::NodeKind::MemberAccess)
             @diagnostics << Diagnostic.new("Block can only be attached to method call or identifier", call_node.span)
             return PREFIX_ERROR
           end
 
-          # Create new node with block attached
-          if call_node.is_a?(ExpressionNode)
-            # Handle ExpressionNode Call vs MemberAccess
-            if call_node.kind == ExpressionNode::Kind::Call
-              # Migrate Call to CallNode
-              @arena.add_typed(
-                CallNode.new(
-                  call_span,
-                  call_node.callee.not_nil!,
-                  call_node.args.not_nil!,
-                  block_id
-                )
-              )
-            else
-              # MemberAccess: keep as ExpressionNode (not yet migrated)
-              @arena.add(ExpressionNode.new(
-                call_node.kind,
+          case call_node
+          when CallNode
+            @arena.add_typed(
+              CallNode.new(
                 call_span,
-                callee: call_node.callee,
-                member: call_node.member,
-                args: call_node.args,
-                call_block: block_id
-              ))
-            end
-          else
-            # Handle TypedNode (CallNode already migrated)
-            if call_node.is_a?(CallNode)
-              @arena.add_typed(
-                CallNode.new(
-                  call_span,
-                  call_node.callee,
-                  call_node.args,
-                  block_id
-                )
+                call_node.callee,
+                call_node.args,
+                block_id,
+                call_node.named_args
               )
-            else
-              # MemberAccessNode or other: not yet supported
-              @diagnostics << Diagnostic.new("Block attachment to typed MemberAccess not yet supported", call_node.span)
-              return PREFIX_ERROR
-            end
+            )
+          when MemberAccessNode
+            @arena.add_typed(
+              CallNode.new(
+                call_span,
+                call_expr,
+                [] of ExprId,
+                block_id
+              )
+            )
+          else
+            @diagnostics << Diagnostic.new("Block attachment to unsupported node", call_node.span)
+            PREFIX_ERROR
           end
         end
 
@@ -3105,25 +3088,17 @@ module CrystalGPT5
 
           # Phase 32: Choose kind based on is_struct flag
           # Phase 97: Choose kind based on is_union flag
-          kind = if is_union
-                   ExpressionNode::Kind::Union
-                 elsif is_struct
-                   ExpressionNode::Kind::Struct
-                 else
-                   ExpressionNode::Kind::Class
-                 end
-
-          @arena.add(
-            ExpressionNode.new(
-              kind,
+          # Note: kind preserved in ClassNode via is_struct/is_union flags
+          @arena.add_typed(
+            ClassNode.new(
               class_span,
-              class_name: name_token.slice,
-              class_body: body_ids,
-              class_super_name: super_name_token.try(&.slice),
-              class_is_struct: is_struct,
-              class_is_union: is_union,
-              class_is_abstract: is_abstract,
-              class_type_params: type_params,  # Phase 61: Generic type parameters
+              name_token.slice,
+              super_name_token.try(&.slice),
+              body_ids,
+              is_abstract,
+              is_struct,
+              is_union,
+              type_params
             )
           )
         end
@@ -4789,139 +4764,16 @@ module CrystalGPT5
         end
 
         # Helper: Parse expression text from interpolation
-        # Creates a sub-parser and copies its arena into main arena
+        # Creates sub-parser with SHARED arena (no copying needed!)
         private def parse_interpolation_expression(expr_text : String) : ExprId
-          # Create sub-parser for the expression
+          # Create sub-parser that adds nodes to OUR arena
           sub_lexer = Lexer.new(expr_text)
-          sub_parser = Parser.new(sub_lexer)
-          sub_expr_id = sub_parser.parse_expression(0)
+          sub_parser = Parser.new(sub_lexer, @arena)  # Share arena!
 
-          # Copy sub-parser's arena nodes into our arena
-          copy_arena_nodes(sub_parser.@arena, sub_expr_id)
-        end
+          # Parse expression - nodes go directly into our arena
+          expr_id = sub_parser.parse_expression(0)
 
-        # Copy nodes from sub-arena to main arena, adjusting IDs
-        private def copy_arena_nodes(sub_arena : AstArena, root_id : ExprId) : ExprId
-          id_map = {} of Int32 => ExprId
-
-          # Copy all nodes, building ID mapping
-          sub_arena.nodes.each_with_index do |node, idx|
-            new_id = copy_node(node, id_map)
-            id_map[idx] = new_id
-          end
-
-          # Return the mapped root ID
-          id_map[root_id.index]
-        end
-
-        # Copy a single node, remapping child IDs
-        private def copy_node(node : ExpressionNode, id_map : Hash(Int32, ExprId)) : ExprId
-          # Remap optional ExprId fields
-          remap = ->(id : ExprId?) {
-            id ? id_map[id.index]? || id : nil
-          }
-
-          # Remap array fields
-          remap_array = ->(ids : Array(ExprId)?) {
-            ids ? ids.map { |id| id_map[id.index]? || id } : nil
-          }
-
-          # Remap elsif branches
-          remap_elsifs = ->(elsifs : Array(ElsifBranch)?) {
-            elsifs ? elsifs.map { |branch|
-              ElsifBranch.new(
-                remap.call(branch.condition).not_nil!,
-                remap_array.call(branch.body).not_nil!,
-                branch.span
-              )
-            } : nil
-          }
-
-          # Remap string pieces
-          remap_pieces = ->(pieces : Array(StringPiece)?) {
-            pieces ? pieces.map { |piece|
-              if piece.kind == StringPiece::Kind::Expression
-                StringPiece.expression(remap.call(piece.expr).not_nil!)
-              else
-                piece
-              end
-            } : nil
-          }
-
-          # Remap when branches
-          remap_when_branches = ->(branches : Array(WhenBranch)?) {
-            branches ? branches.map { |branch|
-              WhenBranch.new(
-                remap_array.call(branch.conditions).not_nil!,
-                remap_array.call(branch.body).not_nil!,
-                branch.span
-              )
-            } : nil
-          }
-
-          # Remap hash entries (key/value need remapping, spans stay same)
-          remap_hash_entries = ->(entries : Array(HashEntry)?) {
-            entries ? entries.map { |entry|
-              HashEntry.new(
-                remap.call(entry.key).not_nil!,
-                remap.call(entry.value).not_nil!,
-                entry.span,
-                entry.arrow_span
-              )
-            } : nil
-          }
-
-          @arena.add(ExpressionNode.new(
-            node.kind,
-            node.span,
-            literal: Frontend.node_literal(node),
-            number_kind: node.number_kind,
-            operator: node.operator,
-            left: remap.call(node.left),
-            right: remap.call(node.right),
-            callee: remap.call(node.callee),
-            args: remap_array.call(node.args),
-            member: node.member,
-            macro_expr: remap.call(node.macro_expr),
-            macro_name: node.macro_name,
-            macro_pieces: node.macro_pieces,
-            trim_left: node.trim_left,
-            trim_right: node.trim_right,
-            def_name: node.def_name,
-            def_params: node.def_params,
-            def_return_type: node.def_return_type,
-            def_body: remap_array.call(node.def_body),
-            class_name: node.class_name,
-            class_body: remap_array.call(node.class_body),
-            class_super_name: node.class_super_name,
-            if_condition: remap.call(node.if_condition),
-            if_then: remap_array.call(node.if_then),
-            if_elsifs: remap_elsifs.call(node.if_elsifs),
-            if_else: remap_array.call(node.if_else),
-            while_condition: remap.call(node.while_condition),
-            while_body: remap_array.call(node.while_body),
-            assign_target: remap.call(node.assign_target),
-            assign_value: remap.call(node.assign_value),
-            ivar_decl_type: node.ivar_decl_type,
-            return_value: remap.call(node.return_value),
-            string_pieces: remap_pieces.call(node.string_pieces),
-            array_elements: remap_array.call(node.array_elements),
-            array_of_type: node.array_of_type,
-            block_params: node.block_params,
-            block_body: remap_array.call(node.block_body),
-            call_block: remap.call(node.call_block),
-            yield_args: remap_array.call(node.yield_args),
-            case_value: remap.call(node.case_value),
-            when_branches: remap_when_branches.call(node.when_branches),
-            case_else: remap_array.call(node.case_else),
-            break_value: remap.call(node.break_value),
-            range_begin: remap.call(node.range_begin),
-            range_end: remap.call(node.range_end),
-            range_exclusive: node.range_exclusive,
-            hash_entries: remap_hash_entries.call(node.hash_entries),
-            hash_of_key_type: node.hash_of_key_type,
-            hash_of_value_type: node.hash_of_value_type
-          ))
+          expr_id  # Already in our arena
         end
 
         # Phase 72: Parse method call with arguments (positional and/or named)
@@ -5029,12 +4881,12 @@ module CrystalGPT5
           call_span = Span.cover_all(spans)
 
           # Create Call node with both positional and named args
-          @arena.add(ExpressionNode.new(
-            ExpressionNode::Kind::Call,
+          @arena.add_typed(CallNode.new(
             call_span,
-            callee: callee,
-            args: args.empty? ? nil : args,
-            named_args: named_args.empty? ? nil : named_args
+            callee,
+            args,
+            nil,  # block
+            named_args.empty? ? nil : named_args
           ))
         end
 

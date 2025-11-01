@@ -18,11 +18,11 @@ describe "Ternary Operator Edge Cases" do
     program.roots.size.should eq(2)
 
     assign_node = program.arena[program.roots[1]]
-    CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+    CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
     ternary_id = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
     ternary_node = program.arena[ternary_id]
-    CrystalGPT5::Compiler::Frontend.node_kind(ternary_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Ternary)
+    CrystalGPT5::Compiler::Frontend.node_kind(ternary_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Ternary)
   end
 
   it "handles : in ternary without conflicting with symbols" do
@@ -40,17 +40,17 @@ describe "Ternary Operator Edge Cases" do
     ternary_id = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
     ternary_node = program.arena[ternary_id]
 
-    CrystalGPT5::Compiler::Frontend.node_kind(ternary_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Ternary)
+    CrystalGPT5::Compiler::Frontend.node_kind(ternary_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Ternary)
 
     # True branch should be symbol
     true_id = CrystalGPT5::Compiler::Frontend.node_ternary_true_branch(ternary_node).not_nil!
     true_node = program.arena[true_id]
-    CrystalGPT5::Compiler::Frontend.node_kind(true_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Symbol)
+    CrystalGPT5::Compiler::Frontend.node_kind(true_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Symbol)
 
     # False branch should be symbol
     false_id = CrystalGPT5::Compiler::Frontend.node_ternary_false_branch(ternary_node).not_nil!
     false_node = program.arena[false_id]
-    CrystalGPT5::Compiler::Frontend.node_kind(false_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Symbol)
+    CrystalGPT5::Compiler::Frontend.node_kind(false_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Symbol)
   end
 
   it "handles : in ternary without conflicting with type annotations" do
@@ -70,6 +70,6 @@ describe "Ternary Operator Edge Cases" do
     ternary_id = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
     ternary_node = program.arena[ternary_id]
 
-    CrystalGPT5::Compiler::Frontend.node_kind(ternary_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Ternary)
+    CrystalGPT5::Compiler::Frontend.node_kind(ternary_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Ternary)
   end
 end

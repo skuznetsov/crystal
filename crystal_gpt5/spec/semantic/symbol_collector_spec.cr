@@ -28,7 +28,9 @@ describe Semantic::SymbolCollector do
 
     symbol = context.symbol_table.lookup("greet").should_not be_nil
     symbol.should be_a(Semantic::MacroSymbol)
-    symbol.as(Semantic::MacroSymbol).body.should eq(arena[macro_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode).left.not_nil!)
+
+    macro_def = arena[macro_id].as(Frontend::MacroDefNode)
+    symbol.as(Semantic::MacroSymbol).body.should eq(macro_def.body)
   end
 
   it "redefines macros when names repeat" do

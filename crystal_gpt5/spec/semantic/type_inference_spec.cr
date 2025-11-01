@@ -15,28 +15,34 @@ require "../../src/compiler/semantic/types/union_type"
 require "../../src/compiler/semantic/types/type_context"
 require "../../src/compiler/semantic/type_inference_engine"
 
-include CrystalGPT5::Compiler::Frontend
+module TypeInferenceSpecAliases
+  alias Frontend = CrystalGPT5::Compiler::Frontend
+  alias Semantic = CrystalGPT5::Compiler::Semantic
+  alias StringPiece = CrystalGPT5::Compiler::Frontend::StringPiece
+end
+
+include TypeInferenceSpecAliases
 include CrystalGPT5::Compiler::Semantic
 
 # Helper: Parse source and run full semantic pipeline
 private def infer_types(source : String)
-  lexer = Lexer.new(source)
-  parser = Parser.new(lexer)
+  lexer = Frontend::Lexer.new(source)
+  parser = Frontend::Parser.new(lexer)
   program = parser.parse_program
 
   # Run semantic analysis (symbol collection + name resolution)
-  analyzer = Analyzer.new(program)
+  analyzer = Semantic::Analyzer.new(program)
   analyzer.collect_symbols
   name_result = analyzer.resolve_names
 
   # Run type inference with global symbol table for fallback lookup
-  engine = TypeInferenceEngine.new(program, name_result.identifier_symbols, analyzer.global_context.symbol_table)
+  engine = Semantic::TypeInferenceEngine.new(program, name_result.identifier_symbols, analyzer.global_context.symbol_table)
   engine.infer_types
 
   {program, analyzer, engine}
 end
 
-describe TypeInferenceEngine do
+describe Semantic::TypeInferenceEngine do
   describe "Phase 1: Literals (Current Parser Support)" do
     it "infers Int32 for number literals" do
       source = "42"
@@ -1415,8 +1421,8 @@ describe TypeInferenceEngine do
       program, analyzer, engine = infer_types(source)
 
       # Get return statement from method body
-      def_node = program.arena[program.roots[0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      body = def_node.def_body
+      def_node = program.arena[program.roots[0]]
+      body = CrystalGPT5::Compiler::Frontend.node_def_body(def_node)
       body.should_not be_nil
       return_expr_id = body.not_nil![0]
 
@@ -1436,8 +1442,8 @@ describe TypeInferenceEngine do
       program, analyzer, engine = infer_types(source)
 
       # Get return statement from method body
-      def_node = program.arena[program.roots[0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      body = def_node.def_body
+      def_node = program.arena[program.roots[0]]
+      body = CrystalGPT5::Compiler::Frontend.node_def_body(def_node)
       body.should_not be_nil
       return_expr_id = body.not_nil![0]
 
@@ -1458,8 +1464,8 @@ describe TypeInferenceEngine do
       program, analyzer, engine = infer_types(source)
 
       # Get if statement from method body
-      def_node = program.arena[program.roots[0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      body = def_node.def_body
+      def_node = program.arena[program.roots[0]]
+      body = CrystalGPT5::Compiler::Frontend.node_def_body(def_node)
       body.should_not be_nil
       if_expr_id = body.not_nil![0]
       if_node = program.arena[if_expr_id].as(CrystalGPT5::Compiler::Frontend::IfNode)
@@ -1468,8 +1474,8 @@ describe TypeInferenceEngine do
       then_branch = if_node.then_body
       then_branch.should_not be_nil
       return_expr_id = then_branch.not_nil![0]
-      return_node = program.arena[return_expr_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      return_node.kind.should eq(ExpressionNode::Kind::Return)
+      return_node = program.arena[return_expr_id]
+      CrystalGPT5::Compiler::Frontend.node_kind(return_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Return)
 
       # Return statement should have String type
       return_type = engine.context.get_type(return_expr_id)
@@ -1492,8 +1498,8 @@ describe TypeInferenceEngine do
       program, analyzer, engine = infer_types(source)
 
       # Get while statement from method body
-      def_node = program.arena[program.roots[0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      body = def_node.def_body
+      def_node = program.arena[program.roots[0]]
+      body = CrystalGPT5::Compiler::Frontend.node_def_body(def_node)
       body.should_not be_nil
       while_expr_id = body.not_nil![1]  # Second statement (after x = 0)
       while_node = program.arena[while_expr_id].as(CrystalGPT5::Compiler::Frontend::WhileNode)
@@ -1510,8 +1516,8 @@ describe TypeInferenceEngine do
       then_branch = if_node.then_body
       then_branch.should_not be_nil
       return_expr_id = then_branch.not_nil![0]
-      return_node = program.arena[return_expr_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      return_node.kind.should eq(ExpressionNode::Kind::Return)
+      return_node = program.arena[return_expr_id]
+      CrystalGPT5::Compiler::Frontend.node_kind(return_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Return)
 
       # Return statement should have Int32 type
       return_type = engine.context.get_type(return_expr_id)
@@ -1531,8 +1537,8 @@ describe TypeInferenceEngine do
       program, analyzer, engine = infer_types(source)
 
       # Get method body
-      def_node = program.arena[program.roots[0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      body = def_node.def_body
+      def_node = program.arena[program.roots[0]]
+      body = CrystalGPT5::Compiler::Frontend.node_def_body(def_node)
       body.should_not be_nil
 
       # First if with return
@@ -1565,8 +1571,8 @@ describe TypeInferenceEngine do
 
       # Get self expression from method body
       class_node = program.arena[program.roots[0]].as(CrystalGPT5::Compiler::Frontend::ClassNode)
-      def_node = program.arena[class_node.body.not_nil![0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      self_expr_id = def_node.def_body.not_nil![0]
+      def_node = program.arena[class_node.body.not_nil![0]]
+      self_expr_id = CrystalGPT5::Compiler::Frontend.node_def_body(def_node).not_nil![0]
 
       # Check self has InstanceType(Dog)
       self_type = engine.context.get_type(self_expr_id)
@@ -1594,15 +1600,15 @@ describe TypeInferenceEngine do
       class_body = class_node.body.not_nil!
 
       # Check step1 returns self
-      def1_node = program.arena[class_body[0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      self1_expr_id = def1_node.def_body.not_nil![0]
+      def1_node = program.arena[class_body[0]]
+      self1_expr_id = CrystalGPT5::Compiler::Frontend.node_def_body(def1_node).not_nil![0]
       self1_type = engine.context.get_type(self1_expr_id)
       self1_type.should be_a(InstanceType)
       self1_type.as(InstanceType).class_symbol.name.should eq("Builder")
 
       # Check step2 returns self
-      def2_node = program.arena[class_body[1]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      self2_expr_id = def2_node.def_body.not_nil![0]
+      def2_node = program.arena[class_body[1]]
+      self2_expr_id = CrystalGPT5::Compiler::Frontend.node_def_body(def2_node).not_nil![0]
       self2_type = engine.context.get_type(self2_expr_id)
       self2_type.should be_a(InstanceType)
       self2_type.as(InstanceType).class_symbol.name.should eq("Builder")
@@ -1627,16 +1633,16 @@ describe TypeInferenceEngine do
 
       # Get Dog's self
       dog_class = program.arena[program.roots[0]].as(CrystalGPT5::Compiler::Frontend::ClassNode)
-      dog_def = program.arena[dog_class.body.not_nil![0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      dog_self_id = dog_def.def_body.not_nil![0]
+      dog_def = program.arena[dog_class.body.not_nil![0]]
+      dog_self_id = CrystalGPT5::Compiler::Frontend.node_def_body(dog_def).not_nil![0]
       dog_self_type = engine.context.get_type(dog_self_id)
       dog_self_type.should be_a(InstanceType)
       dog_self_type.as(InstanceType).class_symbol.name.should eq("Dog")
 
       # Get Cat's self
       cat_class = program.arena[program.roots[1]].as(CrystalGPT5::Compiler::Frontend::ClassNode)
-      cat_def = program.arena[cat_class.body.not_nil![0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      cat_self_id = cat_def.def_body.not_nil![0]
+      cat_def = program.arena[cat_class.body.not_nil![0]]
+      cat_self_id = CrystalGPT5::Compiler::Frontend.node_def_body(cat_def).not_nil![0]
       cat_self_type = engine.context.get_type(cat_self_id)
       cat_self_type.should be_a(InstanceType)
       cat_self_type.as(InstanceType).class_symbol.name.should eq("Cat")
@@ -1656,13 +1662,13 @@ describe TypeInferenceEngine do
 
       # Get method body
       class_node = program.arena[program.roots[0]].as(CrystalGPT5::Compiler::Frontend::ClassNode)
-      def_node = program.arena[class_node.body.not_nil![0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      def_body = def_node.def_body.not_nil!
+      def_node = program.arena[class_node.body.not_nil![0]]
+      def_body = CrystalGPT5::Compiler::Frontend.node_def_body(def_node).not_nil!
 
       # First statement is if (with postfix)
       if_node = program.arena[def_body[0]].as(CrystalGPT5::Compiler::Frontend::IfNode)
-      return_node = program.arena[if_node.then_body.not_nil![0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      self1_id = return_node.return_value.not_nil!
+      return_node = program.arena[if_node.then_body.not_nil![0]]
+      self1_id = CrystalGPT5::Compiler::Frontend.node_return_value(return_node).not_nil!
       self1_type = engine.context.get_type(self1_id)
       self1_type.should be_a(InstanceType)
       self1_type.as(InstanceType).class_symbol.name.should eq("Node")
@@ -1804,8 +1810,8 @@ describe TypeInferenceEngine do
       class_body = class_node.body.not_nil!
 
       # Find introduce method (should be third method)
-      introduce_def = program.arena[class_body[2]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      introduce_body = introduce_def.def_body.not_nil!
+      introduce_def = program.arena[class_body[2]]
+      introduce_body = CrystalGPT5::Compiler::Frontend.node_def_body(introduce_def).not_nil!
       interpolated_str_id = introduce_body[0]
 
       # Check interpolated string type
@@ -2017,8 +2023,8 @@ describe TypeInferenceEngine do
       program.roots.size.should eq(1)
 
       # Check that yields have Nil type
-      def_node = program.arena[program.roots[0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      body = def_node.def_body.not_nil!
+      def_node = program.arena[program.roots[0]]
+      body = CrystalGPT5::Compiler::Frontend.node_def_body(def_node).not_nil!
       yield1 = engine.context.get_type(body[0])
       yield1.as(PrimitiveType).name.should eq("Nil")
     end
@@ -2418,18 +2424,18 @@ describe TypeInferenceEngine do
       range_id = assign_node.value.not_nil!
 
       # Should be Range node, not Binary
-      range_node = program.arena[range_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      range_node.kind.should eq(ExpressionNode::Kind::Range)
+      range_node = program.arena[range_id]
+      CrystalGPT5::Compiler::Frontend.node_kind(range_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Range)
 
       # Begin should be Binary (1 + 2)
-      begin_id = range_node.range_begin.not_nil!
-      begin_node = program.arena[begin_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      begin_node.kind.should eq(ExpressionNode::Kind::Binary)
+      begin_id = CrystalGPT5::Compiler::Frontend.node_range_begin(range_node).not_nil!
+      begin_node = program.arena[begin_id]
+      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
 
       # End should be Binary (5 + 3)
-      end_id = range_node.range_end.not_nil!
-      end_node = program.arena[end_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      end_node.kind.should eq(ExpressionNode::Kind::Binary)
+      end_id = CrystalGPT5::Compiler::Frontend.node_range_end(range_node).not_nil!
+      end_node = program.arena[end_id]
+      CrystalGPT5::Compiler::Frontend.node_kind(end_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
     end
 
     it "infers Range with mixed types" do
@@ -2618,8 +2624,8 @@ describe TypeInferenceEngine do
 
       # Should be Assign node with Index target
 
-      target_node = program.arena[assign_node.target.not_nil!].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      target_node.kind.should eq(ExpressionNode::Kind::Index)
+      target_node = program.arena[assign_node.target.not_nil!]
+      CrystalGPT5::Compiler::Frontend.node_kind(target_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Index)
 
       # Assignment returns the value type (Int32)
       value_id = assign_node.value.not_nil!
@@ -2842,11 +2848,11 @@ describe TypeInferenceEngine do
 
       # The method definition should be parsed correctly
       # (colon used for type annotation, not symbol)
-      def_node = program.arena[program.roots[0]].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      def_node.kind.should eq(ExpressionNode::Kind::Def)
+      def_node = program.arena[program.roots[0]]
+      CrystalGPT5::Compiler::Frontend.node_kind(def_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
 
       # Method body contains symbol
-      body_expr_id = def_node.def_body.not_nil![0]
+      body_expr_id = CrystalGPT5::Compiler::Frontend.node_def_body(def_node).not_nil![0]
       body_type = engine.context.get_type(body_expr_id)
       body_type.should be_a(PrimitiveType)
       body_type.as(PrimitiveType).name.should eq("Symbol")
@@ -3064,12 +3070,12 @@ describe TypeInferenceEngine do
       expr_node = program.arena[expr_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
       # Should parse as 10 + (7 % 3), not (10 + 7) % 3
-      expr_node.operator_string.should eq("+")
+      Frontend.node_operator_string(expr_node).should eq("+")
 
       # Right side should be modulo
       right_id = expr_node.right
       right_node = program.arena[right_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
-      right_node.operator_string.should eq("%")
+      Frontend.node_operator_string(right_node).should eq("%")
     end
   end
 
@@ -3134,12 +3140,12 @@ describe TypeInferenceEngine do
       expr_node = program.arena[expr_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
       # Should parse as 2 * (3 ** 2), not (2 * 3) ** 2
-      expr_node.operator_string.should eq("*")
+      Frontend.node_operator_string(expr_node).should eq("*")
 
       # Right side should be exponentiation
       right_id = expr_node.right
       right_node = program.arena[right_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
-      right_node.operator_string.should eq("**")
+      Frontend.node_operator_string(right_node).should eq("**")
     end
 
     it "handles exponentiation in complex expression" do
@@ -3154,12 +3160,12 @@ describe TypeInferenceEngine do
       add_node = program.arena[add_expr_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
       # Should parse as (2 ** 3) + 1
-      add_node.operator_string.should eq("+")
+      Frontend.node_operator_string(add_node).should eq("+")
 
       # Left side should be exponentiation
       left_id = add_node.left
       left_node = program.arena[left_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
-      left_node.operator_string.should eq("**")
+      Frontend.node_operator_string(left_node).should eq("**")
     end
 
     it "handles multiple exponentiations" do
@@ -3195,7 +3201,7 @@ describe TypeInferenceEngine do
       # Value should be a binary expression (x + 5)
       value_id = assign_node.value.not_nil!
       value_node = program.arena[value_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
-      value_node.operator_string.should eq("+")
+      Frontend.node_operator_string(value_node).should eq("+")
 
       # Type should be Int32
       value_type = engine.context.get_type(value_id)
@@ -3215,7 +3221,7 @@ describe TypeInferenceEngine do
       value_id = assign_node.value.not_nil!
       value_node = program.arena[value_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
-      value_node.operator_string.should eq("-")
+      Frontend.node_operator_string(value_node).should eq("-")
 
       value_type = engine.context.get_type(value_id)
       value_type.as(PrimitiveType).name.should eq("Int32")
@@ -3233,7 +3239,7 @@ describe TypeInferenceEngine do
       value_id = assign_node.value.not_nil!
       value_node = program.arena[value_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
-      value_node.operator_string.should eq("*")
+      Frontend.node_operator_string(value_node).should eq("*")
 
       value_type = engine.context.get_type(value_id)
       value_type.as(PrimitiveType).name.should eq("Int32")
@@ -3251,7 +3257,7 @@ describe TypeInferenceEngine do
       value_id = assign_node.value.not_nil!
       value_node = program.arena[value_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
-      value_node.operator_string.should eq("/")
+      Frontend.node_operator_string(value_node).should eq("/")
 
       value_type = engine.context.get_type(value_id)
       value_type.as(PrimitiveType).name.should eq("Int32")
@@ -3269,7 +3275,7 @@ describe TypeInferenceEngine do
       value_id = assign_node.value.not_nil!
       value_node = program.arena[value_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
-      value_node.operator_string.should eq("%")
+      Frontend.node_operator_string(value_node).should eq("%")
 
       value_type = engine.context.get_type(value_id)
       value_type.as(PrimitiveType).name.should eq("Int32")
@@ -3287,7 +3293,7 @@ describe TypeInferenceEngine do
       value_id = assign_node.value.not_nil!
       value_node = program.arena[value_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
-      value_node.operator_string.should eq("**")
+      Frontend.node_operator_string(value_node).should eq("**")
 
       value_type = engine.context.get_type(value_id)
       value_type.as(PrimitiveType).name.should eq("Int32")
@@ -3318,9 +3324,9 @@ describe TypeInferenceEngine do
 
       assign_node = program.arena[program.roots[1]].as(CrystalGPT5::Compiler::Frontend::AssignNode)
       target = assign_node.target.not_nil!
-      target_node = program.arena[target].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      target_node = program.arena[target]
 
-      target_node.kind.should eq(ExpressionNode::Kind::InstanceVar)
+      CrystalGPT5::Compiler::Frontend.node_kind(target_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceVar)
     end
   end
 
@@ -3337,7 +3343,7 @@ describe TypeInferenceEngine do
       and_expr_id = assign_node.value.not_nil!
       and_node = program.arena[and_expr_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
-      and_node.operator_string.should eq("&")
+      Frontend.node_operator_string(and_node).should eq("&")
 
       and_type = engine.context.get_type(and_expr_id)
       and_type.should be_a(PrimitiveType)
@@ -3355,7 +3361,7 @@ describe TypeInferenceEngine do
       or_expr_id = assign_node.value.not_nil!
       or_node = program.arena[or_expr_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
-      or_node.operator_string.should eq("|")
+      Frontend.node_operator_string(or_node).should eq("|")
       or_type = engine.context.get_type(or_expr_id)
       or_type.as(PrimitiveType).name.should eq("Int32")
     end
@@ -3371,7 +3377,7 @@ describe TypeInferenceEngine do
       xor_expr_id = assign_node.value.not_nil!
       xor_node = program.arena[xor_expr_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
-      xor_node.operator_string.should eq("^")
+      Frontend.node_operator_string(xor_node).should eq("^")
       xor_type = engine.context.get_type(xor_expr_id)
       xor_type.as(PrimitiveType).name.should eq("Int32")
     end
@@ -3385,10 +3391,10 @@ describe TypeInferenceEngine do
 
       assign_node = program.arena[program.roots[0]].as(CrystalGPT5::Compiler::Frontend::AssignNode)
       not_expr_id = assign_node.value.not_nil!
-      not_node = program.arena[not_expr_id].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      not_node = program.arena[not_expr_id]
 
-      not_node.kind.should eq(ExpressionNode::Kind::Unary)
-      not_node.operator_string.should eq("~")
+      CrystalGPT5::Compiler::Frontend.node_kind(not_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Unary)
+      Frontend.node_operator_string(not_node).should eq("~")
 
       not_type = engine.context.get_type(not_expr_id)
       not_type.should be_a(PrimitiveType)
@@ -3479,7 +3485,7 @@ describe TypeInferenceEngine do
       shift_expr_id = assign_node.value.not_nil!
       shift_node = program.arena[shift_expr_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
-      shift_node.operator_string.should eq(">>")
+      Frontend.node_operator_string(shift_node).should eq(">>")
 
       shift_type = engine.context.get_type(shift_expr_id)
       shift_type.should be_a(PrimitiveType)
@@ -3547,7 +3553,7 @@ describe TypeInferenceEngine do
       expr_id = assign_node.value.not_nil!
       expr_node = program.arena[expr_id].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
-      expr_node.operator_string.should eq(">>")
+      Frontend.node_operator_string(expr_node).should eq(">>")
 
       expr_type = engine.context.get_type(expr_id)
       expr_type.as(PrimitiveType).name.should eq("Int32")

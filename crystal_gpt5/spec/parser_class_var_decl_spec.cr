@@ -18,13 +18,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
 
       body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       body.size.should eq(1)
 
       decl = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ClassVarDecl)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ClassVarDecl)
 
       String.new(decl.as(CrystalGPT5::Compiler::Frontend::ClassVarDeclNode).name).should eq("@@count")
       String.new(decl.as(CrystalGPT5::Compiler::Frontend::ClassVarDeclNode).type).should eq("Int32")
@@ -47,7 +47,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       decl = arena[body[0]]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ClassVarDecl)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ClassVarDecl)
       String.new(decl.as(CrystalGPT5::Compiler::Frontend::ClassVarDeclNode).name).should eq("@@name")
       String.new(decl.as(CrystalGPT5::Compiler::Frontend::ClassVarDeclNode).type).should eq("String")
     end
@@ -72,7 +72,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       body.size.should eq(3)
 
       decl1 = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(decl1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ClassVarDecl)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ClassVarDecl)
       String.new(decl1.as(CrystalGPT5::Compiler::Frontend::ClassVarDeclNode).name).should eq("@@count")
       String.new(decl1.as(CrystalGPT5::Compiler::Frontend::ClassVarDeclNode).type).should eq("Int32")
 
@@ -100,7 +100,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       decl = arena[body[0]]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ClassVarDecl)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ClassVarDecl)
       String.new(decl.as(CrystalGPT5::Compiler::Frontend::ClassVarDeclNode).name).should eq("@@my_class_var")
     end
 
@@ -119,7 +119,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       decl = arena[body[0]]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ClassVarDecl)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ClassVarDecl)
       String.new(decl.as(CrystalGPT5::Compiler::Frontend::ClassVarDeclNode).name).should eq("@@manager")
       String.new(decl.as(CrystalGPT5::Compiler::Frontend::ClassVarDeclNode).type).should eq("Manager")
     end
@@ -144,10 +144,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       body.size.should eq(2)
 
       decl = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ClassVarDecl)
+      CrystalGPT5::Compiler::Frontend.node_kind(decl).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ClassVarDecl)
 
       method = arena[body[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(method).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
     end
 
     it "parses class variable alongside instance variables" do
@@ -167,11 +167,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       body.size.should eq(2)
 
       ivar = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(ivar).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceVarDecl)
+      CrystalGPT5::Compiler::Frontend.node_kind(ivar).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceVarDecl)
       String.new(ivar.as(CrystalGPT5::Compiler::Frontend::InstanceVarDeclNode).name).should eq("@instance")
 
       cvar = arena[body[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(cvar).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ClassVarDecl)
+      CrystalGPT5::Compiler::Frontend.node_kind(cvar).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ClassVarDecl)
       String.new(cvar.as(CrystalGPT5::Compiler::Frontend::ClassVarDeclNode).name).should eq("@@class_var")
     end
   end

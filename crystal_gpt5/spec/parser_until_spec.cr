@@ -18,11 +18,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       until_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Until)
+      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Until)
 
       # Check condition
       condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(until_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Bool)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Bool)
       CrystalGPT5::Compiler::Frontend.node_literal_string(condition).should eq("false")
 
       # Check body
@@ -30,7 +30,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       body.size.should eq(1)
 
       assign = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
     end
 
     it "parses until with empty body" do
@@ -46,11 +46,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       until_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Until)
+      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Until)
 
       # Check condition is Bool
       condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(until_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Bool)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Bool)
       CrystalGPT5::Compiler::Frontend.node_literal_string(condition).should eq("true")
 
       body = CrystalGPT5::Compiler::Frontend.node_while_body(until_node).not_nil!
@@ -73,7 +73,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       until_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Until)
+      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Until)
 
       body = CrystalGPT5::Compiler::Frontend.node_while_body(until_node).not_nil!
       body.size.should eq(3)
@@ -93,11 +93,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       until_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Until)
+      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Until)
 
       # Check condition is binary AND
       condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(until_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
       String.new(CrystalGPT5::Compiler::Frontend.node_operator(condition).not_nil!).should eq("&&")
     end
 
@@ -115,14 +115,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       until_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Until)
+      CrystalGPT5::Compiler::Frontend.node_kind(until_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Until)
 
       body = CrystalGPT5::Compiler::Frontend.node_while_body(until_node).not_nil!
       body.size.should eq(1)
 
       # Body contains break statement
       break_node = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(break_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Break)
+      CrystalGPT5::Compiler::Frontend.node_kind(break_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Break)
     end
   end
 end

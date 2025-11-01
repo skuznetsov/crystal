@@ -18,13 +18,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(1)
 
       method_node = arena[class_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
       String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method_node).not_nil!).should eq("secret_method")
       CrystalGPT5::Compiler::Frontend.node_def_visibility(method_node).should eq(CrystalGPT5::Compiler::Frontend::Visibility::Private)
     end
@@ -43,9 +43,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
 
       String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method_node).not_nil!).should eq("helper_method")
@@ -66,9 +66,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
 
       String.new(CrystalGPT5::Compiler::Frontend.node_def_name(method_node).not_nil!).should eq("public_method")
@@ -94,9 +94,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(3)
 
       # Public method
@@ -126,9 +126,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       method_node = arena[class_body[0]]
 
       CrystalGPT5::Compiler::Frontend.node_def_visibility(method_node).should eq(CrystalGPT5::Compiler::Frontend::Visibility::Private)
@@ -150,9 +150,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      module_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      module_node = arena[program.roots.first]
 
-      module_body = module_node.module_body.not_nil!
+      module_body = CrystalGPT5::Compiler::Frontend.node_module_body(module_node).not_nil!
       method_node = arena[module_body[0]]
 
       CrystalGPT5::Compiler::Frontend.node_def_visibility(method_node).should eq(CrystalGPT5::Compiler::Frontend::Visibility::Private)
@@ -173,9 +173,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      outer_class = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      outer_class = arena[program.roots.first]
 
-      outer_body = outer_class.class_body.not_nil!
+      outer_body = CrystalGPT5::Compiler::Frontend.node_class_body(outer_class).not_nil!
       inner_class = arena[outer_body[0]]
 
       inner_body = CrystalGPT5::Compiler::Frontend.node_class_body(inner_class).not_nil!
@@ -202,9 +202,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
 
       # Private method still has body
       private_method = arena[class_body[0]]
@@ -232,7 +232,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       method_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
       CrystalGPT5::Compiler::Frontend.node_def_visibility(method_node).should eq(CrystalGPT5::Compiler::Frontend::Visibility::Private)
     end
   end

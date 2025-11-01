@@ -18,14 +18,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       begin_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
+      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Begin)
 
       # Check body
       body = CrystalGPT5::Compiler::Frontend.node_begin_body(begin_node).not_nil!
       body.size.should eq(1)
 
       assign = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
     end
 
     it "parses begin with empty body" do
@@ -41,7 +41,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       begin_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
+      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Begin)
 
       body = CrystalGPT5::Compiler::Frontend.node_begin_body(begin_node).not_nil!
       body.size.should eq(0)
@@ -63,7 +63,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       begin_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
+      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Begin)
 
       body = CrystalGPT5::Compiler::Frontend.node_begin_body(begin_node).not_nil!
       body.size.should eq(3)
@@ -86,18 +86,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       outer_begin = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(outer_begin).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_begin).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Begin)
 
       outer_body = CrystalGPT5::Compiler::Frontend.node_begin_body(outer_begin).not_nil!
       outer_body.size.should eq(2)
 
       # First statement is assignment
       assign = arena[outer_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       # Second statement is nested begin block
       inner_begin = arena[outer_body[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(inner_begin).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_begin).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Begin)
 
       inner_body = CrystalGPT5::Compiler::Frontend.node_begin_body(inner_begin).not_nil!
       inner_body.size.should eq(1)
@@ -121,19 +121,19 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       begin_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Begin)
+      CrystalGPT5::Compiler::Frontend.node_kind(begin_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Begin)
 
       body = CrystalGPT5::Compiler::Frontend.node_begin_body(begin_node).not_nil!
       body.size.should eq(3)
 
       # First is assignment
-      CrystalGPT5::Compiler::Frontend.node_kind(arena[body[0]]).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(arena[body[0]]).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       # Second is if
-      CrystalGPT5::Compiler::Frontend.node_kind(arena[body[1]]).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::If)
+      CrystalGPT5::Compiler::Frontend.node_kind(arena[body[1]]).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::If)
 
       # Third is assignment
-      CrystalGPT5::Compiler::Frontend.node_kind(arena[body[2]]).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(arena[body[2]]).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
     end
   end
 end

@@ -13,13 +13,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       constant_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(constant_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Constant)
+      CrystalGPT5::Compiler::Frontend.node_kind(constant_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Constant)
       CrystalGPT5::Compiler::Frontend.node_constant_name(constant_node).should_not be_nil
       String.new(CrystalGPT5::Compiler::Frontend.node_constant_name(constant_node).not_nil!).should eq("MAX_SIZE")
 
       value_id = CrystalGPT5::Compiler::Frontend.node_constant_value(constant_node).not_nil!
       value_node = arena[value_id]
-      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Number)
     end
 
     it "parses string constant" do
@@ -31,12 +31,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       constant_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(constant_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Constant)
+      CrystalGPT5::Compiler::Frontend.node_kind(constant_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Constant)
       String.new(CrystalGPT5::Compiler::Frontend.node_constant_name(constant_node).not_nil!).should eq("VERSION")
 
       value_id = CrystalGPT5::Compiler::Frontend.node_constant_value(constant_node).not_nil!
       value_node = arena[value_id]
-      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::String)
     end
 
     it "parses expression constant" do
@@ -48,12 +48,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       constant_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(constant_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Constant)
+      CrystalGPT5::Compiler::Frontend.node_kind(constant_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Constant)
       String.new(CrystalGPT5::Compiler::Frontend.node_constant_name(constant_node).not_nil!).should eq("DOUBLE_SIZE")
 
       value_id = CrystalGPT5::Compiler::Frontend.node_constant_value(constant_node).not_nil!
       value_node = arena[value_id]
-      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
     end
 
     it "parses multiple constants" do
@@ -71,7 +71,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First constant
       const1 = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(const1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Constant)
+      CrystalGPT5::Compiler::Frontend.node_kind(const1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Constant)
       String.new(CrystalGPT5::Compiler::Frontend.node_constant_name(const1).not_nil!).should eq("MAX_SIZE")
 
       # Second constant
@@ -95,13 +95,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      class_node = arena[program.roots.first]
 
-      class_body = class_node.class_body.not_nil!
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(1)
 
       constant_node = arena[class_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(constant_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Constant)
+      CrystalGPT5::Compiler::Frontend.node_kind(constant_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Constant)
       String.new(CrystalGPT5::Compiler::Frontend.node_constant_name(constant_node).not_nil!).should eq("MAX_CONNECTIONS")
     end
 
@@ -118,14 +118,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      module_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
+      module_node = arena[program.roots.first]
 
-      module_body = module_node.module_body.not_nil!
+      module_body = CrystalGPT5::Compiler::Frontend.node_module_body(module_node).not_nil!
       module_body.size.should eq(2)
 
       # First constant
       const1 = arena[module_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(const1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Constant)
+      CrystalGPT5::Compiler::Frontend.node_kind(const1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Constant)
       String.new(CrystalGPT5::Compiler::Frontend.node_constant_name(const1).not_nil!).should eq("DEFAULT_PORT")
 
       # Second constant
@@ -142,12 +142,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
       constant_node = arena[program.roots.first]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(constant_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Constant)
+      CrystalGPT5::Compiler::Frontend.node_kind(constant_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Constant)
       String.new(CrystalGPT5::Compiler::Frontend.node_constant_name(constant_node).not_nil!).should eq("DEBUG")
 
       value_id = CrystalGPT5::Compiler::Frontend.node_constant_value(constant_node).not_nil!
       value_node = arena[value_id]
-      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Bool)
+      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Bool)
     end
 
     it "distinguishes constants from regular assignments" do
@@ -164,12 +164,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First should be constant
       const_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(const_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Constant)
+      CrystalGPT5::Compiler::Frontend.node_kind(const_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Constant)
       String.new(CrystalGPT5::Compiler::Frontend.node_constant_name(const_node).not_nil!).should eq("MAX_SIZE")
 
       # Second should be regular assignment
       assign_node = arena[program.roots[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
     end
   end
 end

@@ -18,13 +18,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       class_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
 
       class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(1)
 
       getter_node = arena[class_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(getter_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Getter)
+      CrystalGPT5::Compiler::Frontend.node_kind(getter_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Getter)
 
       specs = CrystalGPT5::Compiler::Frontend.node_accessor_specs(getter_node).not_nil!
       specs.size.should eq(1)
@@ -44,8 +44,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program = parser.parse_program
 
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      class_body = class_node.class_body.not_nil!
+      class_node = arena[program.roots.first]
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
 
       getter_node = arena[class_body[0]]
       specs = CrystalGPT5::Compiler::Frontend.node_accessor_specs(getter_node).not_nil!
@@ -66,8 +66,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program = parser.parse_program
 
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      class_body = class_node.class_body.not_nil!
+      class_node = arena[program.roots.first]
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
 
       getter_node = arena[class_body[0]]
       specs = CrystalGPT5::Compiler::Frontend.node_accessor_specs(getter_node).not_nil!
@@ -77,7 +77,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       default_value = specs[0].default_value.not_nil!
       default_node = arena[default_value]
-      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::String)
     end
 
     it "parses getter with type and default value" do
@@ -91,8 +91,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program = parser.parse_program
 
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      class_body = class_node.class_body.not_nil!
+      class_node = arena[program.roots.first]
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
 
       getter_node = arena[class_body[0]]
       specs = CrystalGPT5::Compiler::Frontend.node_accessor_specs(getter_node).not_nil!
@@ -102,7 +102,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       default_value = specs[0].default_value.not_nil!
       default_node = arena[default_value]
-      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::String)
+      CrystalGPT5::Compiler::Frontend.node_kind(default_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::String)
     end
 
     it "parses getter with multiple names" do
@@ -116,8 +116,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program = parser.parse_program
 
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      class_body = class_node.class_body.not_nil!
+      class_node = arena[program.roots.first]
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
 
       getter_node = arena[class_body[0]]
       specs = CrystalGPT5::Compiler::Frontend.node_accessor_specs(getter_node).not_nil!
@@ -138,8 +138,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program = parser.parse_program
 
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      class_body = class_node.class_body.not_nil!
+      class_node = arena[program.roots.first]
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
 
       getter_node = arena[class_body[0]]
       specs = CrystalGPT5::Compiler::Frontend.node_accessor_specs(getter_node).not_nil!
@@ -172,11 +172,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program = parser.parse_program
 
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      class_body = class_node.class_body.not_nil!
+      class_node = arena[program.roots.first]
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
 
       setter_node = arena[class_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(setter_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Setter)
+      CrystalGPT5::Compiler::Frontend.node_kind(setter_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Setter)
 
       specs = CrystalGPT5::Compiler::Frontend.node_accessor_specs(setter_node).not_nil!
       specs[0].name.should eq("name")
@@ -194,11 +194,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program = parser.parse_program
 
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      class_body = class_node.class_body.not_nil!
+      class_node = arena[program.roots.first]
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
 
       property_node = arena[class_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(property_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Property)
+      CrystalGPT5::Compiler::Frontend.node_kind(property_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Property)
 
       specs = CrystalGPT5::Compiler::Frontend.node_accessor_specs(property_node).not_nil!
       specs[0].name.should eq("name")
@@ -219,21 +219,21 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       program = parser.parse_program
 
       arena = program.arena
-      class_node = arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ExpressionNode)
-      class_body = class_node.class_body.not_nil!
+      class_node = arena[program.roots.first]
+      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(3)
 
       # getter name : String
       getter_node = arena[class_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(getter_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Getter)
+      CrystalGPT5::Compiler::Frontend.node_kind(getter_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Getter)
 
       # setter age : Int32
       setter_node = arena[class_body[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(setter_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Setter)
+      CrystalGPT5::Compiler::Frontend.node_kind(setter_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Setter)
 
       # property email
       property_node = arena[class_body[2]]
-      CrystalGPT5::Compiler::Frontend.node_kind(property_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Property)
+      CrystalGPT5::Compiler::Frontend.node_kind(property_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Property)
     end
   end
 end

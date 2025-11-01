@@ -14,7 +14,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       global_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(global_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Global)
+      CrystalGPT5::Compiler::Frontend.node_kind(global_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Global)
 
       literal = CrystalGPT5::Compiler::Frontend.node_literal(global_node).not_nil!
       String.new(literal).should eq("$global_var")
@@ -30,7 +30,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       global_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(global_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Global)
+      CrystalGPT5::Compiler::Frontend.node_kind(global_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Global)
 
       literal = CrystalGPT5::Compiler::Frontend.node_literal(global_node).not_nil!
       String.new(literal).should eq("$my_global_var")
@@ -46,7 +46,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       global_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(global_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Global)
+      CrystalGPT5::Compiler::Frontend.node_kind(global_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Global)
 
       literal = CrystalGPT5::Compiler::Frontend.node_literal(global_node).not_nil!
       String.new(literal).should eq("$flag?")
@@ -62,7 +62,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       global_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(global_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Global)
+      CrystalGPT5::Compiler::Frontend.node_kind(global_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Global)
 
       literal = CrystalGPT5::Compiler::Frontend.node_literal(global_node).not_nil!
       String.new(literal).should eq("$important!")
@@ -78,10 +78,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       target = arena[CrystalGPT5::Compiler::Frontend.node_assign_target(assign_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(target).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Global)
+      CrystalGPT5::Compiler::Frontend.node_kind(target).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Global)
     end
 
     it "parses multiple global variables" do
@@ -97,10 +97,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign1 = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       assign2 = arena[program.roots[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
     end
 
     it "parses global variable in expression" do
@@ -113,10 +113,10 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
 
       left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Global)
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Global)
     end
 
     it "parses global variable as method argument" do
@@ -129,13 +129,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
-      args = call.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).args.not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       arg = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Global)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Global)
     end
 
     it "parses global variable inside method body" do
@@ -152,13 +152,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       method = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(method).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      CrystalGPT5::Compiler::Frontend.node_kind(method).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Def)
 
       body = CrystalGPT5::Compiler::Frontend.node_def_body(method).not_nil!
       body.size.should eq(1)
 
       assign = arena[body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
     end
 
     it "parses global variable in array literal" do
@@ -171,13 +171,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
 
       elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array).not_nil!
       elements.size.should eq(3)
 
       elem1 = arena[elements[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(elem1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Global)
+      CrystalGPT5::Compiler::Frontend.node_kind(elem1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Global)
     end
 
     it "distinguishes global variable from instance variable" do
@@ -190,13 +190,13 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       binary = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(binary).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
 
       left = arena[CrystalGPT5::Compiler::Frontend.node_left(binary).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Global)
+      CrystalGPT5::Compiler::Frontend.node_kind(left).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Global)
 
       right = arena[CrystalGPT5::Compiler::Frontend.node_right(binary).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceVar)
+      CrystalGPT5::Compiler::Frontend.node_kind(right).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceVar)
     end
 
     it "parses global variable with numbers in name" do
@@ -209,7 +209,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       global_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(global_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Global)
+      CrystalGPT5::Compiler::Frontend.node_kind(global_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Global)
 
       literal = CrystalGPT5::Compiler::Frontend.node_literal(global_node).not_nil!
       String.new(literal).should eq("$var123")

@@ -268,96 +268,98 @@ module CrystalGPT5
         end
       end
 
+      enum NodeKind
+        Identifier
+        InstanceVar  # @var
+        InstanceVarDecl  # @var : Type (Phase 5C)
+        ClassVar  # Phase 76: @@var (class variable)
+        ClassVarDecl  # Phase 77: @@var : Type (class variable declaration)
+        Global  # Phase 75: $var (global variable)
+        GlobalVarDecl  # Phase 77: $var : Type (global variable declaration)
+        Number
+        String
+        Char  # Phase 56: character literal 'a'
+        Regex  # Phase 57: regex literal /pattern/flags
+        Bool
+        Nil
+        Unary
+        Out  # Phase 98: out keyword (C bindings output parameter)
+        Binary
+        Call
+        Index
+        MemberAccess
+        SafeNavigation  # Phase 47: safe navigation (&.)
+        Grouping
+        If
+        Unless  # Phase 24: unless condition
+        While
+        Until   # Phase 25: until condition
+        For     # Phase 99: for loop (iteration)
+        Loop    # Phase 83: infinite loop
+        Spawn   # Phase 84: spawn fiber (concurrency)
+        Assign
+        MultipleAssign  # Phase 73: multiple assignment (a, b = 1, 2)
+        MacroExpression
+        MacroLiteral
+        MacroDef
+        Def
+        Class
+        Return  # Phase 6: return statements
+        Self    # Phase 7: self keyword
+        Super   # Phase 39: super keyword (call parent method)
+        PreviousDef  # Phase 96: previous_def keyword (call previous definition before reopening/redefining)
+        Typeof  # Phase 40: typeof (type introspection)
+        Sizeof  # Phase 41: sizeof (size in bytes)
+        Pointerof  # Phase 42: pointerof (pointer to variable/expression)
+        Uninitialized  # Phase 85: uninitialized variable
+        Offsetof  # Phase 86: offset of field in type
+        Alignof  # Phase 88: ABI alignment in bytes
+        InstanceAlignof  # Phase 88: instance alignment
+        Asm  # Phase 95: inline assembly
+        StringInterpolation  # Phase 8: string interpolation
+        ArrayLiteral  # Phase 9: array literals [1, 2, 3]
+        Block  # Phase 10: block {|x| ... } or do |x| ... end
+        ProcLiteral  # Phase 74: proc literal ->(x) { ... }
+        Yield  # Phase 10: yield keyword
+        Case  # Phase 11: case/when pattern matching
+        Select  # Phase 90A: select/when concurrent channel operations
+        Break  # Phase 12: break [value]
+        Next   # Phase 12: next
+        Range  # Phase 13: range literals (1..10, 1...10)
+        HashLiteral  # Phase 14: hash literals {"k"=>v}
+        TupleLiteral  # Phase 15: tuple literals {1, 2, 3}
+        NamedTupleLiteral  # Phase 70: named tuple literals {name: "value"}
+        Symbol  # Phase 16: symbol literals :hello
+        Ternary  # Phase 23: ternary operator (cond ? true : false)
+        Begin  # Phase 28: begin/end blocks
+        Raise  # Phase 29: raise exception
+        Require  # Phase 65: require (import file/library)
+        TypeDeclaration  # Phase 66: type declaration (x : Type)
+        With  # Phase 67: with (context block)
+        Getter  # Phase 30: getter macro
+        Setter  # Phase 30: setter macro
+        Property  # Phase 30: property macro (getter + setter)
+        Module  # Phase 31: module definition
+        Include  # Phase 31: include module into class/module
+        Extend  # Phase 31: extend module into class/module
+        Struct  # Phase 32: struct definition (value type)
+        Union  # Phase 97: union definition (C bindings)
+        Enum  # Phase 33: enum definition (enumerated type)
+        Alias  # Phase 34: type alias
+        Annotation  # Phase 92: annotation definition
+        Constant  # Phase 35: constant declaration
+        Lib  # Phase 38: lib (C bindings)
+        Fun  # Phase 64: fun (C function declaration)
+        As  # Phase 44: type cast (value.as(Type))
+        AsQuestion  # Phase 45: safe cast (value.as?(Type))
+        IsA  # Phase 93: type check (value.is_a?(Type))
+        RespondsTo  # Phase 94: method check (value.responds_to?(:method))
+        Generic  # Phase 60: generic type instantiation (Box(Int32))
+        Path  # Phase 63: path expression (Foo::Bar)
+      end
+
       struct ExpressionNode
-        enum Kind
-          Identifier
-          InstanceVar  # @var
-          InstanceVarDecl  # @var : Type (Phase 5C)
-          ClassVar  # Phase 76: @@var (class variable)
-          ClassVarDecl  # Phase 77: @@var : Type (class variable declaration)
-          Global  # Phase 75: $var (global variable)
-          GlobalVarDecl  # Phase 77: $var : Type (global variable declaration)
-          Number
-          String
-          Char  # Phase 56: character literal 'a'
-          Regex  # Phase 57: regex literal /pattern/flags
-          Bool
-          Nil
-          Unary
-          Out  # Phase 98: out keyword (C bindings output parameter)
-          Binary
-          Call
-          Index
-          MemberAccess
-          SafeNavigation  # Phase 47: safe navigation (&.)
-          Grouping
-          If
-          Unless  # Phase 24: unless condition
-          While
-          Until   # Phase 25: until condition
-          For     # Phase 99: for loop (iteration)
-          Loop    # Phase 83: infinite loop
-          Spawn   # Phase 84: spawn fiber (concurrency)
-          Assign
-          MultipleAssign  # Phase 73: multiple assignment (a, b = 1, 2)
-          MacroExpression
-          MacroLiteral
-          MacroDef
-          Def
-          Class
-          Return  # Phase 6: return statements
-          Self    # Phase 7: self keyword
-          Super   # Phase 39: super keyword (call parent method)
-          PreviousDef  # Phase 96: previous_def keyword (call previous definition before reopening/redefining)
-          Typeof  # Phase 40: typeof (type introspection)
-          Sizeof  # Phase 41: sizeof (size in bytes)
-          Pointerof  # Phase 42: pointerof (pointer to variable/expression)
-          Uninitialized  # Phase 85: uninitialized variable
-          Offsetof  # Phase 86: offset of field in type
-          Alignof  # Phase 88: ABI alignment in bytes
-          InstanceAlignof  # Phase 88: instance alignment
-          Asm  # Phase 95: inline assembly
-          StringInterpolation  # Phase 8: string interpolation
-          ArrayLiteral  # Phase 9: array literals [1, 2, 3]
-          Block  # Phase 10: block {|x| ... } or do |x| ... end
-          ProcLiteral  # Phase 74: proc literal ->(x) { ... }
-          Yield  # Phase 10: yield keyword
-          Case  # Phase 11: case/when pattern matching
-          Select  # Phase 90A: select/when concurrent channel operations
-          Break  # Phase 12: break [value]
-          Next   # Phase 12: next
-          Range  # Phase 13: range literals (1..10, 1...10)
-          HashLiteral  # Phase 14: hash literals {"k"=>v}
-          TupleLiteral  # Phase 15: tuple literals {1, 2, 3}
-          NamedTupleLiteral  # Phase 70: named tuple literals {name: "value"}
-          Symbol  # Phase 16: symbol literals :hello
-          Ternary  # Phase 23: ternary operator (cond ? true : false)
-          Begin  # Phase 28: begin/end blocks
-          Raise  # Phase 29: raise exception
-          Require  # Phase 65: require (import file/library)
-          TypeDeclaration  # Phase 66: type declaration (x : Type)
-          With  # Phase 67: with (context block)
-          Getter  # Phase 30: getter macro
-          Setter  # Phase 30: setter macro
-          Property  # Phase 30: property macro (getter + setter)
-          Module  # Phase 31: module definition
-          Include  # Phase 31: include module into class/module
-          Extend  # Phase 31: extend module into class/module
-          Struct  # Phase 32: struct definition (value type)
-          Union  # Phase 97: union definition (C bindings)
-          Enum  # Phase 33: enum definition (enumerated type)
-          Alias  # Phase 34: type alias
-          Annotation  # Phase 92: annotation definition
-          Constant  # Phase 35: constant declaration
-          Lib  # Phase 38: lib (C bindings)
-          Fun  # Phase 64: fun (C function declaration)
-          As  # Phase 44: type cast (value.as(Type))
-          AsQuestion  # Phase 45: safe cast (value.as?(Type))
-          IsA  # Phase 93: type check (value.is_a?(Type))
-          RespondsTo  # Phase 94: method check (value.responds_to?(:method))
-          Generic  # Phase 60: generic type instantiation (Box(Int32))
-          Path  # Phase 63: path expression (Foo::Bar)
-        end
+        alias Kind = NodeKind
 
         getter kind : Kind
         getter span : Span
@@ -750,8 +752,9 @@ module CrystalGPT5
         getter callee : ExprId
         getter args : Array(ExprId)
         getter block : ExprId?
+        getter named_args : Array(NamedArgument)?
 
-        def initialize(@span : Span, @callee : ExprId, @args : Array(ExprId), @block : ExprId? = nil)
+        def initialize(@span : Span, @callee : ExprId, @args : Array(ExprId), @block : ExprId? = nil, @named_args : Array(NamedArgument)? = nil)
         end
       end
 
@@ -1170,9 +1173,30 @@ module CrystalGPT5
         getter super_name : Slice(UInt8)?
         getter body : Array(ExprId)?
         getter is_abstract : Bool?
+        getter is_struct : Bool?
+        getter is_union : Bool?
+        getter type_params : Array(Slice(UInt8))?
 
         def initialize(@span : Span, @name : Slice(UInt8), @super_name : Slice(UInt8)?,
-                       @body : Array(ExprId)?, @is_abstract : Bool? = nil)
+                       @body : Array(ExprId)?, @is_abstract : Bool? = nil, @is_struct : Bool? = nil,
+                       @is_union : Bool? = nil, @type_params : Array(Slice(UInt8))? = nil)
+        end
+
+        # Compatibility accessors (legacy ExpressionNode API)
+        def class_body
+          @body
+        end
+
+        def class_is_struct
+          @is_struct
+        end
+
+        def class_is_union
+          @is_union
+        end
+
+        def class_is_abstract
+          @is_abstract
         end
       end
 
@@ -1460,6 +1484,11 @@ module CrystalGPT5
 
         def initialize(@span : Span, @name : Slice(UInt8), @type : Slice(UInt8))
         end
+
+        # Compatibility alias
+        def ivar_decl_type
+          @type
+        end
       end
 
       struct WithNode
@@ -1524,6 +1553,15 @@ module CrystalGPT5
 
         def initialize(@span : Span, @pieces : Array(MacroPiece), @trim_left : Bool, @trim_right : Bool)
         end
+
+        # Legacy API compatibility
+        def macro_pieces
+          @pieces
+        end
+
+        def left
+          raise NoMethodError.new("MacroLiteralNode does not have left")
+        end
       end
 
       struct MacroDefNode
@@ -1532,6 +1570,11 @@ module CrystalGPT5
         getter body : ExprId
 
         def initialize(@span : Span, @name : Slice(UInt8), @body : ExprId)
+        end
+
+        # Legacy alias (ExpressionNode#left)
+        def left
+          @body
         end
       end
 
@@ -1763,7 +1806,13 @@ module CrystalGPT5
       end
 
       def self.node_kind(node : ClassNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Class
+        if node.is_union
+          ExpressionNode::Kind::Union
+        elsif node.is_struct
+          ExpressionNode::Kind::Struct
+        else
+          ExpressionNode::Kind::Class
+        end
       end
 
       def self.node_kind(node : ModuleNode) : ExpressionNode::Kind
@@ -2073,6 +2122,10 @@ module CrystalGPT5
         node.object
       end
 
+      def self.node_left(node : MacroDefNode) : ExprId
+        node.body
+      end
+
       def self.node_left(node : TypedNode) : ExprId?
         nil
       end
@@ -2180,23 +2233,31 @@ module CrystalGPT5
       end
 
       # string_pieces: Get string interpolation pieces
-      def self.node_string_pieces(node : ExpressionNode) : Array(StringPiece)?
-        node.string_pieces
-      end
+def self.node_string_pieces(node : ExpressionNode) : Array(StringPiece)?
+  node.string_pieces
+end
 
-      def self.node_string_pieces(node : TypedNode) : Array(StringPiece)?
-        nil
-      end
+def self.node_string_pieces(node : StringInterpolationNode) : Array(StringPiece)
+  node.pieces
+end
+
+def self.node_string_pieces(node : TypedNode) : Array(StringPiece)?
+  nil
+end
 
 
       # asm_args: Get asm args
-      def self.node_asm_args(node : ExpressionNode)
-        node.asm_args
-      end
+def self.node_asm_args(node : ExpressionNode)
+  node.asm_args
+end
 
-      def self.node_asm_args(node : TypedNode)
-        nil
-      end
+def self.node_asm_args(node : AsmNode)
+  node.args
+end
+
+def self.node_asm_args(node : TypedNode)
+  nil
+end
 
       # assign_targets: Get assign targets
       def self.node_assign_targets(node : ExpressionNode)
@@ -2245,13 +2306,17 @@ module CrystalGPT5
       end
 
       # call_block: Get call block
-      def self.node_call_block(node : ExpressionNode)
-        node.call_block
-      end
+def self.node_call_block(node : ExpressionNode)
+  node.call_block
+end
 
-      def self.node_call_block(node : TypedNode)
-        nil
-      end
+def self.node_call_block(node : CallNode) : ExprId?
+  node.block
+end
+
+def self.node_call_block(node : TypedNode)
+  nil
+end
 
       # case_else: Get case else
       def self.node_case_else(node : ExpressionNode)
@@ -2484,6 +2549,10 @@ def self.node_alignof_args(node : AlignofNode)
   node.args
 end
 
+def self.node_alignof_args(node : InstanceAlignofNode)
+  node.args
+end
+
 def self.node_alignof_args(node : TypedNode)
   nil
 end
@@ -2562,6 +2631,10 @@ def self.node_block_body(node : BlockNode)
   node.body
 end
 
+def self.node_block_body(node : ProcLiteralNode)
+  node.body
+end
+
 def self.node_block_body(node : TypedNode)
   nil
 end
@@ -2614,6 +2687,30 @@ def self.node_class_is_abstract(node : ClassNode)
 end
 
 def self.node_class_is_abstract(node : TypedNode)
+  nil
+end
+
+def self.node_class_is_union(node : ExpressionNode)
+  node.class_is_union
+end
+
+def self.node_class_is_union(node : ClassNode)
+  node.is_union
+end
+
+def self.node_class_is_union(node : TypedNode)
+  nil
+end
+
+def self.node_class_is_struct(node : ExpressionNode)
+  node.class_is_struct
+end
+
+def self.node_class_is_struct(node : ClassNode)
+  node.is_struct
+end
+
+def self.node_class_is_struct(node : TypedNode)
   nil
 end
 
@@ -3314,6 +3411,10 @@ def self.node_while_body(node : WhileNode)
   node.body
 end
 
+def self.node_while_body(node : UntilNode)
+  node.body
+end
+
 def self.node_while_body(node : TypedNode)
   nil
 end
@@ -3403,6 +3504,10 @@ end
 # macro_pieces (only exists in ExpressionNode, MacroLiteral uses ExpressionNode not typed node)
 def self.node_macro_pieces(node : ExpressionNode) : Array(MacroPiece)?
   node.macro_pieces
+end
+
+def self.node_macro_pieces(node : MacroLiteralNode) : Array(MacroPiece)?
+  node.pieces
 end
 
 def self.node_macro_pieces(node : TypedNode) : Array(MacroPiece)?
@@ -3500,12 +3605,20 @@ def self.node_trim_left(node : ExpressionNode) : Bool?
   node.trim_left
 end
 
+def self.node_trim_left(node : MacroLiteralNode) : Bool
+  node.trim_left
+end
+
 def self.node_trim_left(node : TypedNode) : Bool?
   nil
 end
 
 # trim_right
 def self.node_trim_right(node : ExpressionNode) : Bool?
+  node.trim_right
+end
+
+def self.node_trim_right(node : MacroLiteralNode) : Bool
   node.trim_right
 end
 
@@ -3518,75 +3631,38 @@ end
       # ============================================================================
 
       class AstArena
-        getter nodes : Array(ExpressionNode)
-        getter typed_nodes : Hash(Int32, TypedNode)?  # Phase B: index → TypedNode
+        getter nodes : Array(TypedNode)
 
         def initialize
-          @nodes = [] of ExpressionNode
-          @typed_nodes = nil  # Lazy initialization
+          @nodes = [] of TypedNode
         end
 
-        # Add legacy ExpressionNode (default behavior)
-        def add(node : ExpressionNode) : ExprId
+        def add(node : TypedNode) : ExprId
           id = ExprId.new(@nodes.size)
           @nodes << node
           id
         end
 
-        # Phase B: Add typed node (prototype)
-        # Allocates index in @nodes array but stores in hash
+        # Compatibility shim while callers migrate off add_typed
         def add_typed(node : TypedNode) : ExprId
-          # Lazy init hash
-          typed = @typed_nodes ||= {} of Int32 => TypedNode
-
-          # Allocate index
-          index = @nodes.size
-
-          # Store in hash (NOT in @nodes array)
-          typed[index] = node
-
-          # Increment @nodes size to reserve this index
-          # Add nil marker (we'll detect this in [])
-          @nodes << ExpressionNode.new(
-            ExpressionNode::Kind::Identifier,  # Marker kind
-            Span.new(0, 0, 0, 0, 0, 0)  # Empty span
-          )
-
-          ExprId.new(index)
+          add(node)
         end
 
-        # Access node - returns ExpressionNode | TypedNode union
-        # Automatically detects and returns typed nodes when available
-        def [](id : ExprId) : ExpressionNode | TypedNode
-          if typed?(id)
-            get_typed(id)
-          else
-            @nodes[id.index]
-          end
+        def [](id : ExprId) : TypedNode
+          @nodes[id.index]
         end
 
-        # Phase B: Check if this ID points to typed node
+        # Compatibility helpers while callers migrate off ExpressionNode APIs
         def typed?(id : ExprId) : Bool
-          typed = @typed_nodes
-          return false unless typed
-          typed.has_key?(id.index)
+          true
         end
 
-        # Phase B: Get typed node (caller must check typed? first)
         def get_typed(id : ExprId) : TypedNode
-          typed = @typed_nodes
-          raise "No typed_nodes" unless typed
-          typed[id.index]
+          @nodes[id.index]
         end
 
         def size
           @nodes.size
-        end
-
-        # Phase B: Stats for memory measurement
-        def typed_count : Int32
-          typed = @typed_nodes
-          typed ? typed.size : 0
         end
       end
 

@@ -17,7 +17,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       enum_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(enum_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Enum)
+      CrystalGPT5::Compiler::Frontend.node_kind(enum_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Enum)
 
       enum_name = String.new(CrystalGPT5::Compiler::Frontend.node_enum_name(enum_node).not_nil!)
       enum_name.should eq("Status")
@@ -42,7 +42,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       arena = program.arena
       enum_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(enum_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Enum)
+      CrystalGPT5::Compiler::Frontend.node_kind(enum_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Enum)
 
       members = CrystalGPT5::Compiler::Frontend.node_enum_members(enum_node).not_nil!
       members.size.should eq(3)
@@ -71,7 +71,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       arena = program.arena
       enum_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(enum_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Enum)
+      CrystalGPT5::Compiler::Frontend.node_kind(enum_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Enum)
 
       members = CrystalGPT5::Compiler::Frontend.node_enum_members(enum_node).not_nil!
       members.size.should eq(3)
@@ -80,7 +80,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       members[0].name.should eq("Low")
       members[0].value.should_not be_nil
       value_node = arena[members[0].value.not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Number)
+      CrystalGPT5::Compiler::Frontend.node_kind(value_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Number)
 
       # Medium = 5
       members[1].name.should eq("Medium")
@@ -104,7 +104,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       arena = program.arena
       enum_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(enum_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Enum)
+      CrystalGPT5::Compiler::Frontend.node_kind(enum_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Enum)
 
       enum_name = String.new(CrystalGPT5::Compiler::Frontend.node_enum_name(enum_node).not_nil!)
       enum_name.should eq("Status")
@@ -193,14 +193,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       arena = program.arena
       class_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
+      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Class)
 
       class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
       class_body.size.should eq(1)
 
       # Nested enum
       enum_node = arena[class_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(enum_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Enum)
+      CrystalGPT5::Compiler::Frontend.node_kind(enum_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Enum)
 
       enum_name = String.new(CrystalGPT5::Compiler::Frontend.node_enum_name(enum_node).not_nil!)
       enum_name.should eq("Status")
@@ -227,12 +227,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # First enum
       enum1 = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(enum1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Enum)
+      CrystalGPT5::Compiler::Frontend.node_kind(enum1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Enum)
       String.new(CrystalGPT5::Compiler::Frontend.node_enum_name(enum1).not_nil!).should eq("Color")
 
       # Second enum
       enum2 = arena[program.roots[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(enum2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Enum)
+      CrystalGPT5::Compiler::Frontend.node_kind(enum2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Enum)
       String.new(CrystalGPT5::Compiler::Frontend.node_enum_name(enum2).not_nil!).should eq("Status")
     end
 

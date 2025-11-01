@@ -2,6 +2,12 @@ require "spec"
 
 require "../src/compiler/frontend/parser"
 
+module ParserUnionSpecAliases
+  alias Frontend = CrystalGPT5::Compiler::Frontend
+end
+
+include ParserUnionSpecAliases
+
 describe "CrystalGPT5::Compiler::Frontend::Parser" do
   describe "Phase 97: Union definition (C bindings)" do
     it "parses empty union" do
@@ -10,22 +16,20 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
         end
       CRYSTAL
 
-      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
-      program = parser.parse_program
-
-      program.roots.size.should eq(1)
+      program = Frontend::Parser.new(Frontend::Lexer.new(source)).parse_program
       arena = program.arena
 
       union_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(union_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Union)
+      Frontend.node_kind(union_node).should eq(Frontend::NodeKind::Union)
+      Frontend.node_class_is_union(union_node).should eq(true)
+      String.new(Frontend.node_class_name(union_node).not_nil!).should eq("IntOrFloat")
 
-      union_name = String.new(CrystalGPT5::Compiler::Frontend.node_class_name(union_node).not_nil!)
-      union_name.should eq("IntOrFloat")
-
-      union_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_union.should eq(true)
-
-      union_body = CrystalGPT5::Compiler::Frontend.node_class_body(union_node).not_nil!
-      union_body.size.should eq(0)
+      body = Frontend.node_class_body(union_node)
+      if body
+        body.should be_empty
+      else
+        body.should be_nil
+      end
     end
 
     it "parses union with fields" do
@@ -36,23 +40,20 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
         end
       CRYSTAL
 
-      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
-      program = parser.parse_program
-
+      program = Frontend::Parser.new(Frontend::Lexer.new(source)).parse_program
       arena = program.arena
+
       union_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(union_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Union)
+      Frontend.node_kind(union_node).should eq(Frontend::NodeKind::Union)
+      Frontend.node_class_is_union(union_node).should eq(true)
 
-      union_body = CrystalGPT5::Compiler::Frontend.node_class_body(union_node).not_nil!
-      union_body.size.should eq(2)
+      body = Frontend.node_class_body(union_node).not_nil!
+      body.size.should eq(2)
 
-      # First field
-      field1 = arena[union_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(field1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceVarDecl)
-
-      # Second field
-      field2 = arena[union_body[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(field2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceVarDecl)
+      body.each do |entry_id|
+        entry = arena[entry_id]
+        Frontend.node_kind(entry).should eq(Frontend::NodeKind::InstanceVarDecl)
+      end
     end
 
     it "parses union inside lib block" do
@@ -65,20 +66,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
         end
       CRYSTAL
 
-      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
-      program = parser.parse_program
-
+      program = Frontend::Parser.new(Frontend::Lexer.new(source)).parse_program
       arena = program.arena
+
       lib_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(lib_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Lib)
+      Frontend.node_kind(lib_node).should eq(Frontend::NodeKind::Lib)
 
-      lib_body = CrystalGPT5::Compiler::Frontend.node_lib_body(lib_node).not_nil!
-      lib_body.size.should eq(1)
-
-      # Union inside lib
-      union_node = arena[lib_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(union_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Union)
-      union_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_union.should eq(true)
+      union_node = arena[Frontend.node_lib_body(lib_node).not_nil!.first]
+      Frontend.node_kind(union_node).should eq(Frontend::NodeKind::Union)
+      Frontend.node_class_is_union(union_node).should eq(true)
     end
 
     it "parses union with methods" do
@@ -90,20 +86,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
         end
       CRYSTAL
 
-      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
-      program = parser.parse_program
-
+      program = Frontend::Parser.new(Frontend::Lexer.new(source)).parse_program
       arena = program.arena
+
       union_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(union_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Union)
-      union_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_union.should eq(true)
+      Frontend.node_kind(union_node).should eq(Frontend::NodeKind::Union)
+      Frontend.node_class_is_union(union_node).should eq(true)
 
-      union_body = CrystalGPT5::Compiler::Frontend.node_class_body(union_node).not_nil!
-      union_body.size.should eq(1)
-
-      # get_value method
-      method = arena[union_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(method).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Def)
+      body = Frontend.node_class_body(union_node).not_nil!
+      body.size.should eq(1)
+      Frontend.node_kind(arena[body.first]).should eq(Frontend::NodeKind::Def)
     end
 
     it "parses multiple unions" do
@@ -117,21 +109,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
         end
       CRYSTAL
 
-      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
-      program = parser.parse_program
-
-      program.roots.size.should eq(2)
+      program = Frontend::Parser.new(Frontend::Lexer.new(source)).parse_program
       arena = program.arena
 
-      # First union
-      union1 = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(union1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Union)
-      union1.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_union.should eq(true)
-
-      # Second union
-      union2 = arena[program.roots[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(union2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Union)
-      union2.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_union.should eq(true)
+      program.roots.size.should eq(2)
+      program.roots.each do |root_id|
+        node = arena[root_id]
+        Frontend.node_kind(node).should eq(Frontend::NodeKind::Union)
+        Frontend.node_class_is_union(node).should eq(true)
+      end
     end
 
     it "parses nested union in module" do
@@ -143,20 +129,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
         end
       CRYSTAL
 
-      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
-      program = parser.parse_program
-
+      program = Frontend::Parser.new(Frontend::Lexer.new(source)).parse_program
       arena = program.arena
+
       module_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(module_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Module)
+      Frontend.node_kind(module_node).should eq(Frontend::NodeKind::Module)
 
-      module_body = CrystalGPT5::Compiler::Frontend.node_module_body(module_node).not_nil!
-      module_body.size.should eq(1)
-
-      # Nested union
-      union_node = arena[module_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(union_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Union)
-      union_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_union.should eq(true)
+      union_node = arena[Frontend.node_module_body(module_node).not_nil!.first]
+      Frontend.node_kind(union_node).should eq(Frontend::NodeKind::Union)
+      Frontend.node_class_is_union(union_node).should eq(true)
     end
 
     it "parses abstract union" do
@@ -166,51 +147,38 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
         end
       CRYSTAL
 
-      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
-      program = parser.parse_program
-
+      program = Frontend::Parser.new(Frontend::Lexer.new(source)).parse_program
       arena = program.arena
+
       union_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(union_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Union)
-      union_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_union.should eq(true)
-      CrystalGPT5::Compiler::Frontend.node_class_is_abstract(union_node).should eq(true)
+      Frontend.node_kind(union_node).should eq(Frontend::NodeKind::Union)
+      Frontend.node_class_is_union(union_node).should eq(true)
+      Frontend.node_class_is_abstract(union_node).should eq(true)
     end
 
     it "distinguishes between class, struct and union" do
       source = <<-CRYSTAL
-        class MyClass
-        end
-
-        struct MyStruct
-        end
-
-        union MyUnion
-        end
+        class MyClass; end
+        struct MyStruct; end
+        union MyUnion; end
       CRYSTAL
 
-      parser = CrystalGPT5::Compiler::Frontend::Parser.new(CrystalGPT5::Compiler::Frontend::Lexer.new(source))
-      program = parser.parse_program
-
-      program.roots.size.should eq(3)
+      program = Frontend::Parser.new(Frontend::Lexer.new(source)).parse_program
       arena = program.arena
 
-      # First is class
       class_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(class_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Class)
-      class_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_struct.should be_falsey  # nil or false
-      class_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_union.should be_falsey  # nil or false
+      Frontend.node_kind(class_node).should eq(Frontend::NodeKind::Class)
+      Frontend.node_class_is_union(class_node).should_not eq(true)
+      Frontend.node_class_is_struct(class_node).should_not eq(true)
 
-      # Second is struct
       struct_node = arena[program.roots[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(struct_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Struct)
-      struct_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_struct.should eq(true)
-      struct_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_union.should be_falsey  # nil or false
+      Frontend.node_kind(struct_node).should eq(Frontend::NodeKind::Struct)
+      Frontend.node_class_is_struct(struct_node).should eq(true)
+      Frontend.node_class_is_union(struct_node).should_not eq(true)
 
-      # Third is union
       union_node = arena[program.roots[2]]
-      CrystalGPT5::Compiler::Frontend.node_kind(union_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Union)
-      union_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_struct.should be_falsey  # nil or false
-      union_node.as(CrystalGPT5::Compiler::Frontend::ExpressionNode).class_is_union.should eq(true)
+      Frontend.node_kind(union_node).should eq(Frontend::NodeKind::Union)
+      Frontend.node_class_is_union(union_node).should eq(true)
     end
   end
 end

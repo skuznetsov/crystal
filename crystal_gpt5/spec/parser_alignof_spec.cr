@@ -16,12 +16,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       # Value side is alignof
       alignof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       alignof_node = arena[alignof_expr]
-      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alignof)
 
       # Check arguments
       args = CrystalGPT5::Compiler::Frontend.node_alignof_args(alignof_node).not_nil!
@@ -29,7 +29,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Argument is identifier Int32
       arg_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(arg_node).not_nil!).should eq("Int32")
     end
 
@@ -48,7 +48,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       alignof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       alignof_node = arena[alignof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alignof)
 
       args = CrystalGPT5::Compiler::Frontend.node_alignof_args(alignof_node).not_nil!
       args.size.should eq(1)
@@ -72,7 +72,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       alignof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       alignof_node = arena[alignof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alignof)
       args = CrystalGPT5::Compiler::Frontend.node_alignof_args(alignof_node).not_nil!
       args.size.should eq(1)
     end
@@ -96,7 +96,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Method body is alignof
       alignof_node = arena[method_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alignof)
     end
 
     it "parses alignof in class" do
@@ -121,7 +121,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Method body is alignof
       alignof_node = arena[method_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alignof)
     end
 
     it "parses nested alignof" do
@@ -139,7 +139,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       outer_alignof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       outer_alignof = arena[outer_alignof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(outer_alignof).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_alignof).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alignof)
 
       # Outer alignof has one argument
       outer_args = CrystalGPT5::Compiler::Frontend.node_alignof_args(outer_alignof).not_nil!
@@ -147,7 +147,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # That argument is also an alignof
       inner_alignof = arena[outer_args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(inner_alignof).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_alignof).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alignof)
     end
 
     it "parses alignof in assignment" do
@@ -167,7 +167,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       alignof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       alignof_node = arena[alignof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alignof)
     end
 
     it "parses alignof as expression" do
@@ -188,7 +188,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       # Right side of + is alignof
       right_expr = CrystalGPT5::Compiler::Frontend.node_right(binary_node).not_nil!
       alignof_node = arena[right_expr]
-      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alignof)
     end
 
     it "parses alignof with custom type" do
@@ -210,7 +210,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       alignof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       alignof_node = arena[alignof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alignof)
 
       args = CrystalGPT5::Compiler::Frontend.node_alignof_args(alignof_node).not_nil!
       args.size.should eq(1)
@@ -233,20 +233,20 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign_node = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       # Value side is instance_alignof
       instance_alignof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       instance_alignof_node = arena[instance_alignof_expr]
-      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceAlignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceAlignof)
 
       # Check arguments
-      args = CrystalGPT5::Compiler::Frontend.node_instance_alignof_args(instance_alignof_node).not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_alignof_args(instance_alignof_node).not_nil!
       args.size.should eq(1)
 
       # Argument is identifier Int32
       arg_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(arg_node).not_nil!).should eq("Int32")
     end
 
@@ -265,9 +265,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       instance_alignof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       instance_alignof_node = arena[instance_alignof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceAlignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceAlignof)
 
-      args = CrystalGPT5::Compiler::Frontend.node_instance_alignof_args(instance_alignof_node).not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_alignof_args(instance_alignof_node).not_nil!
       args.size.should eq(1)
 
       arg_node = arena[args[0]]
@@ -293,9 +293,9 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       instance_alignof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       instance_alignof_node = arena[instance_alignof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceAlignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceAlignof)
 
-      args = CrystalGPT5::Compiler::Frontend.node_instance_alignof_args(instance_alignof_node).not_nil!
+      args = CrystalGPT5::Compiler::Frontend.node_alignof_args(instance_alignof_node).not_nil!
       args.size.should eq(1)
 
       arg_node = arena[args[0]]
@@ -321,7 +321,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Method body is instance_alignof
       instance_alignof_node = arena[method_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceAlignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceAlignof)
     end
 
     it "parses instance_alignof in class" do
@@ -346,7 +346,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Method body is instance_alignof
       instance_alignof_node = arena[method_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceAlignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceAlignof)
     end
 
     it "parses nested instance_alignof" do
@@ -364,15 +364,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       outer_instance_alignof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       outer_instance_alignof = arena[outer_instance_alignof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(outer_instance_alignof).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceAlignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(outer_instance_alignof).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceAlignof)
 
       # Outer instance_alignof has one argument
-      outer_args = CrystalGPT5::Compiler::Frontend.node_instance_alignof_args(outer_instance_alignof).not_nil!
+      outer_args = CrystalGPT5::Compiler::Frontend.node_alignof_args(outer_instance_alignof).not_nil!
       outer_args.size.should eq(1)
 
       # That argument is also an instance_alignof
       inner_instance_alignof = arena[outer_args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(inner_instance_alignof).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceAlignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(inner_instance_alignof).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceAlignof)
     end
 
     it "parses instance_alignof in assignment" do
@@ -392,7 +392,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       instance_alignof_expr = CrystalGPT5::Compiler::Frontend.node_assign_value(assign_node).not_nil!
       instance_alignof_node = arena[instance_alignof_expr]
 
-      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceAlignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceAlignof)
     end
 
     it "parses instance_alignof as expression" do
@@ -413,7 +413,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       # Right side of + is instance_alignof
       right_expr = CrystalGPT5::Compiler::Frontend.node_right(binary_node).not_nil!
       instance_alignof_node = arena[right_expr]
-      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceAlignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(instance_alignof_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceAlignof)
     end
 
     it "parses mixed alignof and instance_alignof" do
@@ -434,12 +434,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       # Left side is alignof
       left_expr = CrystalGPT5::Compiler::Frontend.node_left(binary_node).not_nil!
       left_node = arena[left_expr]
-      CrystalGPT5::Compiler::Frontend.node_kind(left_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Alignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(left_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Alignof)
 
       # Right side is instance_alignof
       right_expr = CrystalGPT5::Compiler::Frontend.node_right(binary_node).not_nil!
       right_node = arena[right_expr]
-      CrystalGPT5::Compiler::Frontend.node_kind(right_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::InstanceAlignof)
+      CrystalGPT5::Compiler::Frontend.node_kind(right_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::InstanceAlignof)
     end
   end
 end

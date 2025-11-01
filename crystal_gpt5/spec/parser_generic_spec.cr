@@ -14,15 +14,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       assign = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
 
       # Value is Generic node
       generic = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
+      CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Generic)
 
       # Check base type name
       name = arena[CrystalGPT5::Compiler::Frontend.node_generic_name(generic).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(name).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(name).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(name).not_nil!).should eq("Box")
 
       # Check type arguments
@@ -30,7 +30,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       type_args.size.should eq(1)
 
       type_arg = arena[type_args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(type_arg).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(type_arg).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(type_arg).not_nil!).should eq("Int32")
     end
 
@@ -45,7 +45,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign = arena[program.roots[0]]
       generic = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
+      CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Generic)
 
       # Check base type name
       name = arena[CrystalGPT5::Compiler::Frontend.node_generic_name(generic).not_nil!]
@@ -93,14 +93,14 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       call = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(call).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
 
       args = CrystalGPT5::Compiler::Frontend.node_args(call).not_nil!
       args.size.should eq(1)
 
       # Argument is generic
       generic = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
+      CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Generic)
 
       name = arena[CrystalGPT5::Compiler::Frontend.node_generic_name(generic).not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(name).not_nil!).should eq("Box")
@@ -116,18 +116,18 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       array = arena[program.roots[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::ArrayLiteral)
+      CrystalGPT5::Compiler::Frontend.node_kind(array).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::ArrayLiteral)
 
       elements = CrystalGPT5::Compiler::Frontend.node_array_elements(array).not_nil!
       elements.size.should eq(2)
 
       # First element: Array(Int32)
       generic1 = arena[elements[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(generic1).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
+      CrystalGPT5::Compiler::Frontend.node_kind(generic1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Generic)
 
       # Second element: Array(String)
       generic2 = arena[elements[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(generic2).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
+      CrystalGPT5::Compiler::Frontend.node_kind(generic2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Generic)
     end
 
     it "parses triple type arguments" do
@@ -163,8 +163,8 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       # Should be a Call, not Generic
       value = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Call)
-      CrystalGPT5::Compiler::Frontend.node_kind(value).should_not eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Call)
+      CrystalGPT5::Compiler::Frontend.node_kind(value).should_not eq(CrystalGPT5::Compiler::Frontend::NodeKind::Generic)
     end
 
     it "parses generic with single type argument" do
@@ -178,7 +178,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       assign = arena[program.roots[0]]
       generic = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
+      CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Generic)
 
       name = arena[CrystalGPT5::Compiler::Frontend.node_generic_name(generic).not_nil!]
       String.new(CrystalGPT5::Compiler::Frontend.node_literal(name).not_nil!).should eq("Pointer")
@@ -206,7 +206,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       (0..2).each do |i|
         assign = arena[program.roots[i]]
         generic = arena[CrystalGPT5::Compiler::Frontend.node_assign_value(assign).not_nil!]
-        CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Generic)
+        CrystalGPT5::Compiler::Frontend.node_kind(generic).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Generic)
       end
     end
   end

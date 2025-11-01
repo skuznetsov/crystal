@@ -18,11 +18,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       unless_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(unless_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Unless)
+      CrystalGPT5::Compiler::Frontend.node_kind(unless_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Unless)
 
       # Check condition
       condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(unless_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Bool)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Bool)
       CrystalGPT5::Compiler::Frontend.node_literal_string(condition).should eq("false")
 
       # Check then body
@@ -30,7 +30,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       then_body.size.should eq(1)
 
       assign = arena[then_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Assign)
+      CrystalGPT5::Compiler::Frontend.node_kind(assign).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Assign)
     end
 
     it "parses unless with else" do
@@ -49,11 +49,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       unless_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(unless_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Unless)
+      CrystalGPT5::Compiler::Frontend.node_kind(unless_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Unless)
 
       # Check condition
       condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(unless_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Identifier)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Identifier)
       CrystalGPT5::Compiler::Frontend.node_literal_string(condition).should eq("condition")
 
       # Check then body (executed when condition is false)
@@ -79,7 +79,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       unless_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(unless_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Unless)
+      CrystalGPT5::Compiler::Frontend.node_kind(unless_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Unless)
 
       then_body = CrystalGPT5::Compiler::Frontend.node_if_then(unless_node).not_nil!
       then_body.size.should eq(1)
@@ -101,7 +101,7 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       unless_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(unless_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Unless)
+      CrystalGPT5::Compiler::Frontend.node_kind(unless_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Unless)
 
       then_body = CrystalGPT5::Compiler::Frontend.node_if_then(unless_node).not_nil!
       then_body.size.should eq(3)
@@ -121,11 +121,11 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
       arena = program.arena
 
       unless_node = arena[program.roots.first]
-      CrystalGPT5::Compiler::Frontend.node_kind(unless_node).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Unless)
+      CrystalGPT5::Compiler::Frontend.node_kind(unless_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Unless)
 
       # Check condition is binary AND
       condition = arena[CrystalGPT5::Compiler::Frontend.node_condition(unless_node).not_nil!]
-      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::ExpressionNode::Kind::Binary)
+      CrystalGPT5::Compiler::Frontend.node_kind(condition).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
       String.new(CrystalGPT5::Compiler::Frontend.node_operator(condition).not_nil!).should eq("&&")
     end
   end
