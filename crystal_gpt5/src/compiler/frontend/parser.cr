@@ -13,6 +13,13 @@ module CrystalGPT5
         @macro_terminator : Symbol?
         @previous_token : Token?
         @temp_var_counter : Int32  # Phase 101: for generating temp variable names in block shorthand
+        # Phase 103: Delimiter depth tracking for multi-line expressions
+        @paren_depth : Int32
+        @bracket_depth : Int32
+        @brace_depth : Int32
+        # Phase 103: Type declaration control flag (like original Crystal parser)
+        # When > 0, disables type annotation parsing (e.g., in ternary operator ? :)
+        @no_type_declaration : Int32
 
         def initialize(lexer : Lexer)
           @tokens = [] of Token
@@ -23,6 +30,10 @@ module CrystalGPT5
           @macro_terminator = nil
           @previous_token = nil
           @temp_var_counter = 0
+          @paren_depth = 0
+          @bracket_depth = 0
+          @brace_depth = 0
+          @no_type_declaration = 0  # Phase 103: Type annotations enabled by default
         end
 
         # Phase 87B-2: Constructor for reparsing with existing arena
@@ -35,6 +46,10 @@ module CrystalGPT5
           @macro_terminator = nil
           @previous_token = nil
           @temp_var_counter = 0
+          @paren_depth = 0
+          @bracket_depth = 0
+          @brace_depth = 0
+          @no_type_declaration = 0  # Phase 103: Type annotations enabled by default
         end
 
         def parse_program : Program
@@ -225,56 +240,22 @@ module CrystalGPT5
             ))
           end
 
-          # Phase 66: Check for type declaration: identifier : Type (without =)
-          # Phase 77: Also handle global variable declaration: $var : Type
+          # Phase 66/77: Check for type declaration (Global variables only)
+          # Phase 103: Identifier type declarations moved to parse_prefix
+          # Note: @instance_var and @@class_var type declarations remain here
           if operator_token?(token, Token::Kind::Colon)
             left_node = @arena[left]
-            if Frontend.node_kind(left_node) == Frontend::NodeKind::Identifier
-              # Lookahead to check if it's `: Type` or `: Type =`
-              colon_token = token
+            # Phase 77: Global variable declaration: $var : Type
+            if Frontend.node_kind(left_node) == Frontend::NodeKind::Global
               advance  # consume ':'
               skip_trivia
 
-              # Parse type identifier
-              type_token = current_token
-              unless type_token.kind == Token::Kind::Identifier
-                emit_unexpected(type_token)
-                return PREFIX_ERROR
-              end
-              advance
-              skip_trivia
-
-              # Check if followed by = (that would be type-annotated assignment, handle differently)
-              if current_token.kind == Token::Kind::Eq
-                # This is actually `x : Type = value` - let assignment logic handle it
-                # We need to backtrack or handle specially
-                # For now, emit error (will handle type-annotated assignment separately)
+              # Phase 103: Parse type annotation (supports complex types)
+              type_annotation = parse_type_annotation
+              if type_annotation.empty?
                 emit_unexpected(current_token)
                 return PREFIX_ERROR
               end
-
-              # It's a standalone type declaration: x : Type
-              type_decl_span = left_node.span.cover(type_token.span)
-              return @arena.add_typed(
-                TypeDeclarationNode.new(
-                  type_decl_span,
-                  Frontend.node_literal(left_node).not_nil!,
-                  type_token.slice
-                )
-              )
-            # Phase 77: Global variable declaration: $var : Type
-            elsif Frontend.node_kind(left_node) == Frontend::NodeKind::Global
-              advance  # consume ':'
-              skip_trivia
-
-              # Parse type identifier
-              type_token = current_token
-              unless type_token.kind == Token::Kind::Identifier
-                emit_unexpected(type_token)
-                return PREFIX_ERROR
-              end
-              advance
-              skip_trivia
 
               # Check if followed by = (that would be type-annotated assignment, handle differently)
               if current_token.kind == Token::Kind::Eq
@@ -284,12 +265,12 @@ module CrystalGPT5
               end
 
               # It's a global variable declaration: $var : Type
-              decl_span = left_node.span.cover(type_token.span)
+              decl_span = left_node.span.cover(previous_token.not_nil!.span)
               return @arena.add_typed(
                 GlobalVarDeclNode.new(
                   decl_span,
                   Frontend.node_literal(left_node).not_nil!,        # $var
-                  type_token.slice  # Type
+                  type_annotation.to_slice  # Phase 103: complex type support
                 )
               )
             end
@@ -473,6 +454,142 @@ module CrystalGPT5
               break
             end
           end
+        end
+
+        # Phase 103: Multi-line expression support
+        # Check if we're inside delimiters (parentheses, brackets, or braces)
+        private def inside_delimiters? : Bool
+          @paren_depth > 0 || @bracket_depth > 0 || @brace_depth > 0
+        end
+
+        # Phase 103: Skip whitespace/comments, and optionally newlines if inside delimiters
+        # This allows multi-line expressions like:
+        #   foo(
+        #     arg1,
+        #     arg2
+        #   )
+        private def skip_whitespace_and_optional_newlines
+          loop do
+            case current_token.kind
+            when Token::Kind::Whitespace, Token::Kind::Comment
+              advance
+            when Token::Kind::Newline
+              if inside_delimiters?
+                advance  # Skip newlines inside delimiters
+              else
+                break  # Newline is statement separator outside delimiters
+              end
+            else
+              break
+            end
+          end
+        end
+
+        # Phase 103: Parse type annotation (supports namespaces, generics, unions, suffixes)
+        # Examples: Int32, Token::Kind, Array(Int32), Int32 | String, Int32?
+        private def parse_type_annotation : String
+          type_tokens = [] of String
+          paren_depth = 0
+          bracket_depth = 0
+
+          loop do
+            token = current_token
+
+            # Stop conditions (when not inside parentheses/brackets)
+            if paren_depth == 0 && bracket_depth == 0
+              break if token.kind == Token::Kind::Eq
+              break if token.kind == Token::Kind::Comma
+              break if operator_token?(token, Token::Kind::RParen)
+              break if token.kind == Token::Kind::Newline
+              break if token.kind == Token::Kind::EOF
+            end
+
+            # Track parenthesis depth (for generics like Array(Int32))
+            if operator_token?(token, Token::Kind::LParen)
+              paren_depth += 1
+            elsif operator_token?(token, Token::Kind::RParen)
+              break if paren_depth == 0  # Closing paren of parameter list
+              paren_depth -= 1
+            end
+
+            # Track bracket depth (for static arrays like Int32[10])
+            if operator_token?(token, Token::Kind::LBracket)
+              bracket_depth += 1
+            elsif operator_token?(token, Token::Kind::RBracket)
+              bracket_depth -= 1
+            end
+
+            # Collect token text
+            case token.kind
+            when Token::Kind::Identifier
+              type_tokens << token_text(token)
+            when Token::Kind::Number
+              type_tokens << token_text(token)  # For array sizes like [10]
+            when Token::Kind::ColonColon
+              # Namespaced types: Token::Kind
+              type_tokens << token_text(token)
+            when Token::Kind::Operator
+              # Include type-related operators: |, ?, *, (, ), [, ]
+              type_tokens << token_text(token)
+            when Token::Kind::ThinArrow
+              # Proc types: Int32 -> String
+              type_tokens << token_text(token)
+            when Token::Kind::Whitespace
+              # Skip whitespace but keep structure
+              advance
+              next
+            else
+              # Unknown token in type context
+              break
+            end
+
+            advance
+          end
+
+          type_tokens.join(" ")
+        end
+
+        # Phase 103: Parse type declaration from identifier: x : Type = value
+        # Called from parse_prefix when identifier followed by colon
+        private def parse_type_declaration_from_identifier(identifier_token : Token) : ExprId
+          # Current token is ':'
+          advance  # consume ':'
+          skip_trivia
+
+          # Parse type annotation (supports complex types: Token::Kind, Array(Int32), etc.)
+          type_annotation = parse_type_annotation
+          if type_annotation.empty?
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
+          end
+
+          # Check for optional value: = expression
+          value_expr : ExprId? = nil
+          if current_token.kind == Token::Kind::Eq
+            advance  # consume '='
+            skip_trivia
+
+            # Parse value expression
+            val = parse_expression(0)
+            return PREFIX_ERROR if val.invalid?
+            value_expr = val
+          end
+
+          # Create type declaration node
+          type_decl_span = if value_expr
+            identifier_token.span.cover(@arena[value_expr].span)
+          else
+            identifier_token.span.cover(previous_token.not_nil!.span)
+          end
+
+          @arena.add_typed(
+            TypeDeclarationNode.new(
+              type_decl_span,
+              identifier_token.slice,
+              type_annotation.to_slice,
+              value_expr
+            )
+          )
         end
 
         # Phase 100: macro upgraded from identifier to keyword
@@ -673,18 +790,26 @@ module CrystalGPT5
           unless operator_token?(current_token, Token::Kind::RParen)
             loop do
               # Phase 68: Check for splat operators (* or **)
+              # Phase 103: Check for block parameter (&)
               is_splat = false
               is_double_splat = false
-              splat_token = nil
+              is_block = false
+              prefix_token = nil
 
-              if current_token.kind == Token::Kind::StarStar
+              if current_token.kind == Token::Kind::Amp
+                # Phase 103: Block parameter prefix
+                is_block = true
+                prefix_token = current_token
+                advance
+                skip_trivia
+              elsif current_token.kind == Token::Kind::StarStar
                 is_double_splat = true
-                splat_token = current_token
+                prefix_token = current_token
                 advance
                 skip_trivia
               elsif current_token.kind == Token::Kind::Star
                 is_splat = true
-                splat_token = current_token
+                prefix_token = current_token
                 advance
                 skip_trivia
               end
@@ -697,26 +822,80 @@ module CrystalGPT5
               end
               param_name = token_text(name_token)
               param_name_span = name_token.span
-              param_start_span = splat_token ? splat_token.span : name_token.span
+              param_start_span = prefix_token ? prefix_token.span : name_token.span
               advance
               skip_trivia
 
               # Parse optional type annotation: : Type
+              # Phase 103: For block parameters, parse proc type (Token ->)
               type_annotation = nil
               param_type_span = nil
               if operator_token?(current_token, Token::Kind::Colon)
                 advance  # consume ':'
                 skip_trivia
 
-                # Parse type name (simple identifier for Phase 4A)
-                type_token = current_token
-                if type_token.kind == Token::Kind::Identifier
-                  type_annotation = token_text(type_token)
-                  param_type_span = type_token.span
-                  advance
-                  skip_trivia
+                if is_block
+                  # Phase 103: Block parameter - parse proc type
+                  # Key insight: NEVER break on comma before finding arrow
+                  # Examples:
+                  #   Token ->               (single arg proc)
+                  #   String, Int32 ->       (multi-arg proc)
+                  #   (Int32, String) -> Bool (parenthesized proc)
+                  type_start = current_token
+                  type_tokens = [] of String
+                  found_arrow = false
+                  paren_depth = 0
+
+                  loop do
+                    break if current_token.kind == Token::Kind::EOF
+
+                    # Track parentheses for complex proc types
+                    if operator_token?(current_token, Token::Kind::LParen)
+                      paren_depth += 1
+                    elsif operator_token?(current_token, Token::Kind::RParen)
+                      # If at depth 0, this closes the parameter list
+                      break if paren_depth == 0
+                      paren_depth -= 1
+                    end
+
+                    # Check for -> (proc type arrow)
+                    if current_token.kind == Token::Kind::ThinArrow
+                      type_tokens << token_text(current_token)
+                      advance
+                      found_arrow = true
+                      # Continue to collect optional return type
+                      next
+                    end
+
+                    # AFTER finding arrow, stop at delimiters
+                    if found_arrow && paren_depth == 0
+                      break if current_token.kind == Token::Kind::Comma
+                      break if operator_token?(current_token, Token::Kind::RParen)
+                    end
+
+                    # BEFORE finding arrow, collect everything (including commas)
+                    type_tokens << token_text(current_token)
+                    advance
+
+                    # Skip whitespace but include in token stream
+                    if current_token.kind == Token::Kind::Whitespace
+                      advance
+                    end
+                  end
+
+                  type_annotation = type_tokens.join(" ") unless type_tokens.empty?
+                  param_type_span = type_start.span.cover(previous_token.not_nil!.span) if previous_token
                 else
-                  emit_unexpected(type_token)
+                  # Regular parameter - parse simple identifier type
+                  type_token = current_token
+                  if type_token.kind == Token::Kind::Identifier
+                    type_annotation = token_text(type_token)
+                    param_type_span = type_token.span
+                    advance
+                    skip_trivia
+                  else
+                    emit_unexpected(type_token)
+                  end
                 end
               end
 
@@ -752,7 +931,8 @@ module CrystalGPT5
                 param_type_span,
                 default_value_span,
                 is_splat,
-                is_double_splat
+                is_double_splat,
+                is_block  # Phase 103: block parameter flag
               )
 
               break unless operator_token?(current_token, Token::Kind::Comma)
@@ -765,13 +945,17 @@ module CrystalGPT5
           params
         end
 
+        # Phase 2: Parse if/elsif/else
+        # Phase 103: Updated to support assignment in condition
+        # Grammar: if CONDITION [then] BODY [elsif CONDITION [then] BODY]* [else BODY] end
+        # CONDITION can be assignment: if x = compute()
         private def parse_if : ExprId
           if_token = current_token
           advance
           skip_trivia
 
-          # Parse condition
-          condition = parse_expression(0)
+          # Parse condition (can be expression or assignment)
+          condition = parse_statement
           return PREFIX_ERROR if condition.invalid?
 
           skip_trivia
@@ -807,8 +991,8 @@ module CrystalGPT5
             advance
             skip_trivia
 
-            # Parse elsif condition
-            elsif_condition = parse_expression(0)
+            # Parse elsif condition (can be expression or assignment)
+            elsif_condition = parse_statement
             return PREFIX_ERROR if elsif_condition.invalid?
 
             skip_trivia
@@ -888,13 +1072,17 @@ module CrystalGPT5
         end
 
         # Phase 24: Parse unless expression (similar to if but without elsif)
+        # Phase 24: Parse unless (inverse of if)
+        # Phase 103: Updated to support assignment in condition
+        # Grammar: unless CONDITION [then] BODY [else BODY] end
+        # CONDITION can be assignment: unless x = compute()
         private def parse_unless : ExprId
           unless_token = current_token
           advance
           skip_trivia
 
-          # Parse condition
-          condition = parse_expression(0)
+          # Parse condition (can be expression or assignment)
+          condition = parse_statement
           return PREFIX_ERROR if condition.invalid?
 
           skip_trivia
@@ -965,16 +1153,29 @@ module CrystalGPT5
         #          [else
         #            <body>]
         #          end
+        # Phase 11: case/when pattern matching
+        # Phase 103: Updated to support bare case (no value) and multi-line
+        # Grammar: case [VALUE]
+        #            when COND1, COND2
+        #              BODY
+        #            [else
+        #              BODY]
+        #          end
         private def parse_case : ExprId
           case_token = current_token
           advance
-          skip_trivia
+          consume_newlines  # Skip trivia AND newlines after 'case'
 
-          # Parse case value
-          value = parse_expression(0)
-          return PREFIX_ERROR if value.invalid?
-
-          consume_newlines
+          # Parse optional case value (bare case has no value)
+          # If next token is 'when', it's bare case (no value)
+          value : ExprId? = nil
+          if current_token.kind != Token::Kind::When
+            # Has value: case EXPR
+            val = parse_expression(0)
+            return PREFIX_ERROR if val.invalid?
+            value = val
+            consume_newlines
+          end
 
           # Parse when branches
           when_branches = [] of WhenBranch
@@ -988,6 +1189,7 @@ module CrystalGPT5
             skip_trivia
 
             # Parse when conditions (comma-separated)
+            # Phase 103: Multi-line when clauses - allow newlines after commas
             conditions = [] of ExprId
             loop do
               cond = parse_expression(0)
@@ -997,7 +1199,7 @@ module CrystalGPT5
               skip_trivia
               break unless current_token.kind == Token::Kind::Comma
               advance  # consume comma
-              skip_trivia
+              consume_newlines  # Phase 103: allow newlines after comma
             end
 
             skip_trivia
@@ -1052,15 +1254,15 @@ module CrystalGPT5
             end
           end
 
-          expect_identifier("end")
-          end_token = previous_token
-          consume_newlines
-
-          case_span = if end_token
-            case_token.span.cover(end_token.span)
-          else
-            case_token.span
+          # Expect 'end' keyword
+          unless current_token.kind == Token::Kind::End
+            emit_unexpected(current_token)
+            return PREFIX_ERROR
           end
+          end_token = current_token
+          advance
+
+          case_span = case_token.span.cover(end_token.span)
 
           @arena.add_typed(
             CaseNode.new(
@@ -1169,13 +1371,17 @@ module CrystalGPT5
           )
         end
 
+        # Phase 22: Parse while loop
+        # Phase 103: Updated to support assignment in condition
+        # Grammar: while CONDITION [do] BODY end
+        # CONDITION can be assignment: while x = next_token
         private def parse_while : ExprId
           while_token = current_token
           advance
           skip_trivia
 
-          # Parse condition
-          condition = parse_expression(0)
+          # Parse condition (can be expression or assignment)
+          condition = parse_statement
           return PREFIX_ERROR if condition.invalid?
 
           skip_trivia
@@ -1328,13 +1534,17 @@ module CrystalGPT5
         end
 
         # Phase 25: Parse until loop (inverse of while)
+        # Phase 23: Parse until loop
+        # Phase 103: Updated to support assignment in condition
+        # Grammar: until CONDITION [do] BODY end
+        # CONDITION can be assignment: until x = compute()
         private def parse_until : ExprId
           until_token = current_token
           advance
           skip_trivia
 
-          # Parse condition
-          condition = parse_expression(0)
+          # Parse condition (can be expression or assignment)
+          condition = parse_statement
           return PREFIX_ERROR if condition.invalid?
 
           skip_trivia
@@ -4063,8 +4273,10 @@ module CrystalGPT5
           when Token::Kind::Identifier
             # Phase 60: Check if this is a generic type instantiation
             # Pattern: UppercaseIdentifier(Type1, Type2)
+            # Phase 103: Check for type annotation: identifier : Type = value
             identifier_token = token
             advance  # Move past identifier
+            skip_trivia
 
             # Check if uppercase identifier followed by (
             if identifier_token.slice.size > 0 &&
@@ -4072,6 +4284,10 @@ module CrystalGPT5
                current_token.kind == Token::Kind::LParen
               # This is generic instantiation: Box(Int32)
               parse_generic_instantiation(identifier_token)
+            # Phase 103: Check for type annotation (if enabled)
+            elsif @no_type_declaration == 0 && current_token.kind == Token::Kind::Colon
+              # This is type declaration: x : Type = value
+              parse_type_declaration_from_identifier(identifier_token)
             else
               # Regular identifier
               @arena.add_typed(IdentifierNode.new(identifier_token.span, identifier_token.slice))
@@ -4172,16 +4388,19 @@ module CrystalGPT5
         end
 
         # Phase 9: Parse array literal [1, 2, 3] or [] of Type
+        # Phase 103: Updated to support multi-line arrays
         private def parse_array_literal : ExprId
           lbracket = current_token
           advance
-          skip_trivia
+          @bracket_depth += 1  # Phase 103: entering brackets
+          skip_whitespace_and_optional_newlines
 
           elements = [] of ExprId
           of_type_expr : ExprId? = nil
 
           # Check for closing bracket (empty array)
           if current_token.kind == Token::Kind::RBracket
+            @bracket_depth -= 1  # Phase 103: exiting brackets
             advance
             skip_trivia
 
@@ -4213,11 +4432,11 @@ module CrystalGPT5
             end
             elements << element
 
-            skip_trivia
+            skip_whitespace_and_optional_newlines
             break if current_token.kind != Token::Kind::Comma
 
             advance  # consume comma
-            skip_trivia
+            skip_whitespace_and_optional_newlines
 
             # Allow trailing comma
             break if current_token.kind == Token::Kind::RBracket
@@ -4229,6 +4448,7 @@ module CrystalGPT5
             return PREFIX_ERROR
           end
 
+          @bracket_depth -= 1  # Phase 103: exiting brackets
           closing_bracket = current_token
           advance
           skip_trivia
@@ -4782,10 +5002,12 @@ module CrystalGPT5
         #   foo(1, 2)         → positional args
         #   foo(x: 1, y: 2)   → named args
         #   foo(1, y: 2)      → mixed (positional first, then named)
+        # Phase 103: Updated to support multi-line arguments
         private def parse_parenthesized_call(callee : ExprId) : ExprId
           lparen = current_token
           advance
-          skip_trivia
+          @paren_depth += 1  # Phase 103: entering parentheses
+          skip_whitespace_and_optional_newlines
 
           args = [] of ExprId
           named_args = [] of NamedArgument
@@ -4799,7 +5021,7 @@ module CrystalGPT5
                 # Save position in case this is not block shorthand
                 amp_token = current_token
                 advance
-                skip_trivia
+                skip_whitespace_and_optional_newlines
 
                 # Check if followed by dot (member access)
                 if current_token.kind == Token::Kind::Operator
@@ -4818,7 +5040,7 @@ module CrystalGPT5
                 # In argument context, AmpDot is block shorthand, not safe navigation
                 amp_token = current_token
                 advance
-                skip_trivia
+                skip_whitespace_and_optional_newlines
                 arg_expr = parse_block_shorthand(amp_token)
                 return PREFIX_ERROR if arg_expr.invalid?
               else
@@ -4826,7 +5048,7 @@ module CrystalGPT5
                 arg_expr = parse_expression(0)
                 return PREFIX_ERROR if arg_expr.invalid?
               end
-              skip_trivia
+              skip_whitespace_and_optional_newlines
 
               # Check if this is named argument (identifier followed by colon)
               if current_token.kind == Token::Kind::Colon
@@ -4837,7 +5059,7 @@ module CrystalGPT5
                   name_span = arg_node.span
 
                   advance  # consume ':'
-                  skip_trivia
+                  skip_whitespace_and_optional_newlines
 
                   # Parse value expression
                   value_expr = parse_expression(0)
@@ -4847,7 +5069,7 @@ module CrystalGPT5
                   # Create NamedArgument
                   arg_span = name_span.cover(value_span)
                   named_args << NamedArgument.new(name, value_expr, arg_span, name_span, value_span)
-                  skip_trivia
+                  skip_whitespace_and_optional_newlines
                 else
                   # Expression followed by colon is invalid
                   emit_unexpected(current_token)
@@ -4860,13 +5082,14 @@ module CrystalGPT5
 
               break unless current_token.kind == Token::Kind::Comma
               advance  # consume comma
-              skip_trivia
+              skip_whitespace_and_optional_newlines
 
               # Handle trailing comma: foo(x: 1, y: 2,)
               break if current_token.kind == Token::Kind::RParen
             end
           end
 
+          @paren_depth -= 1  # Phase 103: exiting parentheses
           expect_operator(Token::Kind::RParen)
 
           # Calculate span
@@ -4890,21 +5113,24 @@ module CrystalGPT5
           ))
         end
 
+        # Phase 103: Updated to support multi-line indexing
         private def parse_index(target : ExprId) : ExprId
           lbracket = current_token
           advance
+          @bracket_depth += 1  # Phase 103: entering brackets
           indexes = [] of ExprId
-          skip_trivia
+          skip_whitespace_and_optional_newlines
           unless current_token.kind == Token::Kind::RBracket
             loop do
               expr = parse_expression(0)
               indexes << expr unless expr.invalid?
-              skip_trivia
+              skip_whitespace_and_optional_newlines
               break unless current_token.kind == Token::Kind::Comma
               advance
-              skip_trivia
+              skip_whitespace_and_optional_newlines
             end
           end
+          @bracket_depth -= 1  # Phase 103: exiting brackets
           expect_operator(Token::Kind::RBracket)
           spans = [] of Span
           spans << lbracket.span

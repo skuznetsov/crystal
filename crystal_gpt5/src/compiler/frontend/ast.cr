@@ -127,6 +127,7 @@ module CrystalGPT5
         getter default_span : Span?     # Phase 71: Just default value span
         getter is_splat : Bool          # Phase 68: *args (single splat)
         getter is_double_splat : Bool   # Phase 68: **kwargs (double splat)
+        getter is_block : Bool          # Phase 103: &block (block parameter)
 
         def initialize(
           @name : String,
@@ -137,7 +138,8 @@ module CrystalGPT5
           @type_span : Span? = nil,
           @default_span : Span? = nil,
           @is_splat : Bool = false,
-          @is_double_splat : Bool = false
+          @is_double_splat : Bool = false,
+          @is_block : Bool = false
         )
         end
       end
@@ -1200,8 +1202,9 @@ module CrystalGPT5
         getter span : Span
         getter name : Slice(UInt8)
         getter type : Slice(UInt8)
+        getter value : ExprId?  # Phase 103: Optional initial value for x : Type = value
 
-        def initialize(@span : Span, @name : Slice(UInt8), @type : Slice(UInt8))
+        def initialize(@span : Span, @name : Slice(UInt8), @type : Slice(UInt8), @value : ExprId? = nil)
         end
       end
 
@@ -2793,6 +2796,16 @@ def self.node_type_decl_type(node : InstanceVarDeclNode)
 end
 
 def self.node_type_decl_type(node : TypedNode)
+  nil
+end
+
+# type_decl_value (Phase 103)
+
+def self.node_type_decl_value(node : TypeDeclarationNode)
+  node.value
+end
+
+def self.node_type_decl_value(node : TypedNode)
   nil
 end
 
