@@ -118,8 +118,8 @@ module CrystalGPT5
       #   def foo(x)           → Parameter("x", nil, span, name_span, nil)
       #   def foo(x : Int32)   → Parameter("x", "Int32", span, name_span, type_span)
       struct Parameter
-        getter name : String
-        getter type_annotation : String?
+        getter name : Slice(UInt8)
+        getter type_annotation : Slice(UInt8)?
         getter default_value : ExprId?  # Phase 71: default parameter value
         getter span : Span              # Full "x : Int32 = 5" span
         getter name_span : Span         # Just "x" for rename
@@ -130,8 +130,8 @@ module CrystalGPT5
         getter is_block : Bool          # Phase 103: &block (block parameter)
 
         def initialize(
-          @name : String,
-          @type_annotation : String? = nil,
+          @name : Slice(UInt8),
+          @type_annotation : Slice(UInt8)? = nil,
           @default_value : ExprId? = nil,
           @span : Span = Span.new(0, 0, 0, 0, 0, 0),
           @name_span : Span = Span.new(0, 0, 0, 0, 0, 0),

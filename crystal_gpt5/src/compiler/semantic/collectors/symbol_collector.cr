@@ -105,15 +105,19 @@ module CrystalGPT5
           push_table(method_scope)
 
           params.each do |param|
-            param_symbol = VariableSymbol.new(param.name, node_id, declared_type: param.type_annotation)
+            # TIER 2.1: Convert Slice(UInt8) to String for symbol table
+            param_name_str = String.new(param.name)
+            param_type_str = param.type_annotation ? String.new(param.type_annotation) : nil
 
-            if existing_param = method_scope.lookup_local(param.name)
-              emit_duplicate_variable(param.name, param_symbol, existing_param)
+            param_symbol = VariableSymbol.new(param_name_str, node_id, declared_type: param_type_str)
+
+            if existing_param = method_scope.lookup_local(param_name_str)
+              emit_duplicate_variable(param_name_str, param_symbol, existing_param)
             else
-              if shadowed = lookup_variable_in_ancestors(method_scope.parent, param.name)
-                emit_shadowing_warning(param.name, param_symbol, shadowed)
+              if shadowed = lookup_variable_in_ancestors(method_scope.parent, param_name_str)
+                emit_shadowing_warning(param_name_str, param_symbol, shadowed)
               end
-              method_scope.define(param.name, param_symbol)
+              method_scope.define(param_name_str, param_symbol)
             end
           end
 
@@ -232,13 +236,13 @@ module CrystalGPT5
         #         end
         private def build_setter_def(spec : Frontend::AccessorSpec, base_span : Frontend::Span) : Frontend::DefNode
           # Create parameter: value : Type
-          # Parameter.new expects String?, but def_return_type expects Slice(UInt8)?
-          param_type_str = spec.type_annotation  # String? for Parameter
-          param_type_bytes = param_type_str.try(&.to_slice)  # Slice(UInt8)? for def_return_type
+          # TIER 2.1: Parameter.new now expects Slice(UInt8)
+          param_name_slice = "value".to_slice
+          param_type_slice = spec.type_annotation.try(&.to_slice)
 
           param = Frontend::Parameter.new(
-            "value",
-            param_type_str,  # Pass String? to Parameter
+            param_name_slice,
+            param_type_slice,
             nil,  # No default value for setter parameter
             spec.name_span,
             spec.name_span

@@ -1877,8 +1877,9 @@ module CrystalGPT5
             type_ann = param.type_annotation
             return true unless type_ann
 
+            # TIER 2.1: Convert Slice(UInt8) to String for type parsing
             # If parameter has type annotation, check if argument type matches
-            param_type = parse_type_name(type_ann)
+            param_type = parse_type_name(String.new(type_ann))
             type_matches?(arg_type, param_type)
           end
         end

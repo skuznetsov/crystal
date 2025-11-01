@@ -827,7 +827,7 @@ module CrystalGPT5
                 emit_unexpected(name_token)
                 break
               end
-              param_name = token_text(name_token)
+              param_name = name_token.slice  # TIER 2.1: Zero-copy slice
               param_name_span = name_token.span
               param_start_span = prefix_token ? prefix_token.span : name_token.span
               advance
@@ -835,7 +835,7 @@ module CrystalGPT5
 
               # Parse optional type annotation: : Type
               # Phase 103: For block parameters, parse proc type (Token ->)
-              type_annotation = nil
+              type_annotation : Slice(UInt8)? = nil  # TIER 2.1: Zero-copy slice
               param_type_span = nil
               if operator_token?(current_token, Token::Kind::Colon)
                 advance  # consume ':'
@@ -890,13 +890,18 @@ module CrystalGPT5
                     end
                   end
 
-                  type_annotation = type_tokens.join(" ") unless type_tokens.empty?
+                  # TIER 2.1: Temporary - convert String to Slice
+                  # TODO TIER 2.4: Replace with zero-copy proc type parsing
+                  unless type_tokens.empty?
+                    str = type_tokens.join(" ")
+                    type_annotation = Slice(UInt8).new(str.to_unsafe, str.bytesize)
+                  end
                   param_type_span = type_start.span.cover(previous_token.not_nil!.span) if previous_token
                 else
                   # Regular parameter - parse simple identifier type
                   type_token = current_token
                   if type_token.kind == Token::Kind::Identifier
-                    type_annotation = token_text(type_token)
+                    type_annotation = type_token.slice  # TIER 2.1: Zero-copy slice
                     param_type_span = type_token.span
                     advance
                     skip_trivia
@@ -2800,7 +2805,7 @@ module CrystalGPT5
                 return PREFIX_ERROR
               end
 
-              param_name = token_text(name_token)
+              param_name = name_token.slice  # TIER 2.1: Zero-copy slice
               param_name_span = name_token.span
               param_span = name_token.span
               advance
@@ -2899,14 +2904,14 @@ module CrystalGPT5
                   return PREFIX_ERROR
                 end
 
-                param_name = token_text(name_token)
+                param_name = name_token.slice  # TIER 2.1: Zero-copy slice
                 param_name_span = name_token.span
                 param_span = name_token.span
                 advance
                 skip_trivia
 
                 # Parse optional type annotation: : Type
-                type_annotation : String? = nil
+                type_annotation : Slice(UInt8)? = nil  # TIER 2.1: Zero-copy slice
                 type_span : Span? = nil
                 if current_token.kind == Token::Kind::Colon
                   advance  # consume :
@@ -2914,7 +2919,7 @@ module CrystalGPT5
 
                   type_token = current_token
                   if type_token.kind == Token::Kind::Identifier
-                    type_annotation = String.new(type_token.slice)
+                    type_annotation = type_token.slice  # TIER 2.1: Zero-copy slice
                     type_span = type_token.span
                     param_span = param_span.cover(type_span)
                     advance
@@ -6187,7 +6192,8 @@ module CrystalGPT5
           full_span = location_start.cover(call_span)
 
           # Create parameter for block: |__arg0|
-          param = Parameter.new(temp_name, span: location_start, name_span: location_start)
+          # TIER 2.1: Use temp_name_slice (zero-copy)
+          param = Parameter.new(temp_name_slice, span: location_start, name_span: location_start)
 
 
           # Create block: { |__arg0| __arg0.method }
