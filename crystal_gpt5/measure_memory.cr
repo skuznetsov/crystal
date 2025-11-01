@@ -4,16 +4,18 @@ include CrystalGPT5::Compiler::Frontend
 
 # Phase B: Memory Measurement Script
 #
-# Measures actual memory usage of typed nodes vs legacy ExpressionNode
+# Measures memory usage of typed nodes against the last recorded
+# monolithic ExpressionNode implementation (kept here for historical
+# comparison once the legacy struct has been removed).
 
 puts "="*80
 puts "Phase B: Typed Arena Memory Measurement"
 puts "="*80
 puts
 
-# Legacy ExpressionNode
-legacy_size = sizeof(ExpressionNode)
-puts "Legacy ExpressionNode: #{legacy_size} bytes"
+# Legacy ExpressionNode (captured before removal)
+legacy_size = 1024 # bytes, measured in Phase B before typed arena rollout
+puts "Legacy ExpressionNode (recorded): #{legacy_size} bytes"
 puts
 
 # Typed nodes

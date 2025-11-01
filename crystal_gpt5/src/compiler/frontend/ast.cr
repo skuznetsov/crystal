@@ -358,261 +358,6 @@ module CrystalGPT5
         Path  # Phase 63: path expression (Foo::Bar)
       end
 
-      struct ExpressionNode
-        alias Kind = NodeKind
-
-        getter kind : Kind
-        getter span : Span
-        getter literal : Slice(UInt8)?
-        getter number_kind : NumberKind?
-        getter operator : Slice(UInt8)?
-        getter left : ExprId?
-        getter right : ExprId?
-        getter callee : ExprId?
-        getter args : Array(ExprId)?
-        getter named_args : Array(NamedArgument)?  # Phase 72: named arguments (x: 10, y: 20)
-        getter member : Slice(UInt8)?
-        getter macro_expr : ExprId?
-        getter macro_name : Slice(UInt8)?
-        getter macro_pieces : Array(MacroPiece)?
-        getter trim_left : Bool?
-        getter trim_right : Bool?
-        getter def_name : Slice(UInt8)?
-        getter def_params : Array(Parameter)?
-        getter def_return_type : Slice(UInt8)?
-        getter def_body : Array(ExprId)?
-        getter class_name : Slice(UInt8)?
-        getter class_body : Array(ExprId)?
-        getter class_super_name : Slice(UInt8)?
-        getter class_is_struct : Bool?  # Phase 32: true for struct, false/nil for class
-        getter class_is_union : Bool?  # Phase 97: true for union, false/nil for class/struct
-        getter class_is_abstract : Bool?  # Phase 36: true for abstract class
-        getter def_is_abstract : Bool?  # Phase 36: true for abstract method
-        getter def_visibility : Visibility?  # Phase 37: nil = public (default)
-        getter if_condition : ExprId?
-        getter if_then : Array(ExprId)?
-        getter if_elsifs : Array(ElsifBranch)?
-        getter if_else : Array(ExprId)?
-        getter while_condition : ExprId?
-        getter while_body : Array(ExprId)?
-        getter for_variable : Slice(UInt8)?  # Phase 99: iteration variable
-        getter for_collection : ExprId?  # Phase 99: collection to iterate over
-        getter for_body : Array(ExprId)?  # Phase 99: for loop body
-        getter loop_body : Array(ExprId)?  # Phase 83: infinite loop
-        getter spawn_expression : ExprId?  # Phase 84: spawn expr
-        getter spawn_body : Array(ExprId)?  # Phase 84: spawn do...end
-        getter assign_target : ExprId?
-        getter assign_value : ExprId?
-        getter assign_targets : Array(ExprId)?  # Phase 73: multiple assignment targets (a, b, c)
-        getter ivar_decl_type : Slice(UInt8)?  # Phase 5C: @var : Type
-        getter return_value : ExprId?  # Phase 6: return statements
-        getter string_pieces : Array(StringPiece)?  # Phase 8: string interpolation
-        getter array_elements : Array(ExprId)?  # Phase 9: array literal elements
-        getter array_of_type : ExprId?  # Phase 91: explicit type ([1,2,3] of Int32 | String)
-        getter block_params : Array(Parameter)?  # Phase 10: block parameters
-        getter block_body : Array(ExprId)?  # Phase 10: block body
-        getter call_block : ExprId?  # Phase 10: block attached to call
-        getter proc_return_type : Slice(UInt8)?  # Phase 74: proc return type annotation
-        getter yield_args : Array(ExprId)?  # Phase 10: yield arguments
-        getter super_args : Array(ExprId)?  # Phase 39: super arguments
-        getter previous_def_args : Array(ExprId)?  # Phase 96: previous_def arguments
-        getter typeof_args : Array(ExprId)?  # Phase 40: typeof arguments (expressions to get type of)
-        getter sizeof_args : Array(ExprId)?  # Phase 41: sizeof arguments (type or expression to get size of)
-        getter pointerof_args : Array(ExprId)?  # Phase 42: pointerof arguments (variable or expression to get pointer of)
-        getter uninitialized_type : ExprId?  # Phase 85: uninitialized type expression
-        getter offsetof_args : Array(ExprId)?  # Phase 86: offsetof arguments (type, field)
-        getter alignof_args : Array(ExprId)?  # Phase 88: alignof arguments (type)
-        getter instance_alignof_args : Array(ExprId)?  # Phase 88: instance_alignof arguments (type)
-        getter asm_args : Array(ExprId)?  # Phase 95: asm arguments (template + optional sections)
-        getter out_identifier : Slice(UInt8)?  # Phase 98: identifier after out keyword (C bindings output parameter)
-        getter case_value : ExprId?  # Phase 11: value to match against
-        getter when_branches : Array(WhenBranch)?  # Phase 11: when branches
-        getter case_else : Array(ExprId)?  # Phase 11: else clause
-        getter select_branches : Array(SelectBranch)?  # Phase 90A: select when branches
-        getter select_else : Array(ExprId)?  # Phase 90A: select else clause
-        getter break_value : ExprId?  # Phase 12: optional break value
-        # Note: next has no value in Crystal
-        getter range_begin : ExprId?  # Phase 13: range start (1..10)
-        getter range_end : ExprId?  # Phase 13: range end (1..10)
-        getter range_exclusive : Bool?  # Phase 13: true for ..., false for ..
-        getter hash_entries : Array(HashEntry)?  # Phase 14: hash key-value pairs
-        getter hash_of_key_type : Slice(UInt8)?  # Phase 14: explicit key type for {} of K => V
-        getter hash_of_value_type : Slice(UInt8)?  # Phase 14: explicit value type for {} of K => V
-        getter tuple_elements : Array(ExprId)?  # Phase 15: tuple literal elements
-        getter named_tuple_entries : Array(NamedTupleEntry)?  # Phase 70: named tuple entries
-        getter ternary_condition : ExprId?  # Phase 23: ternary condition
-        getter ternary_true_branch : ExprId?  # Phase 23: ternary true branch
-        getter ternary_false_branch : ExprId?  # Phase 23: ternary false branch
-        getter begin_body : Array(ExprId)?  # Phase 28: begin block body
-        getter rescue_clauses : Array(RescueClause)?  # Phase 29: rescue handlers
-        getter ensure_body : Array(ExprId)?  # Phase 29: ensure block body
-        getter raise_value : ExprId?  # Phase 29: expression to raise
-        getter require_path : ExprId?  # Phase 65: path to require (string literal or expression)
-        getter type_decl_name : Slice(UInt8)?  # Phase 66: variable name in type declaration
-        getter type_decl_type : Slice(UInt8)?  # Phase 66: type name in type declaration
-        getter with_receiver : ExprId?  # Phase 67: receiver expression for with block
-        getter with_body : Array(ExprId)?  # Phase 67: body of with block
-        getter accessor_specs : Array(AccessorSpec)?  # Phase 30: getter/setter/property specifications
-        getter module_name : Slice(UInt8)?  # Phase 31: module name
-        getter module_body : Array(ExprId)?  # Phase 31: module body
-        getter include_name : Slice(UInt8)?  # Phase 31: include module name
-        getter extend_name : Slice(UInt8)?  # Phase 31: extend module name
-        getter lib_name : Slice(UInt8)?  # Phase 38: lib name
-        getter lib_body : Array(ExprId)?  # Phase 38: lib body
-        getter enum_name : Slice(UInt8)?  # Phase 33: enum name
-        getter enum_base_type : Slice(UInt8)?  # Phase 33: enum base type (: Int32)
-        getter enum_members : Array(EnumMember)?  # Phase 33: enum members
-        getter alias_name : Slice(UInt8)?  # Phase 34: alias name
-        getter annotation_name : Slice(UInt8)?  # Phase 92: annotation name
-        getter alias_value : Slice(UInt8)?  # Phase 34: aliased type
-        getter constant_name : Slice(UInt8)?  # Phase 35: constant name
-        getter constant_value : ExprId?  # Phase 35: constant value expression
-        getter as_value : ExprId?  # Phase 44: expression being cast
-        getter as_target_type : Slice(UInt8)?  # Phase 44: target type for cast
-        getter as_question_value : ExprId?  # Phase 45: expression being safely cast
-        getter as_question_target_type : Slice(UInt8)?  # Phase 45: target type for safe cast
-        getter is_a_value : ExprId?  # Phase 93: expression being type-checked
-        getter is_a_target_type : Slice(UInt8)?  # Phase 93: target type for type check
-        getter responds_to_value : ExprId?  # Phase 94: expression being checked for method
-        getter responds_to_method_name : ExprId?  # Phase 94: method name (Symbol or String)
-        getter generic_name : ExprId?  # Phase 60: base type name (Box in Box(Int32))
-        getter generic_type_args : Array(ExprId)?  # Phase 60: type arguments ([Int32] in Box(Int32))
-        getter class_type_params : Array(Slice(UInt8))?  # Phase 60: type parameters (["T", "K"] in class Box(T, K))
-        getter module_type_params : Array(Slice(UInt8))?  # Phase 60: type parameters for modules
-
-        def initialize(
-          @kind : Kind,
-          @span : Span,
-          @literal : Slice(UInt8)? = nil,
-          @number_kind : NumberKind? = nil,
-          @operator : Slice(UInt8)? = nil,
-          @left : ExprId? = nil,
-          @right : ExprId? = nil,
-          @callee : ExprId? = nil,
-          @args : Array(ExprId)? = nil,
-          @named_args : Array(NamedArgument)? = nil,
-          @member : Slice(UInt8)? = nil,
-          @macro_expr : ExprId? = nil,
-          @macro_name : Slice(UInt8)? = nil,
-          @macro_pieces : Array(MacroPiece)? = nil,
-          @trim_left : Bool? = nil,
-          @trim_right : Bool? = nil,
-          @def_name : Slice(UInt8)? = nil,
-          @def_params : Array(Parameter)? = nil,
-          @def_return_type : Slice(UInt8)? = nil,
-          @def_body : Array(ExprId)? = nil,
-          @class_name : Slice(UInt8)? = nil,
-          @class_body : Array(ExprId)? = nil,
-          @class_super_name : Slice(UInt8)? = nil,
-          @class_is_struct : Bool? = nil,
-          @class_is_union : Bool? = nil,
-          @class_is_abstract : Bool? = nil,
-          @def_is_abstract : Bool? = nil,
-          @def_visibility : Visibility? = nil,
-          @if_condition : ExprId? = nil,
-          @if_then : Array(ExprId)? = nil,
-          @if_elsifs : Array(ElsifBranch)? = nil,
-          @if_else : Array(ExprId)? = nil,
-          @while_condition : ExprId? = nil,
-          @while_body : Array(ExprId)? = nil,
-          @for_variable : Slice(UInt8)? = nil,  # Phase 99
-          @for_collection : ExprId? = nil,  # Phase 99
-          @for_body : Array(ExprId)? = nil,  # Phase 99
-          @loop_body : Array(ExprId)? = nil,  # Phase 83
-          @spawn_expression : ExprId? = nil,  # Phase 84
-          @spawn_body : Array(ExprId)? = nil,  # Phase 84
-          @assign_target : ExprId? = nil,
-          @assign_value : ExprId? = nil,
-          @assign_targets : Array(ExprId)? = nil,
-          @ivar_decl_type : Slice(UInt8)? = nil,
-          @return_value : ExprId? = nil,
-          @string_pieces : Array(StringPiece)? = nil,
-          @array_elements : Array(ExprId)? = nil,
-          @array_of_type : ExprId? = nil,  # Phase 91: explicit type expression
-          @block_params : Array(Parameter)? = nil,
-          @block_body : Array(ExprId)? = nil,
-          @call_block : ExprId? = nil,
-          @proc_return_type : Slice(UInt8)? = nil,
-          @yield_args : Array(ExprId)? = nil,
-          @super_args : Array(ExprId)? = nil,
-          @previous_def_args : Array(ExprId)? = nil,
-          @typeof_args : Array(ExprId)? = nil,
-          @sizeof_args : Array(ExprId)? = nil,
-          @pointerof_args : Array(ExprId)? = nil,
-          @uninitialized_type : ExprId? = nil,  # Phase 85
-          @offsetof_args : Array(ExprId)? = nil,  # Phase 86
-          @alignof_args : Array(ExprId)? = nil,  # Phase 88
-          @instance_alignof_args : Array(ExprId)? = nil,  # Phase 88
-          @asm_args : Array(ExprId)? = nil,  # Phase 95
-          @out_identifier : Slice(UInt8)? = nil,  # Phase 98
-          @case_value : ExprId? = nil,
-          @when_branches : Array(WhenBranch)? = nil,
-          @case_else : Array(ExprId)? = nil,
-          @select_branches : Array(SelectBranch)? = nil,  # Phase 90A
-          @select_else : Array(ExprId)? = nil,  # Phase 90A
-          @break_value : ExprId? = nil,
-          @range_begin : ExprId? = nil,
-          @range_end : ExprId? = nil,
-          @range_exclusive : Bool? = nil,
-          @hash_entries : Array(HashEntry)? = nil,
-          @hash_of_key_type : Slice(UInt8)? = nil,
-          @hash_of_value_type : Slice(UInt8)? = nil,
-          @tuple_elements : Array(ExprId)? = nil,
-          @named_tuple_entries : Array(NamedTupleEntry)? = nil,
-          @ternary_condition : ExprId? = nil,
-          @ternary_true_branch : ExprId? = nil,
-          @ternary_false_branch : ExprId? = nil,
-          @begin_body : Array(ExprId)? = nil,
-          @rescue_clauses : Array(RescueClause)? = nil,
-          @ensure_body : Array(ExprId)? = nil,
-          @raise_value : ExprId? = nil,
-          @require_path : ExprId? = nil,
-          @type_decl_name : Slice(UInt8)? = nil,
-          @type_decl_type : Slice(UInt8)? = nil,
-          @with_receiver : ExprId? = nil,
-          @with_body : Array(ExprId)? = nil,
-          @accessor_specs : Array(AccessorSpec)? = nil,
-          @module_name : Slice(UInt8)? = nil,
-          @module_body : Array(ExprId)? = nil,
-          @include_name : Slice(UInt8)? = nil,
-          @extend_name : Slice(UInt8)? = nil,
-          @lib_name : Slice(UInt8)? = nil,
-          @lib_body : Array(ExprId)? = nil,
-          @enum_name : Slice(UInt8)? = nil,
-          @enum_base_type : Slice(UInt8)? = nil,
-          @enum_members : Array(EnumMember)? = nil,
-          @alias_name : Slice(UInt8)? = nil,
-          @annotation_name : Slice(UInt8)? = nil,  # Phase 92
-          @alias_value : Slice(UInt8)? = nil,
-          @constant_name : Slice(UInt8)? = nil,
-          @constant_value : ExprId? = nil,
-          @as_value : ExprId? = nil,
-          @as_target_type : Slice(UInt8)? = nil,
-          @as_question_value : ExprId? = nil,
-          @as_question_target_type : Slice(UInt8)? = nil,
-          @is_a_value : ExprId? = nil,
-          @is_a_target_type : Slice(UInt8)? = nil,
-          @responds_to_value : ExprId? = nil,
-          @responds_to_method_name : ExprId? = nil,
-          @generic_name : ExprId? = nil,
-          @generic_type_args : Array(ExprId)? = nil,
-          @class_type_params : Array(Slice(UInt8))? = nil,
-          @module_type_params : Array(Slice(UInt8))? = nil,
-        )
-        end
-
-        def literal_string
-          literal.try { |slice| String.new(slice) }
-        end
-
-        def operator_string
-          operator.try { |slice| String.new(slice) }
-        end
-
-        def member_string
-          member.try { |slice| String.new(slice) }
-        end
-      end
 
       struct MacroPiece
         enum Kind
@@ -684,14 +429,15 @@ module CrystalGPT5
       # ============================================================================
       #
       # Specialized struct types for 5 representative AST nodes as a prototype
-      # for measuring memory improvements vs the monolithic ExpressionNode
-      # (1024 bytes with 100+ fields where 96% are nil).
+      # for measuring memory improvements vs the former monolithic ExpressionNode
+      # (1024 bytes with 100+ fields where 96% were nil).
       #
       # Design Principles:
       # 1. Minimal fields: Only what each node type actually needs
       # 2. Shared span: All nodes have Span for diagnostics
       # 3. ExprId references: Maintain Arena architecture (indices not pointers)
-      # 4. Immutable structs: Same as ExpressionNode (thread-safe)
+      # 4. Immutable structs: Same thread-safety benefits as the legacy
+      #    ExpressionNode while drastically reducing size
       #
       # Memory Comparison:
       # | Node       | Legacy  | Typed | Savings |
@@ -1629,371 +1375,365 @@ module CrystalGPT5
       # This allows gradual migration from .kind checks to pattern matching
       # ============================================================================
 
-      def self.node_kind(node : ExpressionNode) : ExpressionNode::Kind
-        node.kind
+
+      def self.node_kind(node : NumberNode) : NodeKind
+        NodeKind::Number
       end
 
-      def self.node_kind(node : NumberNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Number
+      def self.node_kind(node : IdentifierNode) : NodeKind
+        NodeKind::Identifier
       end
 
-      def self.node_kind(node : IdentifierNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Identifier
+      def self.node_kind(node : BinaryNode) : NodeKind
+        NodeKind::Binary
       end
 
-      def self.node_kind(node : BinaryNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Binary
+      def self.node_kind(node : CallNode) : NodeKind
+        NodeKind::Call
       end
 
-      def self.node_kind(node : CallNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Call
+      def self.node_kind(node : IfNode) : NodeKind
+        NodeKind::If
       end
 
-      def self.node_kind(node : IfNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::If
+      def self.node_kind(node : StringNode) : NodeKind
+        NodeKind::String
       end
 
-      def self.node_kind(node : StringNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::String
+      def self.node_kind(node : CharNode) : NodeKind
+        NodeKind::Char
       end
 
-      def self.node_kind(node : CharNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Char
+      def self.node_kind(node : RegexNode) : NodeKind
+        NodeKind::Regex
       end
 
-      def self.node_kind(node : RegexNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Regex
+      def self.node_kind(node : BoolNode) : NodeKind
+        NodeKind::Bool
       end
 
-      def self.node_kind(node : BoolNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Bool
+      def self.node_kind(node : NilNode) : NodeKind
+        NodeKind::Nil
       end
 
-      def self.node_kind(node : NilNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Nil
+      def self.node_kind(node : SymbolNode) : NodeKind
+        NodeKind::Symbol
       end
 
-      def self.node_kind(node : SymbolNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Symbol
+      def self.node_kind(node : ArrayLiteralNode) : NodeKind
+        NodeKind::ArrayLiteral
       end
 
-      def self.node_kind(node : ArrayLiteralNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::ArrayLiteral
+      def self.node_kind(node : HashLiteralNode) : NodeKind
+        NodeKind::HashLiteral
       end
 
-      def self.node_kind(node : HashLiteralNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::HashLiteral
+      def self.node_kind(node : TupleLiteralNode) : NodeKind
+        NodeKind::TupleLiteral
       end
 
-      def self.node_kind(node : TupleLiteralNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::TupleLiteral
+      def self.node_kind(node : NamedTupleLiteralNode) : NodeKind
+        NodeKind::NamedTupleLiteral
       end
 
-      def self.node_kind(node : NamedTupleLiteralNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::NamedTupleLiteral
+      def self.node_kind(node : RangeNode) : NodeKind
+        NodeKind::Range
       end
 
-      def self.node_kind(node : RangeNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Range
+      def self.node_kind(node : UnaryNode) : NodeKind
+        NodeKind::Unary
       end
 
-      def self.node_kind(node : UnaryNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Unary
+      def self.node_kind(node : TernaryNode) : NodeKind
+        NodeKind::Ternary
       end
 
-      def self.node_kind(node : TernaryNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Ternary
+      def self.node_kind(node : InstanceVarNode) : NodeKind
+        NodeKind::InstanceVar
       end
 
-      def self.node_kind(node : InstanceVarNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::InstanceVar
+      def self.node_kind(node : ClassVarNode) : NodeKind
+        NodeKind::ClassVar
       end
 
-      def self.node_kind(node : ClassVarNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::ClassVar
+      def self.node_kind(node : GlobalNode) : NodeKind
+        NodeKind::Global
       end
 
-      def self.node_kind(node : GlobalNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Global
+      def self.node_kind(node : SelfNode) : NodeKind
+        NodeKind::Self
       end
 
-      def self.node_kind(node : SelfNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Self
+      def self.node_kind(node : UnlessNode) : NodeKind
+        NodeKind::Unless
       end
 
-      def self.node_kind(node : UnlessNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Unless
+      def self.node_kind(node : WhileNode) : NodeKind
+        NodeKind::While
       end
 
-      def self.node_kind(node : WhileNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::While
+      def self.node_kind(node : UntilNode) : NodeKind
+        NodeKind::Until
       end
 
-      def self.node_kind(node : UntilNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Until
+      def self.node_kind(node : ForNode) : NodeKind
+        NodeKind::For
       end
 
-      def self.node_kind(node : ForNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::For
+      def self.node_kind(node : LoopNode) : NodeKind
+        NodeKind::Loop
       end
 
-      def self.node_kind(node : LoopNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Loop
+      def self.node_kind(node : CaseNode) : NodeKind
+        NodeKind::Case
       end
 
-      def self.node_kind(node : CaseNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Case
+      def self.node_kind(node : BreakNode) : NodeKind
+        NodeKind::Break
       end
 
-      def self.node_kind(node : BreakNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Break
+      def self.node_kind(node : NextNode) : NodeKind
+        NodeKind::Next
       end
 
-      def self.node_kind(node : NextNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Next
+      def self.node_kind(node : ReturnNode) : NodeKind
+        NodeKind::Return
       end
 
-      def self.node_kind(node : ReturnNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Return
+      def self.node_kind(node : YieldNode) : NodeKind
+        NodeKind::Yield
       end
 
-      def self.node_kind(node : YieldNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Yield
+      def self.node_kind(node : SpawnNode) : NodeKind
+        NodeKind::Spawn
       end
 
-      def self.node_kind(node : SpawnNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Spawn
+      def self.node_kind(node : IndexNode) : NodeKind
+        NodeKind::Index
       end
 
-      def self.node_kind(node : IndexNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Index
+      def self.node_kind(node : MemberAccessNode) : NodeKind
+        NodeKind::MemberAccess
       end
 
-      def self.node_kind(node : MemberAccessNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::MemberAccess
+      def self.node_kind(node : SafeNavigationNode) : NodeKind
+        NodeKind::SafeNavigation
       end
 
-      def self.node_kind(node : SafeNavigationNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::SafeNavigation
+      def self.node_kind(node : AssignNode) : NodeKind
+        NodeKind::Assign
       end
 
-      def self.node_kind(node : AssignNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Assign
+      def self.node_kind(node : MultipleAssignNode) : NodeKind
+        NodeKind::MultipleAssign
       end
 
-      def self.node_kind(node : MultipleAssignNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::MultipleAssign
+      def self.node_kind(node : BlockNode) : NodeKind
+        NodeKind::Block
       end
 
-      def self.node_kind(node : BlockNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Block
+      def self.node_kind(node : ProcLiteralNode) : NodeKind
+        NodeKind::ProcLiteral
       end
 
-      def self.node_kind(node : ProcLiteralNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::ProcLiteral
+      def self.node_kind(node : StringInterpolationNode) : NodeKind
+        NodeKind::StringInterpolation
       end
 
-      def self.node_kind(node : StringInterpolationNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::StringInterpolation
+      def self.node_kind(node : GroupingNode) : NodeKind
+        NodeKind::Grouping
       end
 
-      def self.node_kind(node : GroupingNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Grouping
+      def self.node_kind(node : DefNode) : NodeKind
+        NodeKind::Def
       end
 
-      def self.node_kind(node : DefNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Def
-      end
-
-      def self.node_kind(node : ClassNode) : ExpressionNode::Kind
+      def self.node_kind(node : ClassNode) : NodeKind
         if node.is_union
-          ExpressionNode::Kind::Union
+          NodeKind::Union
         elsif node.is_struct
-          ExpressionNode::Kind::Struct
+          NodeKind::Struct
         else
-          ExpressionNode::Kind::Class
+          NodeKind::Class
         end
       end
 
-      def self.node_kind(node : ModuleNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Module
+      def self.node_kind(node : ModuleNode) : NodeKind
+        NodeKind::Module
       end
 
-      def self.node_kind(node : StructNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Struct
+      def self.node_kind(node : StructNode) : NodeKind
+        NodeKind::Struct
       end
 
-      def self.node_kind(node : UnionNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Union
+      def self.node_kind(node : UnionNode) : NodeKind
+        NodeKind::Union
       end
 
-      def self.node_kind(node : EnumNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Enum
+      def self.node_kind(node : EnumNode) : NodeKind
+        NodeKind::Enum
       end
 
-      def self.node_kind(node : AliasNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Alias
+      def self.node_kind(node : AliasNode) : NodeKind
+        NodeKind::Alias
       end
 
-      def self.node_kind(node : ConstantNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Constant
+      def self.node_kind(node : ConstantNode) : NodeKind
+        NodeKind::Constant
       end
 
-      def self.node_kind(node : IncludeNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Include
+      def self.node_kind(node : IncludeNode) : NodeKind
+        NodeKind::Include
       end
 
-      def self.node_kind(node : ExtendNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Extend
+      def self.node_kind(node : ExtendNode) : NodeKind
+        NodeKind::Extend
       end
 
-      def self.node_kind(node : GetterNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Getter
+      def self.node_kind(node : GetterNode) : NodeKind
+        NodeKind::Getter
       end
 
-      def self.node_kind(node : SetterNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Setter
+      def self.node_kind(node : SetterNode) : NodeKind
+        NodeKind::Setter
       end
 
-      def self.node_kind(node : PropertyNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Property
+      def self.node_kind(node : PropertyNode) : NodeKind
+        NodeKind::Property
       end
 
-      def self.node_kind(node : AnnotationNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Annotation
+      def self.node_kind(node : AnnotationNode) : NodeKind
+        NodeKind::Annotation
       end
 
-      def self.node_kind(node : AsNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::As
+      def self.node_kind(node : AsNode) : NodeKind
+        NodeKind::As
       end
 
-      def self.node_kind(node : AsQuestionNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::AsQuestion
+      def self.node_kind(node : AsQuestionNode) : NodeKind
+        NodeKind::AsQuestion
       end
 
-      def self.node_kind(node : IsANode) : ExpressionNode::Kind
-        ExpressionNode::Kind::IsA
+      def self.node_kind(node : IsANode) : NodeKind
+        NodeKind::IsA
       end
 
-      def self.node_kind(node : RespondsToNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::RespondsTo
+      def self.node_kind(node : RespondsToNode) : NodeKind
+        NodeKind::RespondsTo
       end
 
-      def self.node_kind(node : TypeofNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Typeof
+      def self.node_kind(node : TypeofNode) : NodeKind
+        NodeKind::Typeof
       end
 
-      def self.node_kind(node : SizeofNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Sizeof
+      def self.node_kind(node : SizeofNode) : NodeKind
+        NodeKind::Sizeof
       end
 
-      def self.node_kind(node : PointerofNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Pointerof
+      def self.node_kind(node : PointerofNode) : NodeKind
+        NodeKind::Pointerof
       end
 
-      def self.node_kind(node : UninitializedNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Uninitialized
+      def self.node_kind(node : UninitializedNode) : NodeKind
+        NodeKind::Uninitialized
       end
 
-      def self.node_kind(node : OffsetofNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Offsetof
+      def self.node_kind(node : OffsetofNode) : NodeKind
+        NodeKind::Offsetof
       end
 
-      def self.node_kind(node : AlignofNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Alignof
+      def self.node_kind(node : AlignofNode) : NodeKind
+        NodeKind::Alignof
       end
 
-      def self.node_kind(node : InstanceAlignofNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::InstanceAlignof
+      def self.node_kind(node : InstanceAlignofNode) : NodeKind
+        NodeKind::InstanceAlignof
       end
 
-      def self.node_kind(node : SuperNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Super
+      def self.node_kind(node : SuperNode) : NodeKind
+        NodeKind::Super
       end
 
-      def self.node_kind(node : PreviousDefNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::PreviousDef
+      def self.node_kind(node : PreviousDefNode) : NodeKind
+        NodeKind::PreviousDef
       end
 
-      def self.node_kind(node : OutNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Out
+      def self.node_kind(node : OutNode) : NodeKind
+        NodeKind::Out
       end
 
-      def self.node_kind(node : BeginNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Begin
+      def self.node_kind(node : BeginNode) : NodeKind
+        NodeKind::Begin
       end
 
-      def self.node_kind(node : RaiseNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Raise
+      def self.node_kind(node : RaiseNode) : NodeKind
+        NodeKind::Raise
       end
 
-      def self.node_kind(node : RequireNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Require
+      def self.node_kind(node : RequireNode) : NodeKind
+        NodeKind::Require
       end
 
-      def self.node_kind(node : TypeDeclarationNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::TypeDeclaration
+      def self.node_kind(node : TypeDeclarationNode) : NodeKind
+        NodeKind::TypeDeclaration
       end
 
-      def self.node_kind(node : InstanceVarDeclNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::InstanceVarDecl
+      def self.node_kind(node : InstanceVarDeclNode) : NodeKind
+        NodeKind::InstanceVarDecl
       end
 
-      def self.node_kind(node : ClassVarDeclNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::ClassVarDecl
+      def self.node_kind(node : ClassVarDeclNode) : NodeKind
+        NodeKind::ClassVarDecl
       end
 
-      def self.node_kind(node : GlobalVarDeclNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::GlobalVarDecl
+      def self.node_kind(node : GlobalVarDeclNode) : NodeKind
+        NodeKind::GlobalVarDecl
       end
 
-      def self.node_kind(node : WithNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::With
+      def self.node_kind(node : WithNode) : NodeKind
+        NodeKind::With
       end
 
-      def self.node_kind(node : LibNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Lib
+      def self.node_kind(node : LibNode) : NodeKind
+        NodeKind::Lib
       end
 
-      def self.node_kind(node : FunNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Fun
+      def self.node_kind(node : FunNode) : NodeKind
+        NodeKind::Fun
       end
 
-      def self.node_kind(node : GenericNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Generic
+      def self.node_kind(node : GenericNode) : NodeKind
+        NodeKind::Generic
       end
 
-      def self.node_kind(node : PathNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Path
+      def self.node_kind(node : PathNode) : NodeKind
+        NodeKind::Path
       end
 
-      def self.node_kind(node : MacroExpressionNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::MacroExpression
+      def self.node_kind(node : MacroExpressionNode) : NodeKind
+        NodeKind::MacroExpression
       end
 
-      def self.node_kind(node : MacroLiteralNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::MacroLiteral
+      def self.node_kind(node : MacroLiteralNode) : NodeKind
+        NodeKind::MacroLiteral
       end
 
-      def self.node_kind(node : MacroDefNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::MacroDef
+      def self.node_kind(node : MacroDefNode) : NodeKind
+        NodeKind::MacroDef
       end
 
-      def self.node_kind(node : SelectNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Select
+      def self.node_kind(node : SelectNode) : NodeKind
+        NodeKind::Select
       end
 
-      def self.node_kind(node : AsmNode) : ExpressionNode::Kind
-        ExpressionNode::Kind::Asm
+      def self.node_kind(node : AsmNode) : NodeKind
+        NodeKind::Asm
       end
 
       # ============================================================================
       # Helper: Get literal/name for nodes that have string data
       # ============================================================================
 
-      def self.node_literal(node : ExpressionNode) : Slice(UInt8)?
-        node.literal
-      end
 
       def self.node_literal(node : IdentifierNode) : Slice(UInt8)?
         node.name
@@ -2028,9 +1768,6 @@ module CrystalGPT5
       end
 
       # Helper: Get NumberNode kind (I32, F64, etc.)
-      def self.node_number_kind(node : ExpressionNode) : NumberKind?
-        nil
-      end
 
       def self.node_number_kind(node : NumberNode) : NumberKind?
         node.kind
@@ -2058,7 +1795,7 @@ module CrystalGPT5
       end
 
       # Helper: Get literal as String (convenience method)
-      def self.node_literal_string(node : ExpressionNode | TypedNode) : String?
+      def self.node_literal_string(node : TypedNode) : String?
         # Special case: BoolNode stores Bool value, not Slice(UInt8)
         if node.is_a?(BoolNode)
           return node.value ? "true" : "false"
@@ -2072,9 +1809,6 @@ module CrystalGPT5
       # ============================================================================
 
       # assign_value: Get value from assignment
-      def self.node_assign_value(node : ExpressionNode) : ExprId?
-        node.assign_value
-      end
 
       def self.node_assign_value(node : AssignNode) : ExprId
         node.value
@@ -2085,9 +1819,6 @@ module CrystalGPT5
       end
 
       # assign_target: Get target from assignment
-      def self.node_assign_target(node : ExpressionNode) : ExprId?
-        node.assign_target
-      end
 
       def self.node_assign_target(node : AssignNode) : ExprId
         node.target
@@ -2098,9 +1829,6 @@ module CrystalGPT5
       end
 
       # left: Get left operand (binary operations)
-      def self.node_left(node : ExpressionNode) : ExprId?
-        node.left
-      end
 
       def self.node_left(node : BinaryNode) : ExprId
         node.left
@@ -2131,9 +1859,6 @@ module CrystalGPT5
       end
 
       # right: Get right operand (binary operations)
-      def self.node_right(node : ExpressionNode) : ExprId?
-        node.right
-      end
 
       def self.node_right(node : BinaryNode) : ExprId
         node.right
@@ -2148,9 +1873,6 @@ module CrystalGPT5
       end
 
       # macro_expr: Get macro expression (MacroExpressionNode.expression vs ExpressionNode.macro_expr)
-      def self.node_macro_expr(node : ExpressionNode) : ExprId?
-        node.macro_expr
-      end
 
       def self.node_macro_expr(node : MacroExpressionNode) : ExprId?
         node.expression  # Different field name!
@@ -2161,9 +1883,6 @@ module CrystalGPT5
       end
 
       # condition: Get condition (if/while/until/etc)
-      def self.node_condition(node : ExpressionNode) : ExprId?
-        node.if_condition || node.while_condition
-      end
 
       def self.node_condition(node : IfNode) : ExprId
         node.condition
@@ -2190,9 +1909,6 @@ module CrystalGPT5
       end
 
       # return_value: Get return value
-      def self.node_return_value(node : ExpressionNode) : ExprId?
-        node.return_value
-      end
 
       def self.node_return_value(node : ReturnNode) : ExprId?
         node.value
@@ -2203,9 +1919,6 @@ module CrystalGPT5
       end
 
       # if_elsifs: Get elsif branches
-      def self.node_if_elsifs(node : ExpressionNode) : Array(ElsifBranch)?
-        node.if_elsifs
-      end
 
       def self.node_if_elsifs(node : IfNode) : Array(ElsifBranch)?
         node.elsifs
@@ -2216,9 +1929,6 @@ module CrystalGPT5
       end
 
       # operator_string: Get operator as string (convenience method)
-      def self.node_operator_string(node : ExpressionNode) : String?
-        node.operator.try { |slice| String.new(slice) }
-      end
 
       def self.node_operator_string(node : BinaryNode) : String?
         String.new(node.operator)
@@ -2233,9 +1943,6 @@ module CrystalGPT5
       end
 
       # string_pieces: Get string interpolation pieces
-def self.node_string_pieces(node : ExpressionNode) : Array(StringPiece)?
-  node.string_pieces
-end
 
 def self.node_string_pieces(node : StringInterpolationNode) : Array(StringPiece)
   node.pieces
@@ -2247,9 +1954,6 @@ end
 
 
       # asm_args: Get asm args
-def self.node_asm_args(node : ExpressionNode)
-  node.asm_args
-end
 
 def self.node_asm_args(node : AsmNode)
   node.args
@@ -2260,18 +1964,12 @@ def self.node_asm_args(node : TypedNode)
 end
 
       # assign_targets: Get assign targets
-      def self.node_assign_targets(node : ExpressionNode)
-        node.assign_targets
-      end
 
       def self.node_assign_targets(node : TypedNode)
         nil
       end
 
       # break_value: Get break value
-      def self.node_break_value(node : ExpressionNode)
-        node.break_value
-      end
 
       def self.node_break_value(node : BreakNode)
         node.value
@@ -2306,9 +2004,6 @@ end
       end
 
       # call_block: Get call block
-def self.node_call_block(node : ExpressionNode)
-  node.call_block
-end
 
 def self.node_call_block(node : CallNode) : ExprId?
   node.block
@@ -2319,72 +2014,48 @@ def self.node_call_block(node : TypedNode)
 end
 
       # case_else: Get case else
-      def self.node_case_else(node : ExpressionNode)
-        node.case_else
-      end
 
       def self.node_case_else(node : TypedNode)
         nil
       end
 
       # case_value: Get case value
-      def self.node_case_value(node : ExpressionNode)
-        node.case_value
-      end
 
       def self.node_case_value(node : TypedNode)
         nil
       end
 
       # for_body: Get for body
-      def self.node_for_body(node : ExpressionNode)
-        node.for_body
-      end
 
       def self.node_for_body(node : TypedNode)
         nil
       end
 
       # for_collection: Get for collection
-      def self.node_for_collection(node : ExpressionNode)
-        node.for_collection
-      end
 
       def self.node_for_collection(node : TypedNode)
         nil
       end
 
       # hash_entries: Get hash entries
-      def self.node_hash_entries(node : ExpressionNode)
-        node.hash_entries
-      end
 
       def self.node_hash_entries(node : TypedNode)
         nil
       end
 
       # hash_of_key_type: Get hash of key type
-      def self.node_hash_of_key_type(node : ExpressionNode)
-        node.hash_of_key_type
-      end
 
       def self.node_hash_of_key_type(node : TypedNode)
         nil
       end
 
       # hash_of_value_type: Get hash of value type
-      def self.node_hash_of_value_type(node : ExpressionNode)
-        node.hash_of_value_type
-      end
 
       def self.node_hash_of_value_type(node : TypedNode)
         nil
       end
 
       # member_string: Get member string
-      def self.node_member_string(node : ExpressionNode)
-        node.member_string
-      end
 
       def self.node_member_string(node : MemberAccessNode)
         String.new(node.member)
@@ -2399,36 +2070,24 @@ end
       end
 
       # named_args: Get named args
-      def self.node_named_args(node : ExpressionNode)
-        node.named_args
-      end
 
       def self.node_named_args(node : TypedNode)
         nil
       end
 
       # when_branches: Get when branches
-      def self.node_when_branches(node : ExpressionNode)
-        node.when_branches
-      end
 
       def self.node_when_branches(node : TypedNode)
         nil
       end
 
       # yield_args: Get yield args
-      def self.node_yield_args(node : ExpressionNode)
-        node.yield_args
-      end
 
       def self.node_yield_args(node : TypedNode)
         nil
       end
 
       # as_question_target_type: Get target type for safe cast
-      def self.node_as_question_target_type(node : ExpressionNode) : Slice(UInt8)?
-        node.as_question_target_type
-      end
 
       def self.node_as_question_target_type(node : AsQuestionNode) : Slice(UInt8)?
         node.target_type
@@ -2439,9 +2098,6 @@ end
       end
 
       # case_whens: Get when branches (note: different name!)
-      def self.node_case_whens(node : ExpressionNode)
-        node.case_whens
-      end
 
       def self.node_case_whens(node : CaseNode)
         node.when_branches
@@ -2452,9 +2108,6 @@ end
       end
 
       # array_elements: Get array elements
-      def self.node_array_elements(node : ExpressionNode)
-        node.array_elements
-      end
 
       def self.node_array_elements(node : ArrayLiteralNode)
         node.elements
@@ -2465,9 +2118,6 @@ end
       end
 
       # tuple_elements: Get tuple elements
-      def self.node_tuple_elements(node : ExpressionNode)
-        node.tuple_elements
-      end
 
       def self.node_tuple_elements(node : TupleLiteralNode)
         node.elements
@@ -2478,9 +2128,6 @@ end
       end
 
       # operand: Get operand for unary operations
-      def self.node_operand(node : ExpressionNode) : ExprId?
-        node.operand
-      end
 
       def self.node_operand(node : UnaryNode) : ExprId
         node.operand
@@ -2494,9 +2141,6 @@ end
 # ============================================================================
 
 # accessor_specs
-def self.node_accessor_specs(node : ExpressionNode)
-  node.accessor_specs
-end
 
 def self.node_accessor_specs(node : GetterNode)
   node.specs
@@ -2515,9 +2159,6 @@ def self.node_accessor_specs(node : TypedNode)
 end
 
 # alias_name
-def self.node_alias_name(node : ExpressionNode)
-  node.alias_name
-end
 
 def self.node_alias_name(node : AliasNode)
   node.name
@@ -2528,9 +2169,6 @@ def self.node_alias_name(node : TypedNode)
 end
 
 # alias_value
-def self.node_alias_value(node : ExpressionNode)
-  node.alias_value
-end
 
 def self.node_alias_value(node : AliasNode)
   node.value
@@ -2541,9 +2179,6 @@ def self.node_alias_value(node : TypedNode)
 end
 
 # alignof_args
-def self.node_alignof_args(node : ExpressionNode)
-  node.alignof_args
-end
 
 def self.node_alignof_args(node : AlignofNode)
   node.args
@@ -2558,9 +2193,6 @@ def self.node_alignof_args(node : TypedNode)
 end
 
 # annotation_name
-def self.node_annotation_name(node : ExpressionNode)
-  node.annotation_name
-end
 
 def self.node_annotation_name(node : AnnotationNode)
   node.name
@@ -2571,9 +2203,6 @@ def self.node_annotation_name(node : TypedNode)
 end
 
 # as_question_value
-def self.node_as_question_value(node : ExpressionNode)
-  node.as_question_value
-end
 
 def self.node_as_question_value(node : AsQuestionNode)
   node.expression
@@ -2584,9 +2213,6 @@ def self.node_as_question_value(node : TypedNode)
 end
 
 # as_target_type
-def self.node_as_target_type(node : ExpressionNode)
-  node.as_target_type
-end
 
 def self.node_as_target_type(node : AsNode)
   node.target_type
@@ -2597,9 +2223,6 @@ def self.node_as_target_type(node : TypedNode)
 end
 
 # as_value
-def self.node_as_value(node : ExpressionNode)
-  node.as_value
-end
 
 def self.node_as_value(node : AsNode)
   node.expression
@@ -2610,9 +2233,6 @@ def self.node_as_value(node : TypedNode)
 end
 
 # begin_body
-def self.node_begin_body(node : ExpressionNode)
-  node.begin_body
-end
 
 def self.node_begin_body(node : BeginNode)
   node.body
@@ -2623,9 +2243,6 @@ def self.node_begin_body(node : TypedNode)
 end
 
 # block_body
-def self.node_block_body(node : ExpressionNode)
-  node.block_body
-end
 
 def self.node_block_body(node : BlockNode)
   node.body
@@ -2640,9 +2257,6 @@ def self.node_block_body(node : TypedNode)
 end
 
 # block_params
-def self.node_block_params(node : ExpressionNode)
-  node.block_params
-end
 
 def self.node_block_params(node : BlockNode)
   node.params
@@ -2657,9 +2271,6 @@ def self.node_block_params(node : TypedNode)
 end
 
 # class_body
-def self.node_class_body(node : ExpressionNode)
-  node.class_body
-end
 
 def self.node_class_body(node : ClassNode)
   node.body
@@ -2678,9 +2289,6 @@ def self.node_class_body(node : TypedNode)
 end
 
 # class_is_abstract
-def self.node_class_is_abstract(node : ExpressionNode)
-  node.class_is_abstract
-end
 
 def self.node_class_is_abstract(node : ClassNode)
   node.is_abstract
@@ -2690,9 +2298,6 @@ def self.node_class_is_abstract(node : TypedNode)
   nil
 end
 
-def self.node_class_is_union(node : ExpressionNode)
-  node.class_is_union
-end
 
 def self.node_class_is_union(node : ClassNode)
   node.is_union
@@ -2702,9 +2307,6 @@ def self.node_class_is_union(node : TypedNode)
   nil
 end
 
-def self.node_class_is_struct(node : ExpressionNode)
-  node.class_is_struct
-end
 
 def self.node_class_is_struct(node : ClassNode)
   node.is_struct
@@ -2715,9 +2317,6 @@ def self.node_class_is_struct(node : TypedNode)
 end
 
 # class_name
-def self.node_class_name(node : ExpressionNode)
-  node.class_name
-end
 
 def self.node_class_name(node : ClassNode)
   node.name
@@ -2736,9 +2335,6 @@ def self.node_class_name(node : TypedNode)
 end
 
 # class_super_name
-def self.node_class_super_name(node : ExpressionNode)
-  node.class_super_name
-end
 
 def self.node_class_super_name(node : ClassNode)
   node.super_name
@@ -2749,9 +2345,6 @@ def self.node_class_super_name(node : TypedNode)
 end
 
 # constant_name
-def self.node_constant_name(node : ExpressionNode)
-  node.constant_name
-end
 
 def self.node_constant_name(node : ConstantNode)
   node.name
@@ -2762,9 +2355,6 @@ def self.node_constant_name(node : TypedNode)
 end
 
 # constant_value
-def self.node_constant_value(node : ExpressionNode)
-  node.constant_value
-end
 
 def self.node_constant_value(node : ConstantNode)
   node.value
@@ -2775,9 +2365,6 @@ def self.node_constant_value(node : TypedNode)
 end
 
 # def_body
-def self.node_def_body(node : ExpressionNode)
-  node.def_body
-end
 
 def self.node_def_body(node : DefNode)
   node.body
@@ -2788,9 +2375,6 @@ def self.node_def_body(node : TypedNode)
 end
 
 # def_is_abstract
-def self.node_def_is_abstract(node : ExpressionNode)
-  node.def_is_abstract
-end
 
 def self.node_def_is_abstract(node : DefNode)
   node.is_abstract
@@ -2801,9 +2385,6 @@ def self.node_def_is_abstract(node : TypedNode)
 end
 
 # def_name
-def self.node_def_name(node : ExpressionNode)
-  node.def_name
-end
 
 def self.node_def_name(node : DefNode)
   node.name
@@ -2814,9 +2395,6 @@ def self.node_def_name(node : TypedNode)
 end
 
 # def_params
-def self.node_def_params(node : ExpressionNode)
-  node.def_params
-end
 
 def self.node_def_params(node : DefNode)
   node.params
@@ -2827,9 +2405,6 @@ def self.node_def_params(node : TypedNode)
 end
 
 # def_return_type
-def self.node_def_return_type(node : ExpressionNode)
-  node.def_return_type
-end
 
 def self.node_def_return_type(node : DefNode)
   node.return_type
@@ -2840,9 +2415,6 @@ def self.node_def_return_type(node : TypedNode)
 end
 
 # def_visibility
-def self.node_def_visibility(node : ExpressionNode)
-  node.def_visibility
-end
 
 def self.node_def_visibility(node : DefNode)
   node.visibility
@@ -2853,9 +2425,6 @@ def self.node_def_visibility(node : TypedNode)
 end
 
 # ensure_body
-def self.node_ensure_body(node : ExpressionNode)
-  node.ensure_body
-end
 
 def self.node_ensure_body(node : BeginNode)
   node.ensure_body
@@ -2866,9 +2435,6 @@ def self.node_ensure_body(node : TypedNode)
 end
 
 # enum_base_type
-def self.node_enum_base_type(node : ExpressionNode)
-  node.enum_base_type
-end
 
 def self.node_enum_base_type(node : EnumNode)
   node.base_type
@@ -2879,9 +2445,6 @@ def self.node_enum_base_type(node : TypedNode)
 end
 
 # enum_members
-def self.node_enum_members(node : ExpressionNode)
-  node.enum_members
-end
 
 def self.node_enum_members(node : EnumNode)
   node.members
@@ -2892,9 +2455,6 @@ def self.node_enum_members(node : TypedNode)
 end
 
 # enum_name
-def self.node_enum_name(node : ExpressionNode)
-  node.enum_name
-end
 
 def self.node_enum_name(node : EnumNode)
   node.name
@@ -2905,9 +2465,6 @@ def self.node_enum_name(node : TypedNode)
 end
 
 # generic_name
-def self.node_generic_name(node : ExpressionNode)
-  node.generic_name
-end
 
 def self.node_generic_name(node : GenericNode)
   node.base_type
@@ -2918,9 +2475,6 @@ def self.node_generic_name(node : TypedNode)
 end
 
 # generic_type_args
-def self.node_generic_type_args(node : ExpressionNode)
-  node.generic_type_args
-end
 
 def self.node_generic_type_args(node : GenericNode)
   node.type_args
@@ -2931,9 +2485,6 @@ def self.node_generic_type_args(node : TypedNode)
 end
 
 # if_else
-def self.node_if_else(node : ExpressionNode)
-  node.if_else
-end
 
 def self.node_if_else(node : IfNode)
   node.else_body
@@ -2948,9 +2499,6 @@ def self.node_if_else(node : TypedNode)
 end
 
 # if_then
-def self.node_if_then(node : ExpressionNode)
-  node.if_then
-end
 
 def self.node_if_then(node : IfNode)
   node.then_body
@@ -2965,9 +2513,6 @@ def self.node_if_then(node : TypedNode)
 end
 
 # instance_alignof_args
-def self.node_instance_alignof_args(node : ExpressionNode)
-  node.instance_alignof_args
-end
 
 def self.node_instance_alignof_args(node : InstanceAlignofNode)
   node.args
@@ -2978,9 +2523,6 @@ def self.node_instance_alignof_args(node : TypedNode)
 end
 
 # is_a_target_type
-def self.node_is_a_target_type(node : ExpressionNode)
-  node.is_a_target_type
-end
 
 def self.node_is_a_target_type(node : IsANode)
   node.target_type
@@ -2991,9 +2533,6 @@ def self.node_is_a_target_type(node : TypedNode)
 end
 
 # is_a_value
-def self.node_is_a_value(node : ExpressionNode)
-  node.is_a_value
-end
 
 def self.node_is_a_value(node : IsANode)
   node.expression
@@ -3004,9 +2543,6 @@ def self.node_is_a_value(node : TypedNode)
 end
 
 # lib_body
-def self.node_lib_body(node : ExpressionNode)
-  node.lib_body
-end
 
 def self.node_lib_body(node : LibNode)
   node.body
@@ -3017,9 +2553,6 @@ def self.node_lib_body(node : TypedNode)
 end
 
 # lib_name
-def self.node_lib_name(node : ExpressionNode)
-  node.lib_name
-end
 
 def self.node_lib_name(node : LibNode)
   node.name
@@ -3030,9 +2563,6 @@ def self.node_lib_name(node : TypedNode)
 end
 
 # loop_body
-def self.node_loop_body(node : ExpressionNode)
-  node.loop_body
-end
 
 def self.node_loop_body(node : LoopNode)
   node.body
@@ -3043,9 +2573,6 @@ def self.node_loop_body(node : TypedNode)
 end
 
 # member
-def self.node_member(node : ExpressionNode)
-  node.member
-end
 
 def self.node_member(node : MemberAccessNode)
   node.member
@@ -3060,9 +2587,6 @@ def self.node_member(node : TypedNode)
 end
 
 # module_body
-def self.node_module_body(node : ExpressionNode)
-  node.module_body
-end
 
 def self.node_module_body(node : ModuleNode)
   node.body
@@ -3073,9 +2597,6 @@ def self.node_module_body(node : TypedNode)
 end
 
 # module_name
-def self.node_module_name(node : ExpressionNode)
-  node.module_name
-end
 
 def self.node_module_name(node : ModuleNode)
   node.name
@@ -3086,9 +2607,6 @@ def self.node_module_name(node : TypedNode)
 end
 
 # named_tuple_entries
-def self.node_named_tuple_entries(node : ExpressionNode)
-  node.named_tuple_entries
-end
 
 def self.node_named_tuple_entries(node : NamedTupleLiteralNode)
   node.entries
@@ -3099,9 +2617,6 @@ def self.node_named_tuple_entries(node : TypedNode)
 end
 
 # offsetof_args
-def self.node_offsetof_args(node : ExpressionNode)
-  node.offsetof_args
-end
 
 def self.node_offsetof_args(node : OffsetofNode)
   node.args
@@ -3112,9 +2627,6 @@ def self.node_offsetof_args(node : TypedNode)
 end
 
 # out_identifier
-def self.node_out_identifier(node : ExpressionNode)
-  node.out_identifier
-end
 
 def self.node_out_identifier(node : OutNode)
   node.identifier
@@ -3125,9 +2637,6 @@ def self.node_out_identifier(node : TypedNode)
 end
 
 # pointerof_args
-def self.node_pointerof_args(node : ExpressionNode)
-  node.pointerof_args
-end
 
 def self.node_pointerof_args(node : PointerofNode)
   node.args
@@ -3138,9 +2647,6 @@ def self.node_pointerof_args(node : TypedNode)
 end
 
 # previous_def_args
-def self.node_previous_def_args(node : ExpressionNode)
-  node.previous_def_args
-end
 
 def self.node_previous_def_args(node : PreviousDefNode)
   node.args
@@ -3151,9 +2657,6 @@ def self.node_previous_def_args(node : TypedNode)
 end
 
 # proc_return_type
-def self.node_proc_return_type(node : ExpressionNode)
-  node.proc_return_type
-end
 
 def self.node_proc_return_type(node : ProcLiteralNode)
   node.return_type
@@ -3164,9 +2667,6 @@ def self.node_proc_return_type(node : TypedNode)
 end
 
 # raise_value
-def self.node_raise_value(node : ExpressionNode)
-  node.raise_value
-end
 
 def self.node_raise_value(node : RaiseNode)
   node.value
@@ -3177,9 +2677,6 @@ def self.node_raise_value(node : TypedNode)
 end
 
 # require_path
-def self.node_require_path(node : ExpressionNode)
-  node.require_path
-end
 
 def self.node_require_path(node : RequireNode)
   node.path
@@ -3190,9 +2687,6 @@ def self.node_require_path(node : TypedNode)
 end
 
 # rescue_clauses
-def self.node_rescue_clauses(node : ExpressionNode)
-  node.rescue_clauses
-end
 
 def self.node_rescue_clauses(node : BeginNode)
   node.rescue_clauses
@@ -3203,18 +2697,12 @@ def self.node_rescue_clauses(node : TypedNode)
 end
 
 # responds_to_method_name (RespondsTo uses ExpressionNode, not RespondsToNode typed struct)
-def self.node_responds_to_method_name(node : ExpressionNode) : ExprId?
-  node.responds_to_method_name
-end
 
 def self.node_responds_to_method_name(node : TypedNode) : ExprId?
   nil  # RespondsToNode exists but is unused by parser
 end
 
 # responds_to_value
-def self.node_responds_to_value(node : ExpressionNode)
-  node.responds_to_value
-end
 
 def self.node_responds_to_value(node : RespondsToNode)
   node.expression
@@ -3225,9 +2713,6 @@ def self.node_responds_to_value(node : TypedNode)
 end
 
 # select_branches
-def self.node_select_branches(node : ExpressionNode)
-  node.select_branches
-end
 
 def self.node_select_branches(node : SelectNode)
   node.branches
@@ -3238,9 +2723,6 @@ def self.node_select_branches(node : TypedNode)
 end
 
 # select_else
-def self.node_select_else(node : ExpressionNode)
-  node.select_else
-end
 
 def self.node_select_else(node : SelectNode)
   node.else_branch
@@ -3251,9 +2733,6 @@ def self.node_select_else(node : TypedNode)
 end
 
 # sizeof_args
-def self.node_sizeof_args(node : ExpressionNode)
-  node.sizeof_args
-end
 
 def self.node_sizeof_args(node : SizeofNode)
   node.args
@@ -3264,9 +2743,6 @@ def self.node_sizeof_args(node : TypedNode)
 end
 
 # spawn_body
-def self.node_spawn_body(node : ExpressionNode)
-  node.spawn_body
-end
 
 def self.node_spawn_body(node : SpawnNode)
   node.body
@@ -3277,9 +2753,6 @@ def self.node_spawn_body(node : TypedNode)
 end
 
 # spawn_expression
-def self.node_spawn_expression(node : ExpressionNode)
-  node.spawn_expression
-end
 
 def self.node_spawn_expression(node : SpawnNode)
   node.expression
@@ -3290,9 +2763,6 @@ def self.node_spawn_expression(node : TypedNode)
 end
 
 # super_args
-def self.node_super_args(node : ExpressionNode)
-  node.super_args
-end
 
 def self.node_super_args(node : SuperNode)
   node.args
@@ -3303,9 +2773,6 @@ def self.node_super_args(node : TypedNode)
 end
 
 # ternary_condition
-def self.node_ternary_condition(node : ExpressionNode)
-  node.ternary_condition
-end
 
 def self.node_ternary_condition(node : TernaryNode)
   node.condition
@@ -3316,9 +2783,6 @@ def self.node_ternary_condition(node : TypedNode)
 end
 
 # ternary_false_branch
-def self.node_ternary_false_branch(node : ExpressionNode)
-  node.ternary_false_branch
-end
 
 def self.node_ternary_false_branch(node : TernaryNode)
   node.false_branch
@@ -3329,9 +2793,6 @@ def self.node_ternary_false_branch(node : TypedNode)
 end
 
 # ternary_true_branch
-def self.node_ternary_true_branch(node : ExpressionNode)
-  node.ternary_true_branch
-end
 
 def self.node_ternary_true_branch(node : TernaryNode)
   node.true_branch
@@ -3342,9 +2803,6 @@ def self.node_ternary_true_branch(node : TypedNode)
 end
 
 # type_decl_name
-def self.node_type_decl_name(node : ExpressionNode)
-  node.type_decl_name
-end
 
 def self.node_type_decl_name(node : TypeDeclarationNode)
   node.name
@@ -3355,14 +2813,6 @@ def self.node_type_decl_name(node : TypedNode)
 end
 
 # type_decl_type
-def self.node_type_decl_type(node : ExpressionNode)
-  case node.kind
-  when ExpressionNode::Kind::InstanceVarDecl
-    node.ivar_decl_type
-  else
-    node.type_decl_type
-  end
-end
 
 def self.node_type_decl_type(node : TypeDeclarationNode)
   node.type
@@ -3377,9 +2827,6 @@ def self.node_type_decl_type(node : TypedNode)
 end
 
 # typeof_args
-def self.node_typeof_args(node : ExpressionNode)
-  node.typeof_args
-end
 
 def self.node_typeof_args(node : TypeofNode)
   node.args
@@ -3390,9 +2837,6 @@ def self.node_typeof_args(node : TypedNode)
 end
 
 # uninitialized_type
-def self.node_uninitialized_type(node : ExpressionNode)
-  node.uninitialized_type
-end
 
 def self.node_uninitialized_type(node : UninitializedNode)
   node.type
@@ -3403,9 +2847,6 @@ def self.node_uninitialized_type(node : TypedNode)
 end
 
 # while_body
-def self.node_while_body(node : ExpressionNode)
-  node.while_body
-end
 
 def self.node_while_body(node : WhileNode)
   node.body
@@ -3420,9 +2861,6 @@ def self.node_while_body(node : TypedNode)
 end
 
 # with_body
-def self.node_with_body(node : ExpressionNode)
-  node.with_body
-end
 
 def self.node_with_body(node : WithNode)
   node.body
@@ -3433,9 +2871,6 @@ def self.node_with_body(node : TypedNode)
 end
 
 # with_receiver
-def self.node_with_receiver(node : ExpressionNode)
-  node.with_receiver
-end
 
 def self.node_with_receiver(node : WithNode)
   node.receiver
@@ -3450,9 +2885,6 @@ end
 # ============================================================================
 
 # range_begin (RangeNode.begin_expr vs ExpressionNode.range_begin)
-def self.node_range_begin(node : ExpressionNode) : ExprId?
-  node.range_begin
-end
 
 def self.node_range_begin(node : RangeNode) : ExprId?
   node.begin_expr  # Different field name!
@@ -3463,9 +2895,6 @@ def self.node_range_begin(node : TypedNode) : ExprId?
 end
 
 # range_end (RangeNode.end_expr vs ExpressionNode.range_end)
-def self.node_range_end(node : ExpressionNode) : ExprId?
-  node.range_end
-end
 
 def self.node_range_end(node : RangeNode) : ExprId?
   node.end_expr  # Different field name!
@@ -3476,9 +2905,6 @@ def self.node_range_end(node : TypedNode) : ExprId?
 end
 
 # range_exclusive (RangeNode.exclusive vs ExpressionNode.range_exclusive)
-def self.node_range_exclusive(node : ExpressionNode) : Bool?
-  node.range_exclusive
-end
 
 def self.node_range_exclusive(node : RangeNode) : Bool?
   node.exclusive  # Different field name!
@@ -3489,9 +2915,6 @@ def self.node_range_exclusive(node : TypedNode) : Bool?
 end
 
 # macro_name (MacroDefNode.name vs ExpressionNode.macro_name)
-def self.node_macro_name(node : ExpressionNode) : Slice(UInt8)?
-  node.macro_name
-end
 
 def self.node_macro_name(node : MacroDefNode) : Slice(UInt8)?
   node.name  # Different field name!
@@ -3502,9 +2925,6 @@ def self.node_macro_name(node : TypedNode) : Slice(UInt8)?
 end
 
 # macro_pieces (only exists in ExpressionNode, MacroLiteral uses ExpressionNode not typed node)
-def self.node_macro_pieces(node : ExpressionNode) : Array(MacroPiece)?
-  node.macro_pieces
-end
 
 def self.node_macro_pieces(node : MacroLiteralNode) : Array(MacroPiece)?
   node.pieces
@@ -3515,9 +2935,6 @@ def self.node_macro_pieces(node : TypedNode) : Array(MacroPiece)?
 end
 
 # args
-def self.node_args(node : ExpressionNode) : Array(ExprId)?
-  node.args
-end
 
 def self.node_args(node : CallNode) : Array(ExprId)?
   node.args
@@ -3532,9 +2949,6 @@ def self.node_args(node : TypedNode) : Array(ExprId)?
 end
 
 # array_of_type
-def self.node_array_of_type(node : ExpressionNode) : ExprId?
-  node.array_of_type
-end
 
 def self.node_array_of_type(node : ArrayLiteralNode) : ExprId?
   node.of_type
@@ -3545,9 +2959,6 @@ def self.node_array_of_type(node : TypedNode) : ExprId?
 end
 
 # callee
-def self.node_callee(node : ExpressionNode) : ExprId?
-  node.callee
-end
 
 def self.node_callee(node : CallNode) : ExprId?
   node.callee
@@ -3558,9 +2969,6 @@ def self.node_callee(node : TypedNode) : ExprId?
 end
 
 # extend_name
-def self.node_extend_name(node : ExpressionNode) : Slice(UInt8)?
-  node.extend_name
-end
 
 def self.node_extend_name(node : ExtendNode) : Slice(UInt8)?
   node.name
@@ -3571,9 +2979,6 @@ def self.node_extend_name(node : TypedNode) : Slice(UInt8)?
 end
 
 # include_name
-def self.node_include_name(node : ExpressionNode) : Slice(UInt8)?
-  node.include_name
-end
 
 def self.node_include_name(node : IncludeNode) : Slice(UInt8)?
   node.name
@@ -3584,9 +2989,6 @@ def self.node_include_name(node : TypedNode) : Slice(UInt8)?
 end
 
 # operator
-def self.node_operator(node : ExpressionNode) : Slice(UInt8)?
-  node.operator
-end
 
 def self.node_operator(node : BinaryNode) : Slice(UInt8)?
   node.operator
@@ -3601,9 +3003,6 @@ def self.node_operator(node : TypedNode) : Slice(UInt8)?
 end
 
 # trim_left
-def self.node_trim_left(node : ExpressionNode) : Bool?
-  node.trim_left
-end
 
 def self.node_trim_left(node : MacroLiteralNode) : Bool
   node.trim_left
@@ -3614,9 +3013,6 @@ def self.node_trim_left(node : TypedNode) : Bool?
 end
 
 # trim_right
-def self.node_trim_right(node : ExpressionNode) : Bool?
-  node.trim_right
-end
 
 def self.node_trim_right(node : MacroLiteralNode) : Bool
   node.trim_right
@@ -3652,7 +3048,7 @@ end
           @nodes[id.index]
         end
 
-        # Compatibility helpers while callers migrate off ExpressionNode APIs
+        # Compatibility helpers while callers migrate off legacy helper signatures
         def typed?(id : ExprId) : Bool
           true
         end

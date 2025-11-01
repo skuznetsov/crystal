@@ -229,7 +229,7 @@ module CrystalGPT5
           # Phase 77: Also handle global variable declaration: $var : Type
           if operator_token?(token, Token::Kind::Colon)
             left_node = @arena[left]
-            if Frontend.node_kind(left_node) == ExpressionNode::Kind::Identifier
+            if Frontend.node_kind(left_node) == Frontend::NodeKind::Identifier
               # Lookahead to check if it's `: Type` or `: Type =`
               colon_token = token
               advance  # consume ':'
@@ -263,7 +263,7 @@ module CrystalGPT5
                 )
               )
             # Phase 77: Global variable declaration: $var : Type
-            elsif Frontend.node_kind(left_node) == ExpressionNode::Kind::Global
+            elsif Frontend.node_kind(left_node) == Frontend::NodeKind::Global
               advance  # consume ':'
               skip_trivia
 
@@ -319,7 +319,7 @@ module CrystalGPT5
             # Phase 35: Check if this is a constant declaration (uppercase identifier + =)
             left_node = @arena[left]
             if token.kind == Token::Kind::Eq &&
-               Frontend.node_kind(left_node) == ExpressionNode::Kind::Identifier &&
+               Frontend.node_kind(left_node) == Frontend::NodeKind::Identifier &&
                Frontend.node_literal(left_node) && is_constant_name?(Frontend.node_literal(left_node).not_nil!)
               # This is a constant declaration
               advance  # Skip =
@@ -338,11 +338,11 @@ module CrystalGPT5
             end
 
             # Verify left side is an identifier, instance variable, class variable, global variable, or index (Phase 14B: hash/array assignment)
-            unless Frontend.node_kind(left_node) == ExpressionNode::Kind::Identifier ||
-                   Frontend.node_kind(left_node) == ExpressionNode::Kind::InstanceVar ||
-                   Frontend.node_kind(left_node) == ExpressionNode::Kind::ClassVar ||
-                   Frontend.node_kind(left_node) == ExpressionNode::Kind::Global ||
-                   Frontend.node_kind(left_node) == ExpressionNode::Kind::Index
+            unless Frontend.node_kind(left_node) == Frontend::NodeKind::Identifier ||
+                   Frontend.node_kind(left_node) == Frontend::NodeKind::InstanceVar ||
+                   Frontend.node_kind(left_node) == Frontend::NodeKind::ClassVar ||
+                   Frontend.node_kind(left_node) == Frontend::NodeKind::Global ||
+                   Frontend.node_kind(left_node) == Frontend::NodeKind::Index
               @diagnostics << Diagnostic.new("Assignment target must be an identifier, instance variable, class variable, global variable, or index expression", token.span)
               return PREFIX_ERROR
             end
@@ -3864,7 +3864,7 @@ module CrystalGPT5
               left_node = @arena[left]
               left_kind = Frontend.node_kind(left_node)
 
-              if (left_kind == ExpressionNode::Kind::MemberAccess || left_kind == ExpressionNode::Kind::Call)
+              if (left_kind == Frontend::NodeKind::MemberAccess || left_kind == Frontend::NodeKind::Call)
                 amp_token = current_token
                 advance
                 skip_trivia
@@ -3877,7 +3877,7 @@ module CrystalGPT5
                   end
 
                   # Convert MemberAccess to Call with block argument
-                  callee = if left_kind == ExpressionNode::Kind::MemberAccess
+                  callee = if left_kind == Frontend::NodeKind::MemberAccess
                     left
                   else
                     Frontend.node_callee(left_node).not_nil!
@@ -4407,7 +4407,7 @@ module CrystalGPT5
           when Token::Kind::Colon
             # ":" → check if first_elem is identifier for named tuple
             first_node = @arena[first_elem]
-            if Frontend.node_kind(first_node) == ExpressionNode::Kind::Identifier
+            if Frontend.node_kind(first_node) == Frontend::NodeKind::Identifier
               # identifier: value → named tuple
               return parse_named_tuple_literal_continued(lbrace, first_elem)
             else
@@ -4831,7 +4831,7 @@ module CrystalGPT5
               # Check if this is named argument (identifier followed by colon)
               if current_token.kind == Token::Kind::Colon
                 arg_node = @arena[arg_expr]
-                if Frontend.node_kind(arg_node) == ExpressionNode::Kind::Identifier
+                if Frontend.node_kind(arg_node) == Frontend::NodeKind::Identifier
                   # Named argument: name: value
                   name = String.new(Frontend.node_literal(arg_node).not_nil!)
                   name_span = arg_node.span

@@ -522,7 +522,7 @@ module CrystalGPT5
         # Phase 87B-4A: Expand range to array of string values
         # Returns Array(String) if successful, nil if error (diagnostic emitted)
         private def expand_range_to_strings(range_node : Frontend::TypedNode) : Array(String)?
-          # Extract bounds using helpers (handles field name mismatch: RangeNode.begin_expr vs ExpressionNode.range_begin)
+          # Extract bounds using helpers (typed nodes expose begin/end via RangeNode accessors)
           range_begin = Frontend.node_range_begin(range_node)
           range_end = Frontend.node_range_end(range_node)
 
@@ -550,7 +550,7 @@ module CrystalGPT5
             return [] of String
           end
 
-          # Calculate size (use helper for field name mismatch: RangeNode.exclusive vs ExpressionNode.range_exclusive)
+          # Calculate size (helpers normalize RangeNode.exclusive semantics)
           exclusive = Frontend.node_range_exclusive(range_node) || false
           size = if exclusive
             end_val - start_val
