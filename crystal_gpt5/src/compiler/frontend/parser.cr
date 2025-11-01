@@ -4116,8 +4116,7 @@ module CrystalGPT5
               next
             when Token::Kind::Operator
               # Check for operators not yet converted to enum (e.g., ".")
-              case token_text(token)
-              when "."
+              if slice_eq?(token.slice, ".")
                 left = parse_member_access(left)
                 next
               end
@@ -4359,8 +4358,7 @@ module CrystalGPT5
             parse_proc_literal
           when Token::Kind::Operator
             # Generic fallback for unhandled operators (e.g., macro operators)
-            op_text = token_text(token)
-            if op_text == "("
+            if slice_eq?(token.slice, "(")
               parse_grouping
             else
               emit_unexpected(token)
@@ -4488,7 +4486,7 @@ module CrystalGPT5
             skip_trivia
 
             # Check for "of K => V" syntax
-            if current_token.kind == Token::Kind::Identifier && token_text(current_token) == "of"
+            if current_token.kind == Token::Kind::Identifier && slice_eq?(current_token.slice, "of")
               advance
               skip_trivia
 
@@ -4806,7 +4804,7 @@ module CrystalGPT5
           of_value_type : Slice(UInt8)? = nil
 
           # Check for "of K => V" syntax
-          if current_token.kind == Token::Kind::Identifier && token_text(current_token) == "of"
+          if current_token.kind == Token::Kind::Identifier && slice_eq?(current_token.slice, "of")
             advance
             skip_trivia
 
@@ -5633,7 +5631,7 @@ module CrystalGPT5
 
         private def expect_operator(symbol : String)
           token = current_token
-          if token.kind == Token::Kind::Operator && token_text(token) == symbol
+          if token.kind == Token::Kind::Operator && slice_eq?(token.slice, symbol)
             advance
           else
             emit_unexpected(token)
@@ -5663,6 +5661,18 @@ module CrystalGPT5
           @diagnostics << Diagnostic.new("unexpected #{token.kind}", token.span)
         end
 
+        # Phase 103: Optimization - compare slice with string without allocation
+        @[AlwaysInline]
+        private def slice_eq?(slice : Slice(UInt8), str : String) : Bool
+          return false if slice.size != str.bytesize
+          slice.each_with_index do |byte, i|
+            return false if byte != str.to_unsafe[i]
+          end
+          true
+        end
+
+        # DEPRECATED: Use token.slice directly or slice_eq? for comparisons
+        # Kept temporarily for complex cases that need migration
         private def token_text(token : Token) : String
           String.new(token.slice)
         end
@@ -5696,12 +5706,12 @@ module CrystalGPT5
           is_trim = case marker
           when '-'
             token.kind == Token::Kind::Minus ||
-              (token.kind == Token::Kind::Operator && token_text(token) == "-")
+              (token.kind == Token::Kind::Operator && slice_eq?(token.slice, "-"))
           when '~'
             token.kind == Token::Kind::Tilde ||
-              (token.kind == Token::Kind::Operator && token_text(token) == "~")
+              (token.kind == Token::Kind::Operator && slice_eq?(token.slice, "~"))
           else
-            token.kind == Token::Kind::Operator && token_text(token) == marker.to_s
+            token.kind == Token::Kind::Operator && slice_eq?(token.slice, marker.to_s)
           end
 
           if is_trim
@@ -5732,7 +5742,7 @@ module CrystalGPT5
           second = peek_token(1)
           third = peek_token(2)
           second.kind == Token::Kind::LBrace &&
-            third.kind == Token::Kind::Operator && token_text(third) == "-"
+            third.kind == Token::Kind::Operator && slice_eq?(third.slice, "-")
         end
 
         private def macro_control_start?
@@ -5748,7 +5758,7 @@ module CrystalGPT5
           third = peek_token(2)
           # Phase 18: % changed from Operator to Percent token
           second.kind == Token::Kind::Percent &&
-            (third.kind == Token::Kind::Minus || (third.kind == Token::Kind::Operator && token_text(third) == "-"))
+            (third.kind == Token::Kind::Minus || (third.kind == Token::Kind::Operator && slice_eq?(third.slice, "-")))
         end
 
         private def macro_terminator_reached?(token : Token)
@@ -5788,7 +5798,7 @@ module CrystalGPT5
             return true if token.kind == Token::Kind::Tilde
           end
           # Generic check for Operator tokens
-          token.kind == Token::Kind::Operator && token_text(token) == value
+          token.kind == Token::Kind::Operator && slice_eq?(token.slice, value)
         end
 
         private def with_macro_terminator(terminator : Symbol)
@@ -5964,7 +5974,7 @@ module CrystalGPT5
               emit_unexpected(token)
             end
           else
-            if token.kind == Token::Kind::Identifier && token_text(token) == expected
+            if token.kind == Token::Kind::Identifier && slice_eq?(token.slice, expected)
               advance
             else
               emit_unexpected(token)
