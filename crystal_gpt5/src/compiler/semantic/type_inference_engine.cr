@@ -122,12 +122,12 @@ module CrystalGPT5
             # Phase 9: Array indexing arr[0]
             infer_index(node, expr_id)
           when .if?
-            infer_if(node)
+            infer_if(node.as(Frontend::IfNode))
           when .unless?
             # Phase 24: unless condition
-            infer_unless(node)
+            infer_unless(node.as(Frontend::UnlessNode))
           when .while?
-            infer_while(node)
+            infer_while(node.as(Frontend::WhileNode))
           when .for?
             # Phase 99: for loop
             infer_for(node.as(Frontend::ForNode))
@@ -139,31 +139,31 @@ module CrystalGPT5
             infer_spawn(node.as(Frontend::SpawnNode))
           when .until?
             # Phase 25: until loop
-            infer_until(node)
+            infer_until(node.as(Frontend::UntilNode))
           when .begin?
             # Phase 28/29: begin/end blocks with rescue/ensure
-            infer_begin(node)
+            infer_begin(node.as(Frontend::BeginNode))
           when .raise?
             # Phase 29: raise exception
-            infer_raise(node)
+            infer_raise(node.as(Frontend::RaiseNode))
           when .require?
             # Phase 65: require statement
-            infer_require(node)
+            infer_require(node.as(Frontend::RequireNode))
           when .type_declaration?
             # Phase 66: type declaration
             infer_type_declaration(node)
           when .with?
             # Phase 67: with context block
-            infer_with(node)
+            infer_with(node.as(Frontend::WithNode))
           when .getter?
             # Phase 30: getter macro
-            infer_accessor(node)
+            infer_accessor(node.as(Frontend::GetterNode))
           when .setter?
             # Phase 30: setter macro
-            infer_accessor(node)
+            infer_accessor(node.as(Frontend::SetterNode))
           when .property?
             # Phase 30: property macro
-            infer_accessor(node)
+            infer_accessor(node.as(Frontend::PropertyNode))
           when .assign?
             infer_assign(node.as(Frontend::AssignNode), expr_id)
           when .multiple_assign?
@@ -180,25 +180,25 @@ module CrystalGPT5
             infer_previous_def(node.as(Frontend::PreviousDefNode), expr_id)
           when .typeof?
             # Phase 40: Typeof expressions
-            infer_typeof(node, expr_id)
+            infer_typeof(node.as(Frontend::TypeofNode), expr_id)
           when .sizeof?
             # Phase 41: Sizeof expressions
-            infer_sizeof(node, expr_id)
+            infer_sizeof(node.as(Frontend::SizeofNode), expr_id)
           when .pointerof?
             # Phase 42: Pointerof expressions
-            infer_pointerof(node, expr_id)
+            infer_pointerof(node.as(Frontend::PointerofNode), expr_id)
           when .uninitialized?
             # Phase 85: Uninitialized expressions
-            infer_uninitialized(node, expr_id)
+            infer_uninitialized(node.as(Frontend::UninitializedNode), expr_id)
           when .offsetof?
             # Phase 86: Offsetof expressions
-            infer_offsetof(node, expr_id)
+            infer_offsetof(node.as(Frontend::OffsetofNode), expr_id)
           when .alignof?
             # Phase 88: Alignof expressions
-            infer_alignof(node, expr_id)
+            infer_alignof(node.as(Frontend::AlignofNode), expr_id)
           when .instance_alignof?
             # Phase 88: InstanceAlignof expressions
-            infer_instance_alignof(node, expr_id)
+            infer_instance_alignof(node.as(Frontend::InstanceAlignofNode), expr_id)
           when .asm?
             # Phase 95: Inline assembly expressions
             infer_asm(node, expr_id)
@@ -825,6 +825,16 @@ module CrystalGPT5
           type.is_a?(PrimitiveType) && type.name == "Bool"
         end
 
+        private def infer_block_result(expressions : Array(ExprId)) : Type
+          return @context.nil_type if expressions.empty?
+
+          result_type = @context.nil_type
+          expressions.each do |expr_id|
+            result_type = infer_expression(expr_id)
+          end
+          result_type
+        end
+
         # Promote two numeric types to their widest common type
         #
         # PRODUCTION-READY FALLBACK STRATEGY:
@@ -875,151 +885,60 @@ module CrystalGPT5
         # PHASE 3: Control Flow
         # ============================================================
 
-        private def infer_if(node) : Type
-          # Infer condition type
-          condition_id = Frontend.node_condition(node)
-          return @context.nil_type unless condition_id
-
+        private def infer_if(node : Frontend::IfNode) : Type
+          condition_id = node.condition
           condition_type = infer_expression(condition_id)
 
-          # Check condition is Bool
           unless bool_type?(condition_type)
             emit_error("If condition must be Bool, got #{condition_type}", condition_id)
           end
 
-          # Infer then body (type of last expression)
-          then_type = if then_body = Frontend.node_if_then(node)
-            if then_body.size > 0
-              # Infer all expressions in body, save type of last
-              # (infer_expression sets types automatically)
-              result_type = @context.nil_type
-              then_body.each do |expr_id|
-                result_type = infer_expression(expr_id)
-              end
-              result_type
-            else
-              @context.nil_type
-            end
-          else
-            @context.nil_type
-          end
+          then_type = infer_block_result(node.then_body)
 
-          # Infer elsif branches
           elsif_types = [] of Type
-          if elsifs = Frontend.node_if_elsifs(node)
+          if elsifs = node.elsifs
             elsifs.each do |elsif_branch|
-              # Infer elsif condition
-              elsif_condition_type = infer_expression(elsif_branch.condition)
-              unless bool_type?(elsif_condition_type)
-                emit_error("Elsif condition must be Bool, got #{elsif_condition_type}", elsif_branch.condition)
+              branch_condition = elsif_branch.condition
+              branch_condition_type = infer_expression(branch_condition)
+              unless bool_type?(branch_condition_type)
+                emit_error("Elsif condition must be Bool, got #{branch_condition_type}", branch_condition)
               end
 
-              # Infer elsif body (type of last expression)
-              # (infer_expression sets types automatically)
-              elsif_type = if elsif_branch.body.size > 0
-                result_type = @context.nil_type
-                elsif_branch.body.each do |expr_id|
-                  result_type = infer_expression(expr_id)
-                end
-                result_type
-              else
-                @context.nil_type
-              end
-
-              elsif_types << elsif_type
+              elsif_types << infer_block_result(elsif_branch.body)
             end
           end
 
-          # Infer else body (or Nil if no else)
-          # (infer_expression sets types automatically)
-          else_type = if else_body = Frontend.node_if_else(node)
-            if else_body.size > 0
-              # Infer all expressions in body, save type of last
-              result_type = @context.nil_type
-              else_body.each do |expr_id|
-                result_type = infer_expression(expr_id)
-              end
-              result_type
-            else
-              @context.nil_type
-            end
-          else
-            # No else branch → implicit Nil
-            @context.nil_type
-          end
+          else_type = node.else_body ? infer_block_result(node.else_body.not_nil!) : @context.nil_type
 
-          # Create union type of all branches: then + elsifs + else
-          all_types = [then_type] + elsif_types + [else_type]
-          union_of(all_types)
+          union_of([then_type] + elsif_types + [else_type])
         end
 
         # Phase 24: Type inference for unless (similar to if but without elsif)
-        private def infer_unless(node) : Type
-          # Infer condition type
-          condition_id = Frontend.node_condition(node)
-          return @context.nil_type unless condition_id
-
+        private def infer_unless(node : Frontend::UnlessNode) : Type
+          condition_id = node.condition
           condition_type = infer_expression(condition_id)
 
-          # Check condition is Bool
           unless bool_type?(condition_type)
             emit_error("Unless condition must be Bool, got #{condition_type}", condition_id)
           end
 
-          # Infer then body (executed when condition is false)
-          then_type = if then_body = Frontend.node_if_then(node)
-            if then_body.size > 0
-              result_type = @context.nil_type
-              then_body.each do |expr_id|
-                result_type = infer_expression(expr_id)
-              end
-              result_type
-            else
-              @context.nil_type
-            end
-          else
-            @context.nil_type
-          end
+          then_type = infer_block_result(node.then_branch)
+          else_type = node.else_branch ? infer_block_result(node.else_branch.not_nil!) : @context.nil_type
 
-          # Infer else body (executed when condition is true)
-          else_type = if else_body = Frontend.node_if_else(node)
-            if else_body.size > 0
-              result_type = @context.nil_type
-              else_body.each do |expr_id|
-                result_type = infer_expression(expr_id)
-              end
-              result_type
-            else
-              @context.nil_type
-            end
-          else
-            # No else branch → implicit Nil
-            @context.nil_type
-          end
-
-          # Create union type of both branches: then + else
           union_of([then_type, else_type])
         end
 
         # Phase 25: Type inference for until loop (inverse of while)
-        private def infer_until(node) : Type
-          # Infer condition type
-          condition_id = Frontend.node_condition(node)  # Reuse while_condition field
-          return @context.nil_type unless condition_id
-
+        private def infer_until(node : Frontend::UntilNode) : Type
+          condition_id = node.condition
           condition_type = infer_expression(condition_id)
 
-          # Check condition is Bool
           unless bool_type?(condition_type)
             emit_error("Until condition must be Bool, got #{condition_type}", condition_id)
           end
 
-          # Infer body expressions (result not used)
-          if body = Frontend.node_while_body(node)  # Reuse while_body field
-            body.each { |expr_id| infer_expression(expr_id) }
-          end
+          node.body.each { |expr_id| infer_expression(expr_id) }
 
-          # Until loops always return Nil in Crystal (like while)
           @context.nil_type
         end
 
@@ -1027,51 +946,29 @@ module CrystalGPT5
         # Begin blocks return the type of the last expression, or Nil if empty
         # With rescue: union of begin body type and all rescue body types
         # Ensure doesn't affect type (always runs but doesn't change return value)
-        private def infer_begin(node) : Type
-          # Infer begin body type
-          body = Frontend.node_begin_body(node)
-          begin_type = if body && body.size > 0
-            result_type = @context.nil_type
-            body.each do |expr_id|
-              result_type = infer_expression(expr_id)
-            end
-            result_type
-          else
-            @context.nil_type
-          end
+        private def infer_begin(node : Frontend::BeginNode) : Type
+          begin_type = infer_block_result(node.body)
 
-          # Phase 29: Infer rescue clause types
           types = [begin_type]
-          if rescue_clauses = Frontend.node_rescue_clauses(node)
+          if rescue_clauses = node.rescue_clauses
             rescue_clauses.each do |rescue_clause|
-              rescue_type = if rescue_clause.body.size > 0
-                result_type = @context.nil_type
-                rescue_clause.body.each do |expr_id|
-                  result_type = infer_expression(expr_id)
-                end
-                result_type
-              else
-                @context.nil_type
-              end
-              types << rescue_type
+              types << infer_block_result(rescue_clause.body)
             end
           end
 
-          # Phase 29: Infer ensure body (for side effects only, doesn't affect type)
-          if ensure_body = Frontend.node_ensure_body(node)
+          if ensure_body = node.ensure_body
             ensure_body.each { |expr_id| infer_expression(expr_id) }
           end
 
-          # Return union of begin and all rescue types
           union_of(types)
         end
 
         # Phase 29: Type inference for raise statement
         # Raise always returns Nil (it never actually returns, but we use Nil for simplicity)
         # In a full compiler, this would be NoReturn type
-        private def infer_raise(node) : Type
+        private def infer_raise(node : Frontend::RaiseNode) : Type
           # Infer the raise value (if present)
-          if raise_value = Frontend.node_raise_value(node)
+          if raise_value = node.value
             infer_expression(raise_value)
           end
 
@@ -1080,11 +977,9 @@ module CrystalGPT5
         end
 
         # Phase 65: Type inference for require statement
-        private def infer_require(node) : Type
+        private def infer_require(node : Frontend::RequireNode) : Type
           # Infer the require path expression (typically a string literal)
-          if require_path = Frontend.node_require_path(node)
-            infer_expression(require_path)
-          end
+          infer_expression(node.path)
 
           # Require statements are executed at compile-time for imports
           # They don't have a runtime value, so return Nil type
@@ -1106,33 +1001,14 @@ module CrystalGPT5
         end
 
         # Phase 67: Type inference for with context block
-        private def infer_with(node) : Type
-          # With block changes the self context to the receiver expression
-          # Example: with obj; method1; method2; end
-          # Inside the block, self = obj
-          #
-          # In a full implementation:
-          # - Infer the type of the receiver expression
-          # - Save current self context
-          # - Set self to receiver type
-          # - Process body with new self context
-          # - Restore previous self context
-          # - Return type of last expression in body (or nil if empty)
+        private def infer_with(node : Frontend::WithNode) : Type
+          infer_expression(node.receiver)
 
-          # Infer receiver expression
-          if receiver = Frontend.node_with_receiver(node)
-            infer_expression(receiver)
-          end
-
-          # Process body expressions
           result_type = @context.nil_type
-          if body = Frontend.node_with_body(node)
-            body.each do |expr_id|
-              result_type = infer_expression(expr_id)
-            end
+          node.body.each do |expr_id|
+            result_type = infer_expression(expr_id)
           end
 
-          # Return type of last expression (or nil if no body)
           result_type
         end
 
@@ -1143,38 +1019,26 @@ module CrystalGPT5
         #   2. Generate getter method (def name : Type; @name; end)
         #   3. Generate setter method (def name=(@name : Type); end)
         # For now, we parse and type-check the structure only
-        private def infer_accessor(node) : Type
-          # Future: infer default value types if present
-          if specs = Frontend.node_accessor_specs(node)
-            specs.each do |spec|
-              if default_value = spec.default_value
-                infer_expression(default_value)
-              end
+        private def infer_accessor(node : Frontend::GetterNode | Frontend::SetterNode | Frontend::PropertyNode) : Type
+          node.specs.each do |spec|
+            if default_value = spec.default_value
+              infer_expression(default_value)
             end
           end
 
-          # Accessor macros return Nil as they are declarations
           @context.nil_type
         end
 
-        private def infer_while(node) : Type
-          # Infer condition type
-          condition_id = Frontend.node_condition(node)
-          return @context.nil_type unless condition_id
-
+        private def infer_while(node : Frontend::WhileNode) : Type
+          condition_id = node.condition
           condition_type = infer_expression(condition_id)
 
-          # Check condition is Bool
           unless bool_type?(condition_type)
             emit_error("While condition must be Bool, got #{condition_type}", condition_id)
           end
 
-          # Infer body expressions (result not used)
-          if body = Frontend.node_while_body(node)
-            body.each { |expr_id| infer_expression(expr_id) }
-          end
+          node.body.each { |expr_id| infer_expression(expr_id) }
 
-          # While loops always return Nil in Crystal
           @context.nil_type
         end
 
@@ -1358,29 +1222,22 @@ module CrystalGPT5
         end
 
         # Phase 40: Type inference for typeof (type introspection)
-        private def infer_typeof(node, expr_id : ExprId) : Type
+        private def infer_typeof(node : Frontend::TypeofNode, expr_id : ExprId) : Type
           # typeof returns the type of its argument(s) at compile time
           # In a full implementation:
           # - typeof(x) returns the type of x (e.g., Int32)
           # - typeof(x, y) returns the union type (e.g., Int32 | String)
 
           # For now, infer types of arguments and return a placeholder
-          if args = Frontend.node_typeof_args(node)
-            arg_types = [] of Type
-            args.each do |arg_expr_id|
-              arg_type = infer_expression(arg_expr_id)
-              arg_types << arg_type
-            end
-
-            # In full implementation, would return Type metaclass
-            # For now, return nil_type as placeholder
+          node.args.each do |arg_expr_id|
+            infer_expression(arg_expr_id)
           end
 
           @context.nil_type
         end
 
         # Phase 41: Type inference for sizeof (size in bytes)
-        private def infer_sizeof(node, expr_id : ExprId) : Type
+        private def infer_sizeof(node : Frontend::SizeofNode, expr_id : ExprId) : Type
           # sizeof returns the size of a type or expression in bytes
           # In a full implementation:
           # - sizeof(Int32) returns 4 (32 bits = 4 bytes)
@@ -1388,18 +1245,14 @@ module CrystalGPT5
           # - sizeof(expr) returns the size of expr's type
 
           # For now, infer types of arguments and return Int32
-          if args = Frontend.node_sizeof_args(node)
-            args.each do |arg_expr_id|
-              infer_expression(arg_expr_id)
-            end
-          end
+          node.args.each { |arg_expr_id| infer_expression(arg_expr_id) }
 
           # sizeof always returns Int32 (number of bytes)
           @context.int32_type
         end
 
         # Phase 42: pointerof (pointer to variable/expression)
-        private def infer_pointerof(node, expr_id : ExprId) : Type
+        private def infer_pointerof(node : Frontend::PointerofNode, expr_id : ExprId) : Type
           # pointerof returns a pointer to a variable or expression
           # In a full implementation:
           # - pointerof(x) returns Pointer(T) where T is the type of x
@@ -1407,17 +1260,13 @@ module CrystalGPT5
           # - pointerof(expr) returns pointer to expression's result
 
           # For now, infer types of arguments and return nil as placeholder
-          if args = Frontend.node_pointerof_args(node)
-            args.each do |arg_expr_id|
-              infer_expression(arg_expr_id)
-            end
-          end
+          node.args.each { |arg_expr_id| infer_expression(arg_expr_id) }
 
           # Return nil_type as placeholder (full implementation would return Pointer(T))
           @context.nil_type
         end
 
-        private def infer_uninitialized(node, expr_id : ExprId) : Type
+        private def infer_uninitialized(node : Frontend::UninitializedNode, expr_id : ExprId) : Type
           # Phase 85: uninitialized creates an uninitialized variable of specified type
           # uninitialized(Type) allocates memory but doesn't initialize it
           # Returns a value of the specified type
@@ -1427,17 +1276,13 @@ module CrystalGPT5
           # - No initialization code generated
 
           # For now, infer the type expression and return the type
-          if type_expr = Frontend.node_uninitialized_type(node)
-            # Type expressions like Int32, String, Pointer(UInt8) are identifiers/calls
-            # For simplified implementation, return nil_type as placeholder
-            infer_expression(type_expr)
-          end
+          infer_expression(node.type)
 
           # Return nil_type as placeholder (full implementation would return the actual type)
           @context.nil_type
         end
 
-        private def infer_offsetof(node, expr_id : ExprId) : Type
+        private def infer_offsetof(node : Frontend::OffsetofNode, expr_id : ExprId) : Type
           # Phase 86: offsetof returns the byte offset of a field within a type
           # offsetof(Type, :field) returns Int32 offset value
           # In a full implementation:
@@ -1447,18 +1292,14 @@ module CrystalGPT5
           # - Return Int32 type
 
           # For now, infer both arguments and return nil_type as placeholder
-          if args = Frontend.node_offsetof_args(node)
-            args.each do |arg_expr_id|
-              infer_expression(arg_expr_id)
-            end
-          end
+          node.args.each { |arg_expr_id| infer_expression(arg_expr_id) }
 
           # Return nil_type as placeholder (full implementation would return Int32)
           @context.nil_type
         end
 
         # Phase 88: Type inference for alignof (ABI alignment in bytes)
-        private def infer_alignof(node, expr_id : ExprId) : Type
+        private def infer_alignof(node : Frontend::AlignofNode, expr_id : ExprId) : Type
           # alignof returns the ABI alignment of a type in bytes
           # In a full implementation:
           # - alignof(Int32) returns 4 (aligned on 4-byte boundaries)
@@ -1466,18 +1307,14 @@ module CrystalGPT5
           # - alignof(Type) returns the alignment of that type
 
           # For now, infer types of arguments and return Int32
-          if args = Frontend.node_alignof_args(node)
-            args.each do |arg_expr_id|
-              infer_expression(arg_expr_id)
-            end
-          end
+          node.args.each { |arg_expr_id| infer_expression(arg_expr_id) }
 
           # alignof always returns Int32 (number of bytes)
           @context.int32_type
         end
 
         # Phase 88: Type inference for instance_alignof (instance alignment)
-        private def infer_instance_alignof(node, expr_id : ExprId) : Type
+        private def infer_instance_alignof(node : Frontend::InstanceAlignofNode, expr_id : ExprId) : Type
           # instance_alignof returns the effective alignment of a class instance
           # Different from alignof which returns pointer alignment for reference types
           # In a full implementation:
@@ -1485,11 +1322,7 @@ module CrystalGPT5
           # - instance_alignof differs from alignof for reference types
 
           # For now, infer types of arguments and return Int32
-          if args = Frontend.node_instance_alignof_args(node)
-            args.each do |arg_expr_id|
-              infer_expression(arg_expr_id)
-            end
-          end
+          node.args.each { |arg_expr_id| infer_expression(arg_expr_id) }
 
           # instance_alignof always returns Int32 (number of bytes)
           @context.int32_type
