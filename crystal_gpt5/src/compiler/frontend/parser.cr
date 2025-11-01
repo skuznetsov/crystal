@@ -849,7 +849,7 @@ module CrystalGPT5
                   #   String, Int32 ->       (multi-arg proc)
                   #   (Int32, String) -> Bool (parenthesized proc)
                   type_start = current_token
-                  type_tokens = [] of String
+                  last_type_token = type_start  # TIER 2.4: Track last token for zero-copy slice
                   found_arrow = false
                   paren_depth = 0
 
@@ -867,7 +867,7 @@ module CrystalGPT5
 
                     # Check for -> (proc type arrow)
                     if current_token.kind == Token::Kind::ThinArrow
-                      type_tokens << token_text(current_token)
+                      last_type_token = current_token  # TIER 2.4: Update last token
                       advance
                       found_arrow = true
                       # Continue to collect optional return type
@@ -881,7 +881,7 @@ module CrystalGPT5
                     end
 
                     # BEFORE finding arrow, collect everything (including commas)
-                    type_tokens << token_text(current_token)
+                    last_type_token = current_token  # TIER 2.4: Update last token (was token_text)
                     advance
 
                     # Skip whitespace but include in token stream
@@ -890,11 +890,11 @@ module CrystalGPT5
                     end
                   end
 
-                  # TIER 2.1: Temporary - convert String to Slice
-                  # TODO TIER 2.4: Replace with zero-copy proc type parsing
-                  unless type_tokens.empty?
-                    str = type_tokens.join(" ")
-                    type_annotation = Slice(UInt8).new(str.to_unsafe, str.bytesize)
+                  # TIER 2.4: Zero-copy proc type parsing using pointer arithmetic
+                  if last_type_token != type_start || current_token.kind == Token::Kind::EOF
+                    start_ptr = type_start.slice.to_unsafe
+                    end_ptr = last_type_token.slice.to_unsafe + last_type_token.slice.size
+                    type_annotation = Slice.new(start_ptr, end_ptr - start_ptr)
                   end
                   param_type_span = type_start.span.cover(previous_token.not_nil!.span) if previous_token
                 else
