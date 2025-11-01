@@ -75,12 +75,12 @@ module CrystalGPT5
           when .string?
             infer_string(node.as(Frontend::StringNode))
           when .string_interpolation?
-            infer_string_interpolation(node, expr_id)
+            infer_string_interpolation(node.as(Frontend::StringInterpolationNode), expr_id)
           when .symbol?
             # Phase 16: Symbol literals
             infer_symbol(node.as(Frontend::SymbolNode))
           when .array_literal?
-            infer_array_literal(node, expr_id)
+            infer_array_literal(node.as(Frontend::ArrayLiteralNode), expr_id)
           when .bool?
             infer_bool(node.as(Frontend::BoolNode))
           when .nil?
@@ -114,13 +114,13 @@ module CrystalGPT5
           when .class?
             infer_class(node.as(Frontend::ClassNode), expr_id)
           when .call?
-            infer_call(node, expr_id)
+            infer_call(node.as(Frontend::CallNode), expr_id)
           when .member_access?
             # In Crystal, obj.method without parens is a zero-argument method call
-            infer_member_access(node, expr_id)
+            infer_member_access(node.as(Frontend::MemberAccessNode), expr_id)
           when .index?
             # Phase 9: Array indexing arr[0]
-            infer_index(node, expr_id)
+            infer_index(node.as(Frontend::IndexNode), expr_id)
           when .if?
             infer_if(node.as(Frontend::IfNode))
           when .unless?
@@ -201,67 +201,67 @@ module CrystalGPT5
             infer_instance_alignof(node.as(Frontend::InstanceAlignofNode), expr_id)
           when .asm?
             # Phase 95: Inline assembly expressions
-            infer_asm(node, expr_id)
+            infer_asm(node.as(Frontend::AsmNode), expr_id)
           when .out?
             # Phase 98: Out keyword (C bindings output parameter)
-            infer_out(node, expr_id)
+            infer_out(node.as(Frontend::OutNode), expr_id)
           when Frontend::NodeKind::As
             # Phase 44: Type cast expressions (can't use .as? due to keyword collision)
-            infer_as(node, expr_id)
+            infer_as(node.as(Frontend::AsNode), expr_id)
           when Frontend::NodeKind::AsQuestion
             # Phase 45: Safe cast expressions (nilable)
-            infer_as_question(node, expr_id)
+            infer_as_question(node.as(Frontend::AsQuestionNode), expr_id)
           when Frontend::NodeKind::IsA
             # Phase 93: Type check expressions (returns Bool)
-            infer_is_a(node, expr_id)
+            infer_is_a(node.as(Frontend::IsANode), expr_id)
           when Frontend::NodeKind::RespondsTo
             # Phase 94: Method check expressions (returns Bool)
-            infer_responds_to(node, expr_id)
+            infer_responds_to(node.as(Frontend::RespondsToNode), expr_id)
           when Frontend::NodeKind::Generic
             # Phase 60: Generic type instantiation
-            infer_generic(node, expr_id)
+            infer_generic(node.as(Frontend::GenericNode), expr_id)
           when Frontend::NodeKind::Path
             # Phase 63: Path expressions (Foo::Bar)
-            infer_path(node, expr_id)
+            infer_path(node.as(Frontend::PathNode), expr_id)
           when Frontend::NodeKind::SafeNavigation
             # Phase 47: Safe navigation expressions (returns nilable)
-            infer_safe_navigation(node, expr_id)
+            infer_safe_navigation(node.as(Frontend::SafeNavigationNode), expr_id)
           when .block?
             # Phase 10: Block literals
-            infer_block(node, expr_id)
+            infer_block(node.as(Frontend::BlockNode), expr_id)
           when .proc_literal?
             # Phase 74: Proc literals
-            infer_proc_literal(node, expr_id)
+            infer_proc_literal(node.as(Frontend::ProcLiteralNode), expr_id)
           when .yield?
             # Phase 10: Yield expressions
-            infer_yield(node, expr_id)
+            infer_yield(node.as(Frontend::YieldNode), expr_id)
           when .case?
             # Phase 11: Case/when pattern matching
-            infer_case(node, expr_id)
+            infer_case(node.as(Frontend::CaseNode), expr_id)
           when .select?
             # Phase 90A: Select/when concurrent channel operations
-            infer_select(node, expr_id)
+            infer_select(node.as(Frontend::SelectNode), expr_id)
           when .break?
             # Phase 12: Break expressions
-            infer_break(node, expr_id)
+            infer_break(node.as(Frontend::BreakNode), expr_id)
           when .next?
             # Phase 12: Next expressions
             infer_next(node, expr_id)
           when .range?
             # Phase 13: Range expressions
-            infer_range(node, expr_id)
+            infer_range(node.as(Frontend::RangeNode), expr_id)
           when .hash_literal?
             # Phase 14: Hash literals
-            infer_hash_literal(node, expr_id)
+            infer_hash_literal(node.as(Frontend::HashLiteralNode), expr_id)
           when .tuple_literal?
             # Phase 15: Tuple literals
-            infer_tuple_literal(node, expr_id)
+            infer_tuple_literal(node.as(Frontend::TupleLiteralNode), expr_id)
           when .named_tuple_literal?
             # Phase 70: Named tuple literals
-            infer_named_tuple_literal(node, expr_id)
+            infer_named_tuple_literal(node.as(Frontend::NamedTupleLiteralNode), expr_id)
           when .ternary?
             # Phase 23: Ternary operator
-            infer_ternary(node, expr_id)
+            infer_ternary(node.as(Frontend::TernaryNode), expr_id)
           when .module?
             # Phase 31: Module definition
             infer_module(node.as(Frontend::ModuleNode), expr_id)
@@ -1329,7 +1329,7 @@ module CrystalGPT5
         end
 
         # Phase 95: Type inference for asm (inline assembly)
-        private def infer_asm(node, expr_id : ExprId) : Type
+        private def infer_asm(node : Frontend::AsmNode, expr_id : ExprId) : Type
           # asm inserts inline assembly code
           # In a full implementation:
           # - asm("template", outputs..., inputs..., clobbers..., flags...)
@@ -1343,18 +1343,14 @@ module CrystalGPT5
           # - Future phases will add proper constraint parsing and type checking
 
           # For now, infer types of all arguments
-          if args = Frontend.node_asm_args(node)
-            args.each do |arg_expr_id|
-              infer_expression(arg_expr_id)
-            end
-          end
+          node.args.each { |arg_expr_id| infer_expression(arg_expr_id) }
 
           # asm expressions return nil (inline assembly is a statement)
           @context.nil_type
         end
 
         # Phase 98: out keyword (C bindings output parameter)
-        private def infer_out(node, expr_id : ExprId) : Type
+        private def infer_out(node : Frontend::OutNode, expr_id : ExprId) : Type
           # out defines a new variable and passes its address to C function
           # Syntax: out identifier
           # In a full implementation:
@@ -1373,7 +1369,7 @@ module CrystalGPT5
         end
 
         # Phase 44: as keyword (type cast)
-        private def infer_as(node, expr_id : ExprId) : Type
+        private def infer_as(node : Frontend::AsNode, expr_id : ExprId) : Type
           # Type cast: value.as(Type)
           # In a full implementation:
           # - Infer type of value being cast
@@ -1382,16 +1378,14 @@ module CrystalGPT5
           # - Return target type
 
           # For now, infer type of value and return nil as placeholder
-          if value_expr = Frontend.node_as_value(node)
-            infer_expression(value_expr)
-          end
+          infer_expression(node.expression)
 
           # Return nil_type as placeholder (full implementation would return target type)
           @context.nil_type
         end
 
         # Phase 45: as? keyword (safe cast - nilable)
-        private def infer_as_question(node, expr_id : ExprId) : Type
+        private def infer_as_question(node : Frontend::AsQuestionNode, expr_id : ExprId) : Type
           # Safe cast: value.as?(Type)
           # Returns Type? (nilable) instead of Type
           # In a full implementation:
@@ -1401,16 +1395,14 @@ module CrystalGPT5
           # - Unlike .as, this doesn't panic on invalid cast, returns nil
 
           # For now, infer type of value and return nil as placeholder
-          if value_expr = Frontend.node_as_question_value(node)
-            infer_expression(value_expr)
-          end
+          infer_expression(node.expression)
 
           # Return nil_type as placeholder (full implementation would return target_type | Nil)
           @context.nil_type
         end
 
         # Phase 93: is_a? keyword (type check - returns Bool)
-        private def infer_is_a(node, expr_id : ExprId) : Type
+        private def infer_is_a(node : Frontend::IsANode, expr_id : ExprId) : Type
           # Type check: value.is_a?(Type)
           # Returns Bool (true if value is instance of Type, false otherwise)
           # In a full implementation:
@@ -1421,16 +1413,14 @@ module CrystalGPT5
           # - Can enable type narrowing in conditional branches
 
           # For now, infer type of value and return bool type
-          if value_expr = Frontend.node_is_a_value(node)
-            infer_expression(value_expr)
-          end
+          infer_expression(node.expression)
 
           # Return Bool type (is_a? always returns boolean)
           @context.bool_type
         end
 
         # Phase 94: responds_to? keyword (method check - returns Bool)
-        private def infer_responds_to(node, expr_id : ExprId) : Type
+        private def infer_responds_to(node : Frontend::RespondsToNode, expr_id : ExprId) : Type
           # Method check: value.responds_to?(:method_name)
           # Returns Bool (true if value has method, false otherwise)
           # In a full implementation:
@@ -1441,20 +1431,15 @@ module CrystalGPT5
           # - Unlike .is_a?, this checks for method availability
 
           # For now, infer type of value and method name, return bool type
-          if value_expr = Frontend.node_responds_to_value(node)
-            infer_expression(value_expr)
-          end
-
-          if method_name_expr = Frontend.node_responds_to_method_name(node)
-            infer_expression(method_name_expr)
-          end
+          infer_expression(node.expression)
+          infer_expression(node.method_name)
 
           # Return Bool type (responds_to? always returns boolean)
           @context.bool_type
         end
 
         # Phase 60: Generic type instantiation
-        private def infer_generic(node, expr_id : ExprId) : Type
+        private def infer_generic(node : Frontend::GenericNode, expr_id : ExprId) : Type
           # Generic instantiation: Box(Int32), Hash(String, Int32)
           # Returns the specialized generic type
           # In a full implementation:
@@ -1464,15 +1449,8 @@ module CrystalGPT5
           # - Track type parameters for validation
 
           # For now, infer base name and type arguments, return placeholder
-          if name_expr = Frontend.node_generic_name(node)
-            infer_expression(name_expr)
-          end
-
-          if type_args = Frontend.node_generic_type_args(node)
-            type_args.each do |arg|
-              infer_expression(arg)
-            end
-          end
+          infer_expression(node.base_type)
+          node.type_args.each { |arg| infer_expression(arg) }
 
           # Return placeholder type (nil_type for now)
           # Future: return specialized generic type like Box<Int32>
@@ -1480,7 +1458,7 @@ module CrystalGPT5
         end
 
         # Phase 63: Type inference for path expressions (Foo::Bar)
-        private def infer_path(node, expr_id : ExprId) : Type
+        private def infer_path(node : Frontend::PathNode, expr_id : ExprId) : Type
           # Path expression: navigating nested types/modules
           # Examples: HTTP::Server, Foo::Bar::Baz, ::TopLevel
           #
@@ -1493,14 +1471,11 @@ module CrystalGPT5
           # For now, infer left (if present) and right, return placeholder
 
           # Infer left side (if not absolute path)
-          if left_expr = Frontend.node_left(node)
+          if left_expr = node.left
             infer_expression(left_expr)
           end
 
-          # Infer right side
-          if right_expr = Frontend.node_right(node)
-            infer_expression(right_expr)
-          end
+          infer_expression(node.right)
 
           # Return placeholder type (nil_type for now)
           # Future: return resolved type from namespace lookup
@@ -1508,7 +1483,7 @@ module CrystalGPT5
         end
 
         # Phase 47: &. safe navigation operator (returns nilable)
-        private def infer_safe_navigation(node, expr_id : ExprId) : Type
+        private def infer_safe_navigation(node : Frontend::SafeNavigationNode, expr_id : ExprId) : Type
           # Safe navigation: receiver&.member
           # Returns member_type | Nil (nilable)
           # If receiver is nil, returns nil without calling method
@@ -1519,9 +1494,7 @@ module CrystalGPT5
           # - Return Union(member_type, Nil) - nilable version
 
           # For now, infer receiver type and return nil as placeholder
-          if receiver_expr = Frontend.node_left(node)
-            infer_expression(receiver_expr)
-          end
+          infer_expression(node.object)
 
           # Return nil_type as placeholder (full implementation would return member_type | Nil)
           @context.nil_type
@@ -1531,15 +1504,11 @@ module CrystalGPT5
         # PHASE 8: String Interpolation
         # ============================================================
 
-        private def infer_string_interpolation(node, expr_id : ExprId) : Type
-          # String interpolation always evaluates to String type
-          # Infer types for all interpolated expressions
-          if pieces = Frontend.node_string_pieces(node)
-            pieces.each do |piece|
-              if piece.kind == Frontend::StringPiece::Kind::Expression
-                if expr = piece.expr
-                  infer_expression(expr)
-                end
+        private def infer_string_interpolation(node : Frontend::StringInterpolationNode, expr_id : ExprId) : Type
+          node.pieces.each do |piece|
+            if piece.kind == Frontend::StringPiece::Kind::Expression
+              if expr = piece.expr
+                infer_expression(expr)
               end
             end
           end
@@ -1552,16 +1521,16 @@ module CrystalGPT5
         # PHASE 9: Array Literals
         # ============================================================
 
-        private def infer_array_literal(node, expr_id : ExprId) : Type
+        private def infer_array_literal(node : Frontend::ArrayLiteralNode, expr_id : ExprId) : Type
           # Determine element type
           element_type : Type
 
           # Case 1: Explicit "of Type" syntax ([] of Int32)
           # Phase 91A: Parser only - just ignore type for now, return placeholder
-          if of_type_expr_id = Frontend.node_array_of_type(node)
+          if of_type_expr_id = node.of_type
             # TODO Phase 91B: Extract type from expression and use for validation
             # For now, infer from elements if present, else return placeholder
-            if elements = Frontend.node_array_elements(node)
+            if elements = node.elements
               if elements.empty?
                 # Empty array with type - return placeholder
                 element_type = @context.nil_type
@@ -1574,7 +1543,7 @@ module CrystalGPT5
               element_type = @context.nil_type
             end
           # Case 2: Infer from elements
-          elsif elements = Frontend.node_array_elements(node)
+          elsif elements = node.elements
             if elements.empty?
               # Empty array without type annotation - default to Nil
               # (In real Crystal this would be an error, but we'll allow it for now)
@@ -1597,14 +1566,10 @@ module CrystalGPT5
           array_type
         end
 
-        private def infer_index(node, expr_id : ExprId) : Type
-          # Get target (array/hash) and index types
-          target_id = Frontend.node_left(node)
-          index_id = Frontend.node_args(node).try(&.first)
-
-          return @context.nil_type unless target_id && index_id
-
-          target_type = infer_expression(target_id)
+        private def infer_index(node : Frontend::IndexNode, expr_id : ExprId) : Type
+          target_type = infer_expression(node.object)
+          index_id = node.indexes.first?
+          return @context.nil_type unless index_id
           _index_type = infer_expression(index_id)
 
           # Phase 9: Array indexing
@@ -1619,27 +1584,22 @@ module CrystalGPT5
             value_type
           # Phase 15: Tuple indexing
           elsif target_type.is_a?(TupleType)
-            # Tuple indexing requires compile-time constant index
-            # For now, support only integer literals
             index_node = @program.arena[index_id]
-            if Frontend.node_kind(index_node) == Frontend::NodeKind::Number
-              # Parse literal index
-              index_text = Frontend.node_literal_string(index_node)
-              if index_text
-                index_value = index_text.to_i32? || 0
-                # Get type at specific index
-                if elem_type = target_type.type_at(index_value)
-                  elem_type
-                else
-                  emit_error("Tuple index #{index_value} out of bounds (size: #{target_type.size})", expr_id)
-                  @context.nil_type
-                end
-              else
-                emit_error("Invalid tuple index literal", expr_id)
-                @context.nil_type
-              end
-            else
+            unless index_node.is_a?(Frontend::NumberNode)
               emit_error("Tuple indexing requires compile-time constant integer", expr_id)
+              return @context.nil_type
+            end
+
+            index_text = String.new(index_node.value)
+            unless index_value = index_text.to_i32?
+              emit_error("Invalid tuple index literal", expr_id)
+              return @context.nil_type
+            end
+
+            if elem_type = target_type.type_at(index_value)
+              elem_type
+            else
+              emit_error("Tuple index #{index_value} out of bounds (size: #{target_type.size})", expr_id)
               @context.nil_type
             end
           else
@@ -1653,15 +1613,11 @@ module CrystalGPT5
         # PHASE 4: Method Calls
         # ============================================================
 
-        private def infer_member_access(node, expr_id : ExprId) : Type
+        private def infer_member_access(node : Frontend::MemberAccessNode, expr_id : ExprId) : Type
           # MemberAccess without parens is a zero-argument method call in Crystal
           # obj.method → obj.method()
-          receiver_id = Frontend.node_left(node)
-          return @context.nil_type unless receiver_id
-
-          receiver_type = infer_expression(receiver_id)
-          method_name = Frontend.node_member_string(node)
-          return @context.nil_type unless method_name
+          receiver_type = infer_expression(node.object)
+          method_name = String.new(node.member)
 
           # Phase 4B.5: Special case for constructor - ClassName.new → InstanceType
           if method_name == "new" && receiver_type.is_a?(ClassType)
@@ -1670,11 +1626,6 @@ module CrystalGPT5
 
           # Phase 4B: Zero-argument method call
           arg_types = [] of Type
-
-          # Phase 10: Infer block type if present
-          if block_id = Frontend.node_call_block(node)
-            infer_expression(block_id)
-          end
 
           # Phase 4B.4: Special case for union types - compute union return type
           if receiver_type.is_a?(UnionType)
@@ -1702,32 +1653,22 @@ module CrystalGPT5
           result_type
         end
 
-        private def infer_call(node, expr_id : ExprId) : Type
-          # Phase 10: Infer block type if present (do this FIRST, even for unsupported calls)
-          if block_id = Frontend.node_call_block(node)
+        private def infer_call(node : Frontend::CallNode, expr_id : ExprId) : Type
+          if block_id = node.block
             infer_expression(block_id)
           end
 
-          # Extract receiver and method name from Call node
-          return @context.nil_type unless callee_id = Frontend.node_callee(node)
+          callee_node = @program.arena[node.callee]
 
-          callee_node = @program.arena[callee_id]
-
-          # Determine receiver type and method name
           receiver_type : Type?
           method_name : String?
 
-          case Frontend.node_kind(callee_node)
-          when .member_access?
-            # foo.bar(x) → receiver=foo, method=bar
-            receiver_id = Frontend.node_left(callee_node)
-            return @context.nil_type unless receiver_id
-
-            receiver_type = infer_expression(receiver_id)
-            method_name = Frontend.node_member_string(callee_node)
-          when .identifier?
-            # bar(x) → implicit self (not supported yet in Phase 4A)
-            # But we still inferred the block above, so return nil_type for the call itself
+          case callee_node
+          when Frontend::MemberAccessNode
+            receiver_type = infer_expression(callee_node.object)
+            method_name = String.new(callee_node.member)
+          when Frontend::IdentifierNode
+            # bar(x) → implicit self (not yet supported)
             return @context.nil_type
           else
             return @context.nil_type
@@ -1735,29 +1676,16 @@ module CrystalGPT5
 
           return @context.nil_type unless receiver_type && method_name
 
-          # Phase 4B.5: Special case for constructor - ClassName.new(...) → InstanceType
-          # TODO: Validate constructor arguments against initialize method
           if method_name == "new" && receiver_type.is_a?(ClassType)
             return InstanceType.new(receiver_type.symbol)
           end
 
-          # Phase 4B: Infer argument types for overload resolution
-          arg_types = [] of Type
-          if args = Frontend.node_args(node)
-            args.each do |arg_id|
-              arg_type = infer_expression(arg_id)
-              arg_types << arg_type
-            end
+          arg_types = node.args.map { |arg_id| infer_expression(arg_id) }
+
+          if named_args = node.named_args
+            named_args.each { |named_arg| infer_expression(named_arg.value) }
           end
 
-          # Phase 72: Infer named argument value types
-          if named_args = Frontend.node_named_args(node)
-            named_args.each do |named_arg|
-              infer_expression(named_arg.value)
-            end
-          end
-
-          # Phase 4B.4: Special case for union types - compute union return type
           if receiver_type.is_a?(UnionType)
             if return_type = compute_union_method_return_type(receiver_type, method_name, arg_types)
               return return_type
@@ -1767,9 +1695,7 @@ module CrystalGPT5
             end
           end
 
-          # Lookup method with overload resolution (Phase 4B)
-          result_type = if method = lookup_method(receiver_type, method_name, arg_types)
-            # Return declared return type
+          if method = lookup_method(receiver_type, method_name, arg_types)
             if ann = method.return_annotation
               parse_type_name(ann)
             else
@@ -1779,9 +1705,6 @@ module CrystalGPT5
             emit_error("Method '#{method_name}' not found on #{receiver_type}", expr_id)
             @context.nil_type
           end
-
-          # Type will be set by infer_expression
-          result_type
         end
 
         # Phase 4B: Method lookup with overload resolution
@@ -2139,25 +2062,13 @@ module CrystalGPT5
         # PHASE 10: Blocks and Yield
         # ============================================================
 
-        private def infer_block(node, expr_id : ExprId) : Type
-          # Infer types of block body expressions
-          body = Frontend.node_block_body(node) || [] of ExprId
-
-          # Type of block is the type of its last expression
-          # (Type will be set by infer_expression)
-          block_type = if body.empty?
-            @context.nil_type
-          else
-            body.each { |stmt_id| infer_expression(stmt_id) }
-            infer_expression(body.last)
-          end
-
-          block_type
+        private def infer_block(node : Frontend::BlockNode, expr_id : ExprId) : Type
+          infer_block_result(node.body)
         end
 
-        private def infer_yield(node, expr_id : ExprId) : Type
+        private def infer_yield(node : Frontend::YieldNode, expr_id : ExprId) : Type
           # Infer types of yield arguments
-          if args = Frontend.node_yield_args(node)
+          if args = node.args
             args.each { |arg_id| infer_expression(arg_id) }
           end
 
@@ -2168,18 +2079,10 @@ module CrystalGPT5
         end
 
         # Phase 74: Proc literal type inference
-        private def infer_proc_literal(node, expr_id : ExprId) : Type
-          # Infer parameter types (if annotated)
-          params = Frontend.node_block_params(node) || [] of Parameter
+        private def infer_proc_literal(node : Frontend::ProcLiteralNode, expr_id : ExprId) : Type
+          params = node.params || [] of Parameter
 
-          # Infer body type
-          body = Frontend.node_block_body(node) || [] of ExprId
-          body_type = if body.empty?
-            @context.nil_type
-          else
-            body.each { |stmt_id| infer_expression(stmt_id) }
-            infer_expression(body.last)
-          end
+          body_type = infer_block_result(node.body || [] of ExprId)
 
           # If return type is annotated, use it
           # Otherwise use inferred body type
@@ -2195,55 +2098,25 @@ module CrystalGPT5
         # PHASE 11: Case/When
         # ============================================================
 
-        private def infer_case(node, expr_id : ExprId) : Type
-          # Infer type of case value
-          if value_id = Frontend.node_case_value(node)
+        private def infer_case(node : Frontend::CaseNode, expr_id : ExprId) : Type
+          if value_id = node.value
             infer_expression(value_id)
           end
 
-          # Collect types from all branches
           branch_types = [] of Type
 
-          # Infer types from when branches
-          if branches = Frontend.node_when_branches(node)
-            branches.each do |branch|
-              # Infer types of conditions
-              branch.conditions.each { |cond_id| infer_expression(cond_id) }
-
-              # Type of branch is the type of its last expression
-              branch_type = if branch.body.empty?
-                @context.nil_type
-              else
-                branch.body.each { |stmt_id| infer_expression(stmt_id) }
-                infer_expression(branch.body.last)
-              end
-
-              branch_types << branch_type
-            end
+          node.when_branches.each do |branch|
+            branch.conditions.each { |cond_id| infer_expression(cond_id) }
+            branch_types << infer_block_result(branch.body)
           end
 
-          # Infer type from else clause
-          if else_body = Frontend.node_case_else(node)
-            else_type = if else_body.empty?
-              @context.nil_type
-            else
-              else_body.each { |stmt_id| infer_expression(stmt_id) }
-              infer_expression(else_body.last)
-            end
-            branch_types << else_type
+          if else_body = node.else_branch
+            branch_types << infer_block_result(else_body)
           else
-            # No else clause means case can return nil if no when matches
             branch_types << @context.nil_type
           end
 
-          # Case type is union of all branch types
-          # (Type will be set by infer_expression)
-          case_type = if branch_types.size == 1
-            branch_types[0]
-          else
-            @context.union_of(branch_types)
-          end
-
+          case_type = branch_types.size == 1 ? branch_types[0] : @context.union_of(branch_types)
           case_type
         end
 
@@ -2251,23 +2124,21 @@ module CrystalGPT5
         # PHASE 90A: Select/When (Concurrent Channel Operations)
         # ============================================================
 
-        private def infer_select(node, expr_id : ExprId) : Type
+        private def infer_select(node : Frontend::SelectNode, expr_id : ExprId) : Type
           # Phase 90A: Parser only - infer conditions and bodies but return placeholder
           # Full concurrent semantics deferred to Phase 90B
 
           # Infer types from select branches
-          if branches = Frontend.node_select_branches(node)
-            branches.each do |branch|
-              # Infer type of condition (channel operation)
-              infer_expression(branch.condition)
+          node.branches.each do |branch|
+            # Infer type of condition (channel operation)
+            infer_expression(branch.condition)
 
-              # Infer types of body expressions
-              branch.body.each { |stmt_id| infer_expression(stmt_id) }
-            end
+            # Infer types of body expressions
+            branch.body.each { |stmt_id| infer_expression(stmt_id) }
           end
 
           # Infer type from else clause (non-blocking fallback)
-          if else_body = Frontend.node_select_else(node)
+          if else_body = node.else_branch
             else_body.each { |stmt_id| infer_expression(stmt_id) }
           end
 
@@ -2280,11 +2151,10 @@ module CrystalGPT5
         # PHASE 12: Break/Next
         # ============================================================
 
-        private def infer_break(node, expr_id : ExprId) : Type
+        private def infer_break(node : Frontend::BreakNode, expr_id : ExprId) : Type
           # Break can have an optional value
           # (Type will be set by infer_expression)
-          value_id = Frontend.node_break_value(node)
-          break_type = if value_id
+          break_type = if value_id = node.value
             infer_expression(value_id)
           else
             @context.nil_type
@@ -2303,13 +2173,9 @@ module CrystalGPT5
         # PHASE 13: Range Expressions
         # ============================================================
 
-        private def infer_range(node, expr_id : ExprId) : Type
-          # Infer types of begin and end expressions
-          begin_id = Frontend.node_range_begin(node).not_nil!
-          end_id = Frontend.node_range_end(node).not_nil!
-
-          begin_type = infer_expression(begin_id)
-          end_type = infer_expression(end_id)
+        private def infer_range(node : Frontend::RangeNode, expr_id : ExprId) : Type
+          begin_type = infer_expression(node.begin_expr)
+          end_type = infer_expression(node.end_expr)
 
           # Create Range(B, E) type
           # (Type will be set by infer_expression)
@@ -2321,92 +2187,56 @@ module CrystalGPT5
         # PHASE 14: Hash Literals
         # ============================================================
 
-        private def infer_hash_literal(node, expr_id : ExprId) : Type
-          # Type will be set by infer_expression
-          entries = Frontend.node_hash_entries(node)
+        private def infer_hash_literal(node : Frontend::HashLiteralNode, expr_id : ExprId) : Type
+          entries = node.entries
 
-          # Empty hash with explicit type annotation
-          if entries.nil? || entries.empty?
-            if key_type_slice = Frontend.node_hash_of_key_type(node)
-              value_type_slice = Frontend.node_hash_of_value_type(node).not_nil!
-
-              # Parse type names and lookup types
-              key_type_name = String.new(key_type_slice)
-              value_type_name = String.new(value_type_slice)
-
-              key_type = lookup_type_by_name(key_type_name)
-              value_type = lookup_type_by_name(value_type_name)
-
-              hash_type = HashType.new(key_type, value_type)
-              return hash_type
+          if entries.empty?
+            if key_type_slice = node.of_key_type
+              value_type_slice = node.of_value_type.not_nil!
+              key_type = lookup_type_by_name(String.new(key_type_slice))
+              value_type = lookup_type_by_name(String.new(value_type_slice))
+              return HashType.new(key_type, value_type)
             else
-              # Empty hash without type annotation - error
-              # For now, default to Hash(Nil, Nil) as placeholder
-              hash_type = HashType.new(@context.nil_type, @context.nil_type)
-              return hash_type
+              return HashType.new(@context.nil_type, @context.nil_type)
             end
           end
 
-          # Infer types from entries
           key_types = [] of Type
           value_types = [] of Type
 
           entries.each do |entry|
-            key_type = infer_expression(entry.key)
-            value_type = infer_expression(entry.value)
-            key_types << key_type
-            value_types << value_type
+            key_types << infer_expression(entry.key)
+            value_types << infer_expression(entry.value)
           end
 
-          # Create union types for keys and values
-          final_key_type = if key_types.size == 1
-            key_types[0]
-          else
-            # All keys should be same type, but if mixed, create union
-            @context.union_of(key_types)
-          end
+          final_key_type = key_types.size == 1 ? key_types.first : @context.union_of(key_types)
+          final_value_type = value_types.size == 1 ? value_types.first : @context.union_of(value_types)
 
-          final_value_type = if value_types.size == 1
-            value_types[0]
-          else
-            @context.union_of(value_types)
-          end
-
-          hash_type = HashType.new(final_key_type, final_value_type)
-          hash_type
+          HashType.new(final_key_type, final_value_type)
         end
 
         # ============================================================
         # PHASE 15: Tuple Literals
         # ============================================================
 
-        private def infer_tuple_literal(node, expr_id : ExprId) : Type
-          # Type will be set by infer_expression
-          elements = Frontend.node_tuple_elements(node)
+        private def infer_tuple_literal(node : Frontend::TupleLiteralNode, expr_id : ExprId) : Type
+          elements = node.elements
+          return TupleType.new([] of Type) if elements.empty?
 
-          # Empty tuple (shouldn't happen, but handle gracefully)
-          if elements.nil? || elements.empty?
-            return TupleType.new([] of Type)
-          end
-
-          # Infer type of each element
           element_types = elements.map { |elem_id| infer_expression(elem_id) }
-
-          # Create Tuple(T1, T2, ..., Tn) type
-          tuple_type = TupleType.new(element_types)
-          tuple_type
+          TupleType.new(element_types)
         end
 
         # PHASE 70: Named Tuple Literals
         # ============================================================
 
-        private def infer_named_tuple_literal(node, expr_id : ExprId) : Type
+        private def infer_named_tuple_literal(node : Frontend::NamedTupleLiteralNode, expr_id : ExprId) : Type
           # Named tuple: {name: "Alice", age: 30}
           # Type: NamedTuple(name: String, age: Int32)
-          entries = Frontend.node_named_tuple_entries(node)
+          entries = node.entries
 
           # Empty named tuple (shouldn't happen with current parser, but handle)
-          if entries.nil? || entries.empty?
+          if entries.empty?
             # Empty named tuple is valid in Crystal
             return @context.nil_type  # Placeholder for future NamedTupleType with no fields
           end
@@ -2429,10 +2259,10 @@ module CrystalGPT5
         # condition ? true_branch : false_branch
         #
         # Returns the union of true_branch and false_branch types
-        private def infer_ternary(node, expr_id : ExprId) : Type
-          condition_id = Frontend.node_ternary_condition(node).not_nil!
-          true_id = Frontend.node_ternary_true_branch(node).not_nil!
-          false_id = Frontend.node_ternary_false_branch(node).not_nil!
+        private def infer_ternary(node : Frontend::TernaryNode, expr_id : ExprId) : Type
+          condition_id = node.condition
+          true_id = node.true_branch
+          false_id = node.false_branch
 
           # Infer all three expressions
           condition_type = infer_expression(condition_id)

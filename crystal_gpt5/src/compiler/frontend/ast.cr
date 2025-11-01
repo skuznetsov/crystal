@@ -1969,12 +1969,6 @@ end
         nil
       end
 
-      # break_value: Get break value
-
-      def self.node_break_value(node : BreakNode)
-        node.value
-      end
-
       def self.node_hash_entries(node : HashLiteralNode)
         node.entries
       end
@@ -1997,10 +1991,6 @@ end
 
       def self.node_case_else(node : CaseNode)
         node.else_branch
-      end
-
-      def self.node_break_value(node : TypedNode)
-        nil
       end
 
       # call_block: Get call block
@@ -2709,26 +2699,6 @@ def self.node_responds_to_value(node : RespondsToNode)
 end
 
 def self.node_responds_to_value(node : TypedNode)
-  nil
-end
-
-# select_branches
-
-def self.node_select_branches(node : SelectNode)
-  node.branches
-end
-
-def self.node_select_branches(node : TypedNode)
-  nil
-end
-
-# select_else
-
-def self.node_select_else(node : SelectNode)
-  node.else_branch
-end
-
-def self.node_select_else(node : TypedNode)
   nil
 end
 
