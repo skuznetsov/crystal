@@ -2,6 +2,19 @@ require "spec"
 
 require "../src/compiler/frontend/parser"
 
+private def fetch_class(program)
+  program.arena[program.roots.first].as(CrystalGPT5::Compiler::Frontend::ClassNode)
+end
+
+private def fetch_method(arena, expr_id)
+  arena[expr_id].as(CrystalGPT5::Compiler::Frontend::DefNode)
+end
+
+private def fetch_super(arena, method_node)
+  body = method_node.body.not_nil!
+  arena[body.first].as(CrystalGPT5::Compiler::Frontend::SuperNode)
+end
+
 describe "CrystalGPT5::Compiler::Frontend::Parser" do
   describe "Phase 39: super keyword (PRODUCTION-READY)" do
     it "parses super without parentheses (implicit args)" do
@@ -18,16 +31,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = fetch_class(program)
+      class_body = class_node.body.not_nil!
+      method_node = fetch_method(arena, class_body[0])
+      super_node = fetch_super(arena, method_node)
 
-      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
-      method_node = arena[class_body[0]]
-
-      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
-      super_node = arena[method_body[0]]
-
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
-      CrystalGPT5::Compiler::Frontend.node_super_args(super_node).should be_nil  # nil = implicit args
+      super_node.args.should be_nil  # nil = implicit args
     end
 
     it "parses super with empty parentheses (explicit no args)" do
@@ -44,16 +53,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = fetch_class(program)
+      class_body = class_node.body.not_nil!
+      method_node = fetch_method(arena, class_body[0])
+      super_node = fetch_super(arena, method_node)
 
-      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
-      method_node = arena[class_body[0]]
-
-      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
-      super_node = arena[method_body[0]]
-
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
-      args = CrystalGPT5::Compiler::Frontend.node_super_args(super_node).not_nil!
+      args = super_node.args.not_nil!
       args.size.should eq(0)  # Empty array = explicit no args
     end
 
@@ -71,21 +76,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = fetch_class(program)
+      class_body = class_node.body.not_nil!
+      method_node = fetch_method(arena, class_body[0])
+      super_node = fetch_super(arena, method_node)
 
-      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
-      method_node = arena[class_body[0]]
-
-      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
-      super_node = arena[method_body[0]]
-
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
-      args = CrystalGPT5::Compiler::Frontend.node_super_args(super_node).not_nil!
+      args = super_node.args.not_nil!
       args.size.should eq(1)
 
       # Check argument is a binary expression (x + 1)
-      arg_node = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
+      arg_node = arena[args[0]].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
     end
 
     it "parses super with multiple arguments" do
@@ -102,16 +102,12 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = fetch_class(program)
+      class_body = class_node.body.not_nil!
+      method_node = fetch_method(arena, class_body[0])
+      super_node = fetch_super(arena, method_node)
 
-      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
-      method_node = arena[class_body[0]]
-
-      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
-      super_node = arena[method_body[0]]
-
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
-      args = CrystalGPT5::Compiler::Frontend.node_super_args(super_node).not_nil!
+      args = super_node.args.not_nil!
       args.size.should eq(2)
     end
 
@@ -129,21 +125,16 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = fetch_class(program)
+      class_body = class_node.body.not_nil!
+      method_node = fetch_method(arena, class_body[0])
 
-      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
-      method_node = arena[class_body[0]]
-
-      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
-      if_node = arena[method_body[0]]
-
-      # Should be an If node (postfix if)
-      CrystalGPT5::Compiler::Frontend.node_kind(if_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::If)
+      method_body = method_node.body.not_nil!
+      if_node = arena[method_body[0]].as(CrystalGPT5::Compiler::Frontend::IfNode)
 
       # Then branch should contain super
-      if_then = CrystalGPT5::Compiler::Frontend.node_if_then(if_node).not_nil!
-      super_node = arena[if_then[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
+      if_then = if_node.then_body
+      super_node = arena[if_then.first].as(CrystalGPT5::Compiler::Frontend::SuperNode)
     end
 
     it "parses super in multiple methods" do
@@ -164,22 +155,20 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = fetch_class(program)
 
-      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
+      class_body = class_node.body.not_nil!
       class_body.size.should eq(2)
 
       # First method: super without args
-      method1 = arena[class_body[0]]
-      body1 = CrystalGPT5::Compiler::Frontend.node_def_body(method1).not_nil!
-      super1 = arena[body1[0]]
-      CrystalGPT5::Compiler::Frontend.node_super_args(super1).should be_nil
+      method1 = fetch_method(arena, class_body[0])
+      super1 = fetch_super(arena, method1)
+      super1.args.should be_nil
 
       # Second method: super with args
-      method2 = arena[class_body[1]]
-      body2 = CrystalGPT5::Compiler::Frontend.node_def_body(method2).not_nil!
-      super2 = arena[body2[0]]
-      args = CrystalGPT5::Compiler::Frontend.node_super_args(super2).not_nil!
+      method2 = fetch_method(arena, class_body[1])
+      super2 = fetch_super(arena, method2)
+      args = super2.args.not_nil!
       args.size.should eq(1)
     end
 
@@ -198,17 +187,15 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = fetch_class(program)
+      class_body = class_node.body.not_nil!
+      method_node = fetch_method(arena, class_body[0])
 
-      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
-      method_node = arena[class_body[0]]
-
-      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
+      method_body = method_node.body.not_nil!
       method_body.size.should be >= 2
 
       # First statement is super
-      super_node = arena[method_body[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
+      super_node = arena[method_body[0]].as(CrystalGPT5::Compiler::Frontend::SuperNode)
 
       # Find the method call (might not be immediately after due to parsing)
       # Just verify super is first and there are other statements
@@ -229,25 +216,19 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = fetch_class(program)
+      class_body = class_node.body.not_nil!
+      method_node = fetch_method(arena, class_body[0])
+      super_node = fetch_super(arena, method_node)
 
-      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
-      method_node = arena[class_body[0]]
-
-      method_body = CrystalGPT5::Compiler::Frontend.node_def_body(method_node).not_nil!
-      super_node = arena[method_body[0]]
-
-      CrystalGPT5::Compiler::Frontend.node_kind(super_node).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Super)
-      args = CrystalGPT5::Compiler::Frontend.node_super_args(super_node).not_nil!
+      args = super_node.args.not_nil!
       args.size.should eq(2)
 
       # First arg is binary expression
-      arg1 = arena[args[0]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg1).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Binary)
+      arg1 = arena[args[0]].as(CrystalGPT5::Compiler::Frontend::BinaryNode)
 
       # Second arg is ternary expression
-      arg2 = arena[args[1]]
-      CrystalGPT5::Compiler::Frontend.node_kind(arg2).should eq(CrystalGPT5::Compiler::Frontend::NodeKind::Ternary)
+      arena[args[1]].as(CrystalGPT5::Compiler::Frontend::TernaryNode)
     end
 
     it "distinguishes super(), super and super(args)" do
@@ -272,29 +253,26 @@ describe "CrystalGPT5::Compiler::Frontend::Parser" do
 
       program.roots.size.should eq(1)
       arena = program.arena
-      class_node = arena[program.roots.first]
+      class_node = fetch_class(program)
 
-      class_body = CrystalGPT5::Compiler::Frontend.node_class_body(class_node).not_nil!
+      class_body = class_node.body.not_nil!
       class_body.size.should eq(3)
 
       # Method foo: super (nil = implicit args)
-      method_foo = arena[class_body[0]]
-      body_foo = CrystalGPT5::Compiler::Frontend.node_def_body(method_foo).not_nil!
-      super_foo = arena[body_foo[0]]
-      CrystalGPT5::Compiler::Frontend.node_super_args(super_foo).should be_nil
+      method_foo = fetch_method(arena, class_body[0])
+      super_foo = fetch_super(arena, method_foo)
+      super_foo.args.should be_nil
 
       # Method bar: super() (empty array = explicit no args)
-      method_bar = arena[class_body[1]]
-      body_bar = CrystalGPT5::Compiler::Frontend.node_def_body(method_bar).not_nil!
-      super_bar = arena[body_bar[0]]
-      args_bar = CrystalGPT5::Compiler::Frontend.node_super_args(super_bar).not_nil!
+      method_bar = fetch_method(arena, class_body[1])
+      super_bar = fetch_super(arena, method_bar)
+      args_bar = super_bar.args.not_nil!
       args_bar.size.should eq(0)
 
       # Method baz: super(x) (array with args)
-      method_baz = arena[class_body[2]]
-      body_baz = CrystalGPT5::Compiler::Frontend.node_def_body(method_baz).not_nil!
-      super_baz = arena[body_baz[0]]
-      args_baz = CrystalGPT5::Compiler::Frontend.node_super_args(super_baz).not_nil!
+      method_baz = fetch_method(arena, class_body[2])
+      super_baz = fetch_super(arena, method_baz)
+      args_baz = super_baz.args.not_nil!
       args_baz.size.should eq(1)
     end
   end
