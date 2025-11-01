@@ -110,9 +110,9 @@ module CrystalGPT5
           when .binary?
             infer_binary(node, expr_id)
           when .def?
-            infer_def(node, expr_id)
+            infer_def(node.as(Frontend::DefNode), expr_id)
           when .class?
-            infer_class(node, expr_id)
+            infer_class(node.as(Frontend::ClassNode), expr_id)
           when .call?
             infer_call(node, expr_id)
           when .member_access?
@@ -264,7 +264,7 @@ module CrystalGPT5
             infer_ternary(node, expr_id)
           when .module?
             # Phase 31: Module definition
-            infer_module(node, expr_id)
+            infer_module(node.as(Frontend::ModuleNode), expr_id)
           when .include?
             # Phase 31: Include module
             infer_include(node)
@@ -274,23 +274,23 @@ module CrystalGPT5
           when .struct?
             # Phase 32: Struct definition (value type)
             # At parsing stage, handled identically to class
-            infer_class(node, expr_id)
+            infer_struct(node.as(Frontend::StructNode), expr_id)
           when .union?
             # Phase 97: Union definition (C bindings)
             # At parsing stage, handled identically to class
-            infer_class(node, expr_id)
+            infer_union(node.as(Frontend::UnionNode), expr_id)
           when .enum?
             # Phase 33: Enum definition (enumerated type)
-            infer_enum(node)
+            infer_enum(node.as(Frontend::EnumNode))
           when .alias?
             # Phase 34: Type alias definition
             infer_alias(node)
           when .constant?
             # Phase 35: Constant declaration
-            infer_constant(node)
+            infer_constant(node.as(Frontend::ConstantNode))
           when .lib?
             # Phase 38: Lib definition (C bindings)
-            infer_lib(node, expr_id)
+            infer_lib(node.as(Frontend::LibNode), expr_id)
           when .fun?
             # Phase 64: Fun declaration (C function)
             infer_fun(node)
@@ -393,9 +393,9 @@ module CrystalGPT5
         # ============================================================
 
         # Phase 6: Process method definitions and their bodies
-        private def infer_def(node, expr_id : ExprId) : Type
+        private def infer_def(node : Frontend::DefNode, expr_id : ExprId) : Type
           # Phase 71: Process default parameter values
-          if params = Frontend.node_def_params(node)
+          if params = node.params
             params.each do |param|
               if default_value = param.default_value
                 infer_expression(default_value)
@@ -404,7 +404,7 @@ module CrystalGPT5
           end
 
           # Process method body
-          (Frontend.node_def_body(node) || [] of ExprId).each do |body_expr_id|
+          (node.body || [] of ExprId).each do |body_expr_id|
             infer_expression(body_expr_id)
           end
 
@@ -413,10 +413,9 @@ module CrystalGPT5
         end
 
         # Phase 5C: Process class bodies and track current class context
-        private def infer_class(node, expr_id : ExprId) : Type
+        private def infer_class(node : Frontend::ClassNode, expr_id : ExprId) : Type
           # Look up the ClassSymbol from the symbol table
-          class_name = Frontend.node_class_name(node).try { |slice| String.new(slice) }
-          return @context.nil_type unless class_name
+          class_name = String.new(node.name)
 
           class_symbol = @global_table.try(&.lookup(class_name))
           return @context.nil_type unless class_symbol.is_a?(ClassSymbol)
@@ -426,7 +425,7 @@ module CrystalGPT5
           @current_class = class_symbol
 
           # Process class body (method definitions, etc.)
-          (Frontend.node_class_body(node) || [] of ExprId).each do |body_expr_id|
+          (node.body || [] of ExprId).each do |body_expr_id|
             infer_expression(body_expr_id)
           end
 
@@ -437,15 +436,31 @@ module CrystalGPT5
           @context.nil_type
         end
 
+        private def infer_struct(node : Frontend::StructNode, expr_id : ExprId) : Type
+          (node.body || [] of ExprId).each do |body_expr_id|
+            infer_expression(body_expr_id)
+          end
+
+          @context.nil_type
+        end
+
+        private def infer_union(node : Frontend::UnionNode, expr_id : ExprId) : Type
+          (node.body || [] of ExprId).each do |body_expr_id|
+            infer_expression(body_expr_id)
+          end
+
+          @context.nil_type
+        end
+
         # Phase 31: Type inference for module definition
-        private def infer_module(node, expr_id : ExprId) : Type
+        private def infer_module(node : Frontend::ModuleNode, expr_id : ExprId) : Type
           # In a full implementation, we would:
           # 1. Look up ModuleSymbol from symbol table
           # 2. Save current module context
           # 3. Process module body
           # 4. Restore previous module context
           # For now, just process the body
-          (Frontend.node_module_body(node) || [] of ExprId).each do |body_expr_id|
+          (node.body || [] of ExprId).each do |body_expr_id|
             infer_expression(body_expr_id)
           end
 
@@ -474,13 +489,13 @@ module CrystalGPT5
         end
 
         # Phase 33: Type inference for enum definition
-        private def infer_enum(node) : Type
+        private def infer_enum(node : Frontend::EnumNode) : Type
           # In a full implementation, we would:
           # 1. Create an EnumType with members
           # 2. Process member values (if any) and infer their types
           # 3. Validate base type compatibility
           # For now, process member values and return Nil
-          if members = Frontend.node_enum_members(node)
+          if members = node.members
             members.each do |member|
               if value_expr = member.value
                 infer_expression(value_expr)
@@ -501,14 +516,14 @@ module CrystalGPT5
         end
 
         # Phase 38: Type inference for lib definition
-        private def infer_lib(node, expr_id : ExprId) : Type
+        private def infer_lib(node : Frontend::LibNode, expr_id : ExprId) : Type
           # In a full implementation, we would:
           # 1. Look up LibSymbol from symbol table
           # 2. Save current lib context
           # 3. Process lib body (fun, type declarations)
           # 4. Restore previous context
           # For now, just process the body
-          (Frontend.node_lib_body(node) || [] of ExprId).each do |body_expr_id|
+          (node.body || [] of ExprId).each do |body_expr_id|
             infer_expression(body_expr_id)
           end
 
@@ -534,10 +549,10 @@ module CrystalGPT5
           @context.nil_type
         end
 
-        private def infer_constant(node) : Type
+        private def infer_constant(node : Frontend::ConstantNode) : Type
           # Phase 35: Constant declaration
           # Infer type from the assigned value expression
-          if value_expr = Frontend.node_constant_value(node)
+          if value_expr = node.value
             infer_expression(value_expr)
           else
             @context.nil_type

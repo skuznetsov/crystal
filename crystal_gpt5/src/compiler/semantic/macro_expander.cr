@@ -133,9 +133,8 @@ module CrystalGPT5
         private def evaluate_macro_body(body_id : ExprId, context : Context) : String
           # Get MacroLiteral node (works with typed or legacy nodes)
           body_node = @arena[body_id]
-          pieces = Frontend.node_macro_pieces(body_node)
-
-          return "" unless pieces
+          return "" unless body_node.is_a?(Frontend::MacroLiteralNode)
+          pieces = body_node.pieces
 
           # Phase 87B-3: Use indexed loop to handle control flow jumps
           String.build do |str|
@@ -481,13 +480,12 @@ module CrystalGPT5
           # Evaluate iterable → get element strings
           iterable_node = @arena[iterable_expr]
 
-          elem_values = case Frontend.node_kind(iterable_node)
-          when .array_literal?
-            # Phase 87B-3: Array path (use helper for union type)
-            array_elements = Frontend.node_array_elements(iterable_node) || [] of ExprId
-            array_elements.map { |elem_id| stringify_expr(elem_id) }
+          elem_values = case iterable_node
+          when Frontend::ArrayLiteralNode
+            # Phase 87B-3: Array path
+            iterable_node.elements.map { |elem_id| stringify_expr(elem_id) }
 
-          when .range?
+          when Frontend::RangeNode
             # Phase 87B-4A: Range path
             expand_range_to_strings(iterable_node)
 
@@ -521,15 +519,9 @@ module CrystalGPT5
 
         # Phase 87B-4A: Expand range to array of string values
         # Returns Array(String) if successful, nil if error (diagnostic emitted)
-        private def expand_range_to_strings(range_node : Frontend::TypedNode) : Array(String)?
-          # Extract bounds using helpers (typed nodes expose begin/end via RangeNode accessors)
-          range_begin = Frontend.node_range_begin(range_node)
-          range_end = Frontend.node_range_end(range_node)
-
-          unless range_begin && range_end
-            emit_error("Invalid range: missing begin or end")
-            return nil
-          end
+        private def expand_range_to_strings(range_node : Frontend::RangeNode) : Array(String)?
+          range_begin = range_node.begin_expr
+          range_end = range_node.end_expr
 
           # Evaluate bounds to strings (use empty context for literals)
           empty_context = Context.new
@@ -551,7 +543,7 @@ module CrystalGPT5
           end
 
           # Calculate size (helpers normalize RangeNode.exclusive semantics)
-          exclusive = Frontend.node_range_exclusive(range_node) || false
+          exclusive = range_node.exclusive
           size = if exclusive
             end_val - start_val
           else
