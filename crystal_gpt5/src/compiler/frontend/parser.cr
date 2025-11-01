@@ -3522,7 +3522,7 @@ module CrystalGPT5
             end
 
             member_name_token = token
-            member_name = token_text(member_name_token)
+            member_name = member_name_token.slice  # TIER 2.3: Zero-copy slice
             member_name_span = member_name_token.span
             advance
             skip_trivia
@@ -4707,7 +4707,7 @@ module CrystalGPT5
 
           # Get first key from first_key_expr (we know it's Identifier)
           first_key_node = @arena[first_key_expr]
-          first_key = String.new(Frontend.node_literal(first_key_node).not_nil!)
+          first_key = Frontend.node_literal(first_key_node).not_nil!  # TIER 2.3: Already Slice(UInt8)
           first_key_span = first_key_node.span
 
           # Expect colon
@@ -4755,7 +4755,7 @@ module CrystalGPT5
                 emit_unexpected(key_token)
                 return PREFIX_ERROR
               end
-              key = token_text(key_token)
+              key = key_token.slice  # TIER 2.3: Zero-copy slice
               key_span = key_token.span
               advance
               skip_trivia

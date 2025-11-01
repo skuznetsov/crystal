@@ -154,14 +154,14 @@ module CrystalGPT5
       # - value_span: Just value for hover
       # - span: Full "key: value" span
       struct NamedTupleEntry
-        getter key : String
+        getter key : Slice(UInt8)       # TIER 2.3: Zero-copy slice
         getter value : ExprId
         getter span : Span              # Full "key: value" span
         getter key_span : Span          # Just "key"
         getter value_span : Span        # Just value expression
 
         def initialize(
-          @key : String,
+          @key : Slice(UInt8),
           @value : ExprId,
           @span : Span,
           @key_span : Span,
@@ -256,13 +256,13 @@ module CrystalGPT5
       # - name_span: Exact location of member name
       # - value_span: Exact location of value expression (optional)
       struct EnumMember
-        getter name : String
+        getter name : Slice(UInt8)      # TIER 2.3: Zero-copy slice
         getter value : ExprId?
         getter name_span : Span
         getter value_span : Span?
 
         def initialize(
-          @name : String,
+          @name : Slice(UInt8),
           @value : ExprId? = nil,
           @name_span : Span = Span.new(0, 0, 0, 0, 0, 0),
           @value_span : Span? = nil
