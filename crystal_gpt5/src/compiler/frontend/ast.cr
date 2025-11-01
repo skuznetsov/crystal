@@ -213,16 +213,16 @@ module CrystalGPT5
       #   getter name = "default"  → AccessorSpec("name", nil, default_expr_id, ...)
       #   getter name : String = "default" → AccessorSpec("name", "String", default_expr_id, ...)
       struct AccessorSpec
-        getter name : String
-        getter type_annotation : String?
+        getter name : Slice(UInt8)
+        getter type_annotation : Slice(UInt8)?
         getter default_value : ExprId?
         getter span : Span              # Full "name : String = value" span
         getter name_span : Span         # Just "name" for rename
         getter type_span : Span?        # Just "String" for hover (optional)
 
         def initialize(
-          @name : String,
-          @type_annotation : String? = nil,
+          @name : Slice(UInt8),
+          @type_annotation : Slice(UInt8)? = nil,
           @default_value : ExprId? = nil,
           @span : Span = Span.new(0, 0, 0, 0, 0, 0),
           @name_span : Span = Span.new(0, 0, 0, 0, 0, 0),

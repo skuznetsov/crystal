@@ -206,8 +206,10 @@ module CrystalGPT5
         #           @name
         #         end
         private def build_getter_def(spec : Frontend::AccessorSpec, base_span : Frontend::Span) : Frontend::DefNode
+          # TIER 2.2: spec.name is already Slice(UInt8), spec.type_annotation is Slice(UInt8)?
           # Create instance variable access node: @name
-          ivar_name = "@#{spec.name}"
+          spec_name_str = String.new(spec.name)  # Convert for interpolation
+          ivar_name = "@#{spec_name_str}"
           ivar_bytes = ivar_name.to_slice
           ivar_node = Frontend::InstanceVarNode.new(
             spec.name_span,
@@ -216,8 +218,8 @@ module CrystalGPT5
           ivar_id = @arena.add_typed(ivar_node)
 
           # Create def node with instance variable as body
-          method_name_bytes = spec.name.to_slice
-          return_type_bytes = spec.type_annotation.try(&.to_slice)
+          method_name_bytes = spec.name  # Already Slice(UInt8)
+          return_type_bytes = spec.type_annotation  # Already Slice(UInt8)?
 
           Frontend::DefNode.new(
             base_span,
@@ -236,9 +238,9 @@ module CrystalGPT5
         #         end
         private def build_setter_def(spec : Frontend::AccessorSpec, base_span : Frontend::Span) : Frontend::DefNode
           # Create parameter: value : Type
-          # TIER 2.1: Parameter.new now expects Slice(UInt8)
+          # TIER 2.2: spec.name and spec.type_annotation are already Slice(UInt8)
           param_name_slice = "value".to_slice
-          param_type_slice = spec.type_annotation.try(&.to_slice)
+          param_type_slice = spec.type_annotation  # Already Slice(UInt8)?
 
           param = Frontend::Parameter.new(
             param_name_slice,
@@ -249,7 +251,8 @@ module CrystalGPT5
           )
 
           # Create instance variable node: @name
-          ivar_name = "@#{spec.name}"
+          spec_name_str = String.new(spec.name)  # Convert for interpolation
+          ivar_name = "@#{spec_name_str}"
           ivar_bytes = ivar_name.to_slice
           ivar_node = Frontend::InstanceVarNode.new(
             spec.name_span,
@@ -274,7 +277,8 @@ module CrystalGPT5
           assign_id = @arena.add_typed(assign_node)
 
           # Create def node with assignment as body
-          setter_name = "#{spec.name}="
+          spec_name_str2 = String.new(spec.name)  # Convert for interpolation
+          setter_name = "#{spec_name_str2}="
           setter_name_bytes = setter_name.to_slice
 
           Frontend::DefNode.new(

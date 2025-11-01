@@ -1917,14 +1917,14 @@ module CrystalGPT5
 
             # Parse accessor name
             name_token = current_token
-            accessor_name = token_text(name_token)
+            accessor_name = name_token.slice  # TIER 2.2: Zero-copy slice
             name_span = name_token.span
             spec_start_span = name_token.span
             advance
             skip_trivia
 
             # Parse optional type annotation: : Type
-            type_annotation = nil
+            type_annotation : Slice(UInt8)? = nil  # TIER 2.2: Zero-copy slice
             type_span = nil
             if operator_token?(current_token, Token::Kind::Colon)
               advance  # consume ':'
@@ -1933,7 +1933,7 @@ module CrystalGPT5
               # Parse type (simple identifier)
               type_token = current_token
               if type_token.kind == Token::Kind::Identifier
-                type_annotation = token_text(type_token)
+                type_annotation = type_token.slice  # TIER 2.2: Zero-copy slice
                 type_span = type_token.span
                 advance
                 skip_trivia
@@ -2006,14 +2006,14 @@ module CrystalGPT5
 
             # Parse accessor name
             name_token = current_token
-            accessor_name = token_text(name_token)
+            accessor_name = name_token.slice  # TIER 2.2: Zero-copy slice
             name_span = name_token.span
             spec_start_span = name_token.span
             advance
             skip_trivia
 
             # Parse optional type annotation: : Type
-            type_annotation = nil
+            type_annotation : Slice(UInt8)? = nil  # TIER 2.2: Zero-copy slice
             type_span = nil
             if operator_token?(current_token, Token::Kind::Colon)
               advance  # consume ':'
@@ -2021,7 +2021,7 @@ module CrystalGPT5
 
               type_token = current_token
               if type_token.kind == Token::Kind::Identifier
-                type_annotation = token_text(type_token)
+                type_annotation = type_token.slice  # TIER 2.2: Zero-copy slice
                 type_span = type_token.span
                 advance
                 skip_trivia
@@ -2093,14 +2093,14 @@ module CrystalGPT5
 
             # Parse accessor name
             name_token = current_token
-            accessor_name = token_text(name_token)
+            accessor_name = name_token.slice  # TIER 2.2: Zero-copy slice
             name_span = name_token.span
             spec_start_span = name_token.span
             advance
             skip_trivia
 
             # Parse optional type annotation: : Type
-            type_annotation = nil
+            type_annotation : Slice(UInt8)? = nil  # TIER 2.2: Zero-copy slice
             type_span = nil
             if operator_token?(current_token, Token::Kind::Colon)
               advance  # consume ':'
@@ -2108,7 +2108,7 @@ module CrystalGPT5
 
               type_token = current_token
               if type_token.kind == Token::Kind::Identifier
-                type_annotation = token_text(type_token)
+                type_annotation = type_token.slice  # TIER 2.2: Zero-copy slice
                 type_span = type_token.span
                 advance
                 skip_trivia
