@@ -270,7 +270,7 @@ module CrystalGPT5
                 GlobalVarDeclNode.new(
                   decl_span,
                   Frontend.node_literal(left_node).not_nil!,        # $var
-                  type_annotation.to_slice  # Phase 103: complex type support
+                  type_annotation  # Phase 103: Already Slice(UInt8) from parse_type_annotation
                 )
               )
             end
@@ -487,8 +487,10 @@ module CrystalGPT5
 
         # Phase 103: Parse type annotation (supports namespaces, generics, unions, suffixes)
         # Examples: Int32, Token::Kind, Array(Int32), Int32 | String, Int32?
-        private def parse_type_annotation : String
-          type_tokens = [] of String
+        # Returns: Slice from source covering the entire type (zero-copy!)
+        private def parse_type_annotation : Slice(UInt8)
+          start_token = current_token
+          last_type_token = start_token
           paren_depth = 0
           bracket_depth = 0
 
@@ -519,34 +521,32 @@ module CrystalGPT5
               bracket_depth -= 1
             end
 
-            # Collect token text
-            case token.kind
-            when Token::Kind::Identifier
-              type_tokens << token_text(token)
-            when Token::Kind::Number
-              type_tokens << token_text(token)  # For array sizes like [10]
-            when Token::Kind::ColonColon
-              # Namespaced types: Token::Kind
-              type_tokens << token_text(token)
-            when Token::Kind::Operator
-              # Include type-related operators: |, ?, *, (, ), [, ]
-              type_tokens << token_text(token)
-            when Token::Kind::ThinArrow
-              # Proc types: Int32 -> String
-              type_tokens << token_text(token)
+            # Check if this token is part of type annotation
+            is_type_token = case token.kind
+            when Token::Kind::Identifier, Token::Kind::Number,
+                 Token::Kind::ColonColon, Token::Kind::Operator,
+                 Token::Kind::ThinArrow
+              true
             when Token::Kind::Whitespace
-              # Skip whitespace but keep structure
+              # Skip whitespace but continue parsing
               advance
               next
             else
               # Unknown token in type context
-              break
+              false
             end
 
+            break unless is_type_token
+
+            last_type_token = token
             advance
           end
 
-          type_tokens.join(" ")
+          # Return slice from start to end of type annotation (zero-copy!)
+          # This includes whitespace between tokens, which is fine
+          start_ptr = start_token.slice.to_unsafe
+          end_ptr = last_type_token.slice.to_unsafe + last_type_token.slice.size
+          Slice.new(start_ptr, end_ptr - start_ptr)
         end
 
         # Phase 103: Parse type declaration from identifier: x : Type = value
@@ -586,7 +586,7 @@ module CrystalGPT5
             TypeDeclarationNode.new(
               type_decl_span,
               identifier_token.slice,
-              type_annotation.to_slice,
+              type_annotation,  # Already Slice(UInt8)
               value_expr
             )
           )
