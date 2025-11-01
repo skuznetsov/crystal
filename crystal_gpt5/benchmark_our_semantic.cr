@@ -51,6 +51,7 @@ puts "--- Parser + Semantic Analysis ---"
   parser = Compiler::Frontend::Parser.new(lexer)
   program = parser.parse_program
   analyzer = Compiler::Semantic::Analyzer.new(program)
+  analyzer.collect_symbols  # FIXED: Must collect symbols first!
   analyzer.resolve_names
 end
 
@@ -63,6 +64,7 @@ full_times = [] of Float64
   parser = Compiler::Frontend::Parser.new(lexer)
   program = parser.parse_program
   analyzer = Compiler::Semantic::Analyzer.new(program)
+  analyzer.collect_symbols  # FIXED: Must collect symbols first!
   result = analyzer.resolve_names
 
   elapsed = (Time.monotonic - start).total_milliseconds
@@ -93,6 +95,7 @@ lexer = Compiler::Frontend::Lexer.new(content)
 parser = Compiler::Frontend::Parser.new(lexer)
 program = parser.parse_program
 analyzer = Compiler::Semantic::Analyzer.new(program)
+analyzer.collect_symbols  # FIXED: Must collect symbols first!
 result = analyzer.resolve_names
 
 puts "Identifier symbols resolved: #{result.identifier_symbols.size}"

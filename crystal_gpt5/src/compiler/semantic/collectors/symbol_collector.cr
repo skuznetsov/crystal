@@ -107,7 +107,11 @@ module CrystalGPT5
           params.each do |param|
             # TIER 2.1: Convert Slice(UInt8) to String for symbol table
             param_name_str = String.new(param.name)
-            param_type_str = param.type_annotation ? String.new(param.type_annotation) : nil
+            param_type_str = if type_ann = param.type_annotation
+              String.new(type_ann)
+            else
+              nil
+            end
 
             param_symbol = VariableSymbol.new(param_name_str, node_id, declared_type: param_type_str)
 
@@ -285,7 +289,7 @@ module CrystalGPT5
             base_span,
             setter_name_bytes,
             [param],
-            param_type_bytes,
+            param_type_slice,  # FIXED: Was param_type_bytes
             [assign_id]
           )
         end
