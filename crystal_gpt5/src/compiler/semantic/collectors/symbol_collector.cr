@@ -10,7 +10,6 @@ module CrystalGPT5
     module Semantic
       class SymbolCollector
         alias Program = Frontend::Program
-        alias ExpressionNode = Frontend::ExpressionNode
         alias TypedNode = Frontend::TypedNode
 
         getter diagnostics : Array(Diagnostic)
@@ -46,33 +45,32 @@ module CrystalGPT5
 
           node = @arena[node_id]
 
-          case Frontend.node_kind(node)
-          when ExpressionNode::Kind::MacroDef
+          case node
+          when Frontend::MacroDefNode
             handle_macro_def(node_id, node)
-          when ExpressionNode::Kind::Def
+          when Frontend::DefNode
             handle_def(node_id, node)
-          when ExpressionNode::Kind::Class
+          when Frontend::ClassNode
             handle_class(node_id, node)
-          when ExpressionNode::Kind::Getter,
-               ExpressionNode::Kind::Setter,
-               ExpressionNode::Kind::Property
+          when Frontend::GetterNode, Frontend::SetterNode, Frontend::PropertyNode
             # Phase 87B-1: Expand accessor macros to method definitions
             expand_accessor_macro(node_id, node)
-          when ExpressionNode::Kind::Call
+          when Frontend::CallNode
             # Phase 87B-2: Check if call is actually a macro invocation
             handle_potential_macro_call(node_id, node)
           end
         end
 
-        private def handle_macro_def(node_id : Frontend::ExprId, node : Frontend::TypedNode)
-          name_slice = Frontend.node_macro_name(node)
+        private def handle_macro_def(node_id : Frontend::ExprId, node : Frontend::MacroDefNode)
+          name_slice = node.name
           return unless name_slice
 
           name = String.new(name_slice)
-          body_id = Frontend.node_left(node)
+          body_id = node.body
           return unless body_id
 
-          unless body_id && Frontend.node_kind(@arena[body_id]) == ExpressionNode::Kind::MacroLiteral
+          body_node = @arena[body_id]
+          unless body_node.is_a?(Frontend::MacroLiteralNode)
             return
           end
 
@@ -86,13 +84,13 @@ module CrystalGPT5
           end
         end
 
-        private def handle_def(node_id : Frontend::ExprId, node : Frontend::TypedNode)
-          name_slice = Frontend.node_def_name(node)
+        private def handle_def(node_id : Frontend::ExprId, node : Frontend::DefNode)
+          name_slice = node.name
           return unless name_slice
 
           name = String.new(name_slice)
-          params = Frontend.node_def_params(node) || [] of Frontend::Parameter
-          return_annotation = Frontend.node_def_return_type(node).try { |slice| String.new(slice) }
+          params = node.params || [] of Frontend::Parameter
+          return_annotation = node.return_type.try { |slice| String.new(slice) }
 
           method_scope = SymbolTable.new(current_table)
           method_symbol = MethodSymbol.new(name, node_id, params: params, return_annotation: return_annotation, scope: method_scope)
@@ -119,19 +117,19 @@ module CrystalGPT5
             end
           end
 
-          (Frontend.node_def_body(node) || [] of Frontend::ExprId).each do |expr_id|
+          (node.body || [] of Frontend::ExprId).each do |expr_id|
             visit(expr_id)
           end
 
           pop_table
         end
 
-        private def handle_class(node_id : Frontend::ExprId, node : Frontend::TypedNode)
-          name_slice = Frontend.node_class_name(node)
+        private def handle_class(node_id : Frontend::ExprId, node : Frontend::ClassNode)
+          name_slice = node.name
           return unless name_slice
 
           name = String.new(name_slice)
-          super_name = Frontend.node_class_super_name(node).try { |slice| String.new(slice) }
+          super_name = node.super_name.try { |slice| String.new(slice) }
 
           table = current_table
           existing = table.lookup_local(name)
@@ -151,10 +149,10 @@ module CrystalGPT5
           # Get the final class symbol from table (may have been redefined)
           final_class_symbol = table.lookup_local(name)
           if final_class_symbol.is_a?(ClassSymbol)
-            collect_instance_vars(final_class_symbol, Frontend.node_class_body(node) || [] of Frontend::ExprId)
+            collect_instance_vars(final_class_symbol, node.body || [] of Frontend::ExprId)
           end
 
-          (Frontend.node_class_body(node) || [] of Frontend::ExprId).each do |expr_id|
+          (node.body || [] of Frontend::ExprId).each do |expr_id|
             visit(expr_id)
           end
           pop_table
@@ -174,20 +172,20 @@ module CrystalGPT5
           return unless specs
 
           specs.each do |spec|
-            case Frontend.node_kind(node)
-            when Frontend::NodeKind::Getter
+            case node
+            when Frontend::GetterNode
               # Generate: def name : Type; @name; end
               def_node = build_getter_def(spec, node.span)
               def_id = @arena.add_typed(def_node)
               visit(def_id)  # Immediately register as MethodSymbol
 
-            when Frontend::NodeKind::Setter
+            when Frontend::SetterNode
               # Generate: def name=(value : Type); @name = value; end
               def_node = build_setter_def(spec, node.span)
               def_id = @arena.add_typed(def_node)
               visit(def_id)
 
-            when Frontend::NodeKind::Property
+            when Frontend::PropertyNode
               # Generate both getter and setter
               getter_node = build_getter_def(spec, node.span)
               setter_node = build_setter_def(spec, node.span)
@@ -329,57 +327,39 @@ module CrystalGPT5
           return if expr_id.invalid?
           node = @arena[expr_id]
 
-          case Frontend.node_kind(node)
-          when ExpressionNode::Kind::InstanceVarDecl
+          case node
+          when Frontend::InstanceVarDeclNode
             # Phase 5C: Handle explicit type annotations (@var : Type)
-            if name_slice = Frontend.node_literal(node)
-              var_name = String.new(name_slice)
-              # Remove @ prefix
-              var_name = var_name[1..-1] if var_name.starts_with?("@")
-
-              type_annotation = Frontend.node_type_decl_type(node).try { |slice| String.new(slice) }
-              class_symbol.add_instance_var(var_name, type_annotation)
-            end
-          when ExpressionNode::Kind::Assign
+            var_name = String.new(node.name)
+            var_name = var_name[1..-1] if var_name.starts_with?("@")
+            type_annotation = node.type.try { |slice| String.new(slice) }
+            class_symbol.add_instance_var(var_name, type_annotation)
+          when Frontend::AssignNode
             # Check if assignment target is instance variable
-            target_id = Frontend.node_assign_target(node)
-            if target_id && !target_id.invalid?
-              target_node = @arena[target_id]
-              if Frontend.node_kind(target_node) == ExpressionNode::Kind::InstanceVar
-                if name_slice = Frontend.node_literal(target_node)
-                  var_name = String.new(name_slice)
-                  # Remove @ prefix
-                  var_name = var_name[1..-1] if var_name.starts_with?("@")
-
-                  # Phase 5C: Only add if not already declared with explicit type
-                  unless class_symbol.get_instance_var_type(var_name)
-                    class_symbol.add_instance_var(var_name)
-                  end
-                end
+            target_id = node.target
+            target_node = @arena[target_id]
+            if target_node.is_a?(Frontend::InstanceVarNode)
+              var_name = String.new(target_node.name)
+              var_name = var_name[1..-1] if var_name.starts_with?("@")
+              unless class_symbol.get_instance_var_type(var_name)
+                class_symbol.add_instance_var(var_name)
               end
             end
-          when ExpressionNode::Kind::Def
+          when Frontend::DefNode
             # Scan method body for instance variable assignments
-            def_body = Frontend.node_def_body(node) || [] of Frontend::ExprId
-            def_body.each do |body_expr_id|
+            (node.body || [] of Frontend::ExprId).each do |body_expr_id|
               scan_for_instance_vars(class_symbol, body_expr_id)
             end
-          when ExpressionNode::Kind::If
-            # Scan if branches
-            if_then = Frontend.node_if_then(node) || [] of Frontend::ExprId
-            if_then.each { |e| scan_for_instance_vars(class_symbol, e) }
+          when Frontend::IfNode
+            (node.then_body || [] of Frontend::ExprId).each { |e| scan_for_instance_vars(class_symbol, e) }
 
-            if_elsifs = Frontend.node_if_elsifs(node) || [] of Frontend::ElsifBranch
-            if_elsifs.each do |elsif_branch|
+            (node.elsifs || [] of Frontend::ElsifBranch).each do |elsif_branch|
               elsif_branch.body.each { |e| scan_for_instance_vars(class_symbol, e) }
             end
 
-            if_else = Frontend.node_if_else(node) || [] of Frontend::ExprId
-            if_else.each { |e| scan_for_instance_vars(class_symbol, e) }
-          when ExpressionNode::Kind::While
-            # Scan while body
-            while_body = Frontend.node_while_body(node) || [] of Frontend::ExprId
-            while_body.each { |e| scan_for_instance_vars(class_symbol, e) }
+            (node.else_body || [] of Frontend::ExprId).each { |e| scan_for_instance_vars(class_symbol, e) }
+          when Frontend::WhileNode
+            node.body.each { |e| scan_for_instance_vars(class_symbol, e) }
           end
         end
 

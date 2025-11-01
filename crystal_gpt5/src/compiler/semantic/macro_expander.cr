@@ -26,7 +26,6 @@ module CrystalGPT5
       # ❌ Macro methods (.stringify, .id) → Phase 87B-6
       class MacroExpander
         alias Program = Frontend::Program
-        alias ExpressionNode = Frontend::ExpressionNode
         alias TypedNode = Frontend::TypedNode
         alias ExprId = Frontend::ExprId
         alias MacroPiece = Frontend::MacroPiece

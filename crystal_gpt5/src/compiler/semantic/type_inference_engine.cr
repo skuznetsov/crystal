@@ -15,7 +15,6 @@ module CrystalGPT5
   module Compiler
     module Semantic
       alias NumberKind = Frontend::NumberKind
-      alias ExpressionNode = Frontend::ExpressionNode
       alias Parameter = Frontend::Parameter
 
       # Type Inference Engine for Stage 3
@@ -206,25 +205,25 @@ module CrystalGPT5
           when .out?
             # Phase 98: Out keyword (C bindings output parameter)
             infer_out(node, expr_id)
-          when ExpressionNode::Kind::As
+          when Frontend::NodeKind::As
             # Phase 44: Type cast expressions (can't use .as? due to keyword collision)
             infer_as(node, expr_id)
-          when ExpressionNode::Kind::AsQuestion
+          when Frontend::NodeKind::AsQuestion
             # Phase 45: Safe cast expressions (nilable)
             infer_as_question(node, expr_id)
-          when ExpressionNode::Kind::IsA
+          when Frontend::NodeKind::IsA
             # Phase 93: Type check expressions (returns Bool)
             infer_is_a(node, expr_id)
-          when ExpressionNode::Kind::RespondsTo
+          when Frontend::NodeKind::RespondsTo
             # Phase 94: Method check expressions (returns Bool)
             infer_responds_to(node, expr_id)
-          when ExpressionNode::Kind::Generic
+          when Frontend::NodeKind::Generic
             # Phase 60: Generic type instantiation
             infer_generic(node, expr_id)
-          when ExpressionNode::Kind::Path
+          when Frontend::NodeKind::Path
             # Phase 63: Path expressions (Foo::Bar)
             infer_path(node, expr_id)
-          when ExpressionNode::Kind::SafeNavigation
+          when Frontend::NodeKind::SafeNavigation
             # Phase 47: Safe navigation expressions (returns nilable)
             infer_safe_navigation(node, expr_id)
           when .block?
@@ -1790,7 +1789,7 @@ module CrystalGPT5
             # Tuple indexing requires compile-time constant index
             # For now, support only integer literals
             index_node = @program.arena[index_id]
-            if Frontend.node_kind(index_node) == ExpressionNode::Kind::Number
+            if Frontend.node_kind(index_node) == Frontend::NodeKind::Number
               # Parse literal index
               index_text = Frontend.node_literal_string(index_node)
               if index_text

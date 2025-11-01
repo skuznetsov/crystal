@@ -9,8 +9,6 @@ module CrystalGPT5
       class NameResolver
         alias Program = Frontend::Program
         alias ExprId = Frontend::ExprId
-        alias ExpressionNode = Frontend::ExpressionNode
-        alias TypedNode = Frontend::TypedNode
         alias Diagnostic = Frontend::Diagnostic
 
         @root_table : SymbolTable
@@ -44,36 +42,42 @@ module CrystalGPT5
           return if node_id.invalid?
           node = @arena[node_id]
 
-          case Frontend.node_kind(node)
-          when ExpressionNode::Kind::Identifier
+          case node
+          when Frontend::IdentifierNode
             resolve_identifier(node_id, node)
-          when ExpressionNode::Kind::Call
-            visit(Frontend.node_callee(node).not_nil!) if Frontend.node_callee(node)
-            Frontend.node_args(node).try &.each { |arg| visit(arg) }
-          when ExpressionNode::Kind::Unary
-            visit(Frontend.node_right(node).not_nil!) if Frontend.node_right(node)
-          when ExpressionNode::Kind::Binary
-            visit(Frontend.node_left(node).not_nil!) if Frontend.node_left(node)
-            visit(Frontend.node_right(node).not_nil!) if Frontend.node_right(node)
-          when ExpressionNode::Kind::Grouping
-            visit(Frontend.node_left(node).not_nil!) if Frontend.node_left(node)
-          when ExpressionNode::Kind::MacroExpression
-            visit(Frontend.node_macro_expr(node).not_nil!) if Frontend.node_macro_expr(node)
-          when ExpressionNode::Kind::MacroLiteral
+          when Frontend::CallNode
+            if callee_id = node.callee
+              visit(callee_id)
+            end
+            node.args.each { |arg| visit(arg) }
+            if block_id = node.block
+              visit(block_id)
+            end
+            node.named_args.try &.each { |named| visit(named.value) }
+          when Frontend::UnaryNode
+            visit(node.operand)
+          when Frontend::BinaryNode
+            visit(node.left)
+            visit(node.right)
+          when Frontend::GroupingNode
+            visit(node.expression)
+          when Frontend::MacroExpressionNode
+            visit(node.expression)
+          when Frontend::MacroLiteralNode
             visit_macro_literal(node)
-          when ExpressionNode::Kind::MacroDef
+          when Frontend::MacroDefNode
             # Body handled via MacroLiteral; skip definition node
-          when ExpressionNode::Kind::Def
+          when Frontend::DefNode
             visit_def(node)
-          when ExpressionNode::Kind::Class
+          when Frontend::ClassNode
             visit_class(node)
           else
             # Other kinds currently unsupported; ignore
           end
         end
 
-        private def resolve_identifier(node_id : ExprId, node : Frontend::TypedNode)
-          slice = Frontend.node_literal(node)
+        private def resolve_identifier(node_id : ExprId, node : Frontend::IdentifierNode)
+          slice = node.name
           return unless slice
           name = String.new(slice)
 
@@ -84,8 +88,8 @@ module CrystalGPT5
           end
         end
 
-        private def visit_macro_literal(node : Frontend::TypedNode)
-          pieces = Frontend.node_macro_pieces(node)
+        private def visit_macro_literal(node : Frontend::MacroLiteralNode)
+          pieces = node.pieces
           return unless pieces
 
           pieces.each do |piece|
@@ -103,8 +107,8 @@ module CrystalGPT5
           end
         end
 
-        private def visit_def(node : Frontend::TypedNode)
-          name_slice = Frontend.node_def_name(node)
+        private def visit_def(node : Frontend::DefNode)
+          name_slice = node.name
           return unless name_slice
 
           name = String.new(name_slice)
@@ -117,15 +121,15 @@ module CrystalGPT5
           prev_table = @current_table
           @current_table = method_scope
 
-          (Frontend.node_def_body(node) || [] of ExprId).each do |expr_id|
+          (node.body || [] of ExprId).each do |expr_id|
             visit(expr_id)
           end
 
           @current_table = prev_table
         end
 
-        private def visit_class(node : Frontend::TypedNode)
-          name_slice = Frontend.node_class_name(node)
+        private def visit_class(node : Frontend::ClassNode)
+          name_slice = node.name
           return unless name_slice
 
           name = String.new(name_slice)
@@ -138,7 +142,7 @@ module CrystalGPT5
           prev_table = @current_table
           @current_table = class_scope
 
-          (Frontend.node_class_body(node) || [] of ExprId).each do |expr_id|
+          (node.body || [] of ExprId).each do |expr_id|
             visit(expr_id)
           end
 
