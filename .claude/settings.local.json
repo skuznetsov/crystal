@@ -22,7 +22,12 @@
       "Bash(cat:*)",
       "Bash(./bin/crystal run:*)",
       "Bash(./bin/crystal build:*)",
-      "Bash(./build_lsp.sh:*)"
+      "Bash(./build_lsp.sh:*)",
+      "Bash(PARSER_DEBUG=1 crystal run:*)",
+      "Bash(export CRYSTAL_CACHE_DIR=/tmp/crystal_cache_test2)",
+      "Bash(export CRYSTAL_CACHE_DIR=/tmp/crystal_cache_test5)",
+      "Bash(LEXER_DEBUG=1 crystal run:*)",
+      "WebFetch(domain:crystal-lang.org)"
     ],
     "deny": [],
     "ask": []
