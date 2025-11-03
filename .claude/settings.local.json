@@ -18,7 +18,11 @@
       "Bash(crystal_v2/bin/crystal_v2:*)",
       "Bash(./crystal_v2/bin/crystal_v2:*)",
       "Bash(/tmp/bench_prelude:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(cat:*)",
+      "Bash(./bin/crystal run:*)",
+      "Bash(./bin/crystal build:*)",
+      "Bash(./build_lsp.sh:*)"
     ],
     "deny": [],
     "ask": []
