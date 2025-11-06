@@ -177,8 +177,12 @@ module Crystal
 
         next_token_skip_space_or_newline
         if @token.type.op_star?
-          raise "splat assignment already specified" if lhs_splat
-          lhs_splat = {index: i, location: @token.location}
+          if assign_index == -1
+            raise "splat assignment already specified" if lhs_splat
+            lhs_splat = {index: i, location: @token.location}
+          else
+            unexpected_token
+          end
           next_token_skip_space
         end
 
@@ -3276,7 +3280,13 @@ module Crystal
         when .macro_var?
           macro_var_name = @token.value.to_s
           location = @token.location
+          if macro_var_name[0].uppercase? || macro_var_name[0].titlecase?
+            warnings.add_warning_at @token.location, "macro fresh variables with constant names are deprecated"
+          end
           if current_char == '{'
+            if macro_var_name.size == 1
+              warnings.add_warning_at @token.location, "single-letter macro fresh variables with indices are deprecated"
+            end
             macro_var_exps = parse_macro_var_exps
           else
             macro_var_exps = nil

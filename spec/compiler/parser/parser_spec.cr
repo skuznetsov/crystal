@@ -289,6 +289,16 @@ module Crystal
     assert_syntax_error "*a, b, c, d, e = 1, 2", "Multiple assignment count mismatch"
     assert_syntax_error "a, b, c, d, *e = 1, 2, 3", "Multiple assignment count mismatch"
 
+    assert_syntax_error "a = *1", %(unexpected token: "*")
+    assert_syntax_error "a = *1, 2", %(unexpected token: "*")
+    assert_syntax_error "a = 1, *2", %(unexpected token: "*")
+    assert_syntax_error "a, b = *1", %(unexpected token: "*")
+    assert_syntax_error "a, b = *1, 2", %(unexpected token: "*")
+    assert_syntax_error "a, b = 1, *2", %(unexpected token: "*")
+    assert_syntax_error "a, *b = *1", %(unexpected token: "*")
+    assert_syntax_error "a, *b = *1, 2", %(unexpected token: "*")
+    assert_syntax_error "a, *b = 1, *2", %(unexpected token: "*")
+
     # #11442, #12911
     assert_syntax_error "a, b.<="
     assert_syntax_error "*a == 1"
@@ -1432,6 +1442,10 @@ module Crystal
       it_parses "macro foo;var unless true;end", Macro.new("foo", [] of Arg, "var unless true;".macro_literal)
       it_parses "macro foo;unless %var;true;end;end", Macro.new("foo", [] of Arg, Expressions.from(["unless ".macro_literal, MacroVar.new("var"), ";true;".macro_literal, "end;".macro_literal] of ASTNode))
       it_parses "macro foo;unless var;true;end;end", Macro.new("foo", [] of Arg, Expressions.from(["unless var;true;".macro_literal, "end;".macro_literal] of ASTNode))
+    end
+
+    {'i', 'q', 'r', 'w', 'x', 'Q'}.each do |ch|
+      it_parses "macro foo;%#{ch}[#{ch}];end", Macro.new("foo", [] of Arg, "%#{ch}[#{ch}];".macro_literal)
     end
 
     it_parses "a = 1; pointerof(a)", [Assign.new("a".var, 1.int32), PointerOf.new("a".var)]

@@ -1872,6 +1872,9 @@ class Crystal::Repl::Compiler < Crystal::Visitor
     if body.is_a?(Var) && body.name == "self"
       # We also inline calls that simply return "self"
 
+      # We still have to accept the call arguments, but discard their values
+      node.args.each { |arg| discard_value(arg) }
+
       if @wants_value
         if obj
           request_value(obj)
@@ -1884,9 +1887,6 @@ class Crystal::Repl::Compiler < Crystal::Visitor
           end
         end
       end
-
-      # We still have to accept the call arguments, but discard their values
-      node.args.each { |arg| discard_value(arg) }
 
       return false
     end
@@ -2921,6 +2921,28 @@ class Crystal::Repl::Compiler < Crystal::Visitor
       # Otherwise, it's a null pointer
       put_i64 0, node: node
     end
+
+    false
+  end
+
+  def visit(node : ProcPointer)
+    target_def = node.call.target_def
+
+    unless target_def.owner.is_a?(LibType)
+      # LLVM codegen supports more cases like closure data and obj/self
+      # target, but I can't trigger them — does LiteralExpander expand
+      # these cases into ProcLiteral?
+      raise "BUG: missing interpret for ProcPointer to non Lib fun"
+    end
+
+    # find or build a compiled_def
+    proc_type = node.type.as(ProcInstanceType)
+    symbol = @context.c_function(target_def.as(External).real_name)
+    compiled_def = @context.extern_proc_wrapper(proc_type, symbol)
+
+    # push compiled_def to stack + no closure data (null pointer)
+    put_i64 compiled_def.object_id.to_i64!, node: node
+    put_i64 0, node: node
 
     false
   end

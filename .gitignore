@@ -1,6 +1,8 @@
 # Environment configuration
 /Makefile.local
 /Makefile.win.local
+.env
+.env.*
 
 # Build artifacts
 *.o
@@ -30,3 +32,13 @@ crystal_v2/bin/
 test_*.cr
 benchmark_*.cr
 check_*.cr
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
