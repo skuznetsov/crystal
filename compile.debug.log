@@ -1,13 +1,0 @@
-rm -rf .build
-rm -rf ./docs
-rm -rf src/llvm/ext/llvm_ext.o
-rm -rf man/*.gz
-CRYSTAL_CONFIG_BUILD_COMMIT="31039a545" CRYSTAL_CONFIG_PATH='$ORIGIN/../share/crystal/src' SOURCE_DATE_EPOCH="1760400000"  CRYSTAL_CONFIG_LIBRARY_PATH='$ORIGIN/../lib/crystal' ./bin/crystal build -D strict_multi_assign -D preview_overload_order --stats -d --ll --link-flags="-L/usr/local/opt/ruby/lib -L/opt/homebrew/opt/postgresql@16/lib"  -o .build/crystal src/compiler/crystal.cr -D without_openssl -D without_zlib -D use_pcre2
-Parse:                            Parse:                             00:00:00.000040042 (   1.17MB)
-Semantic (top level):             Semantic (top level):              00:00:00.478765959 ( 227.33MB)
-Semantic (new):                   Semantic (new):                    00:00:00.002048375 ( 227.33MB)
-Semantic (type declarations):     Semantic (type declarations):      00:00:00.035503875 ( 227.33MB)
-Semantic (abstract def check):    Semantic (abstract def check):     00:00:00.014745917 ( 259.33MB)
-Semantic (restrictions augmenter):Semantic (restrictions augmenter): 00:00:00.016136375 ( 259.33MB)
-Semantic (ivars initializers):    Semantic (ivars initializers):     00:00:05.029629125 (1751.23MB)
-Semantic (cvars initializers):    Semantic (cvars initializers):     00:00:00.006560792 (1767.23MB)
