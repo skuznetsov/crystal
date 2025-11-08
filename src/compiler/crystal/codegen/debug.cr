@@ -301,8 +301,80 @@ module Crystal
       debug_type
     end
 
+    def create_debug_type(type : ProcInstanceType, original_type : Type)
+      # Proc is represented as struct with two pointers: {func_ptr, context_ptr}
+      # For debugging, we create a struct type with:
+      # - func: pointer to function with proper signature
+      # - closure_data: void pointer to closure context
+      #
+      # LIMITATION: closure_data is Void* - closured variables are not directly visible
+      # in debugger. To inspect closured variables, user must manually dereference
+      # the pointer. Future enhancement: generate debug metadata for closure context
+      # struct (see DEBUGGING_ROADMAP.md Phase 3.1b)
+
+      element_types = [] of LibLLVM::MetadataRef
+
+      # Use the canonical proc type: {void*, void*}
+      struct_type = llvm_typer.proc_type
+
+      # Create function pointer type for better inspection
+      arg_types = type.arg_types.map { |t| get_debug_type(t).as(LibLLVM::MetadataRef?) }.compact
+      return_type = get_debug_type(type.return_type)
+
+      if arg_types.size == type.arg_types.size && return_type
+        # Create subroutine type: (args...) -> return_type
+        subroutine_type = di_builder.create_subroutine_type(nil, [return_type] + arg_types)
+        func_ptr_type = di_builder.create_pointer_type(
+          subroutine_type,
+          8u64 * llvm_typer.pointer_size,
+          8u64 * llvm_typer.pointer_size,
+          "#{original_type}*"
+        )
+      else
+        # Fallback: void pointer
+        func_ptr_type = di_builder.create_basic_type("Void", 8u64 * llvm_typer.pointer_size, 8u64 * llvm_typer.pointer_size, LLVM::DwarfTypeEncoding::Address)
+      end
+
+      # Member 1: function pointer
+      offset_func = @program.target_machine.data_layout.offset_of_element(struct_type, 0)
+      size_ptr = 8u64 * llvm_typer.pointer_size
+      member_func = di_builder.create_member_type(
+        nil, "func", nil, 1,
+        size_ptr, size_ptr, 8u64 * offset_func,
+        LLVM::DIFlags::Zero, func_ptr_type
+      )
+      element_types << member_func
+
+      # Member 2: closure context pointer (void*)
+      ctx_ptr_type = di_builder.create_pointer_type(
+        di_builder.create_basic_type("Void", 8, 8, LLVM::DwarfTypeEncoding::Address),
+        size_ptr, size_ptr, "Void*"
+      )
+      offset_ctx = @program.target_machine.data_layout.offset_of_element(struct_type, 1)
+      member_ctx = di_builder.create_member_type(
+        nil, "closure_data", nil, 1,
+        size_ptr, size_ptr, 8u64 * offset_ctx,
+        LLVM::DIFlags::Zero, ctx_ptr_type
+      )
+      element_types << member_ctx
+
+      # Create struct type
+      total_size = @program.target_machine.data_layout.size_in_bits(struct_type)
+      di_builder.create_struct_type(
+        nil, original_type.to_s, nil, 1,
+        total_size, total_size,
+        LLVM::DIFlags::Zero, nil, element_types
+      )
+    end
+
+    def create_debug_type(type : NilableProcType, original_type : Type)
+      # NilableProcType is a union of {nil, proc}
+      # Delegate to proc type for now - LLDB will show it as proc or null
+      get_debug_type(type.proc_type, original_type)
+    end
+
     # This is a sinkhole for debug types that most likely does not need to be implemented
-    def create_debug_type(type : NonGenericModuleType | GenericClassInstanceMetaclassType | MetaclassType | NilableProcType | VirtualMetaclassType, original_type : Type)
+    def create_debug_type(type : NonGenericModuleType | GenericClassInstanceMetaclassType | MetaclassType | VirtualMetaclassType, original_type : Type)
     end
 
     def create_debug_type(type, original_type : Type)
