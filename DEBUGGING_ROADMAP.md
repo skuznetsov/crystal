@@ -1051,6 +1051,128 @@ end
 - ✅ Test suite for all features
 - ✅ Update compiler tests
 
+### Phase 3.5: Constants and Class Variables Debug Info
+
+**Status**: ⚠️ PARTIALLY IMPLEMENTED - Infrastructure added, retained_nodes integration pending
+
+**Implemented**:
+- ✅ LLVM C API bindings: `LLVMGlobalSetMetadata`, `LLVMDIBuilderCreateGlobalVariableExpression`
+- ✅ DIBuilder wrapper: `create_global_variable_expression` method
+- ✅ CodeGen infrastructure: `declare_const_debug_info` method in const.cr
+- ✅ File scope metadata generation for constants
+
+**Known Limitations**:
+- ❌ DIGlobalVariableExpression created but not appearing in DWARF output
+- ❌ Requires integration with compilation unit `retained_nodes` (architectural change in debug.cr)
+- ❌ Simple constants (Int32, String literals) continue to be compile-time inlined for performance
+- ❌ Class variables not yet implemented (similar approach needed in class_var.cr)
+
+**Technical Details**:
+```crystal
+# src/compiler/crystal/codegen/const.cr:66-95
+private def declare_const_debug_info(global, const)
+  location = const.locations.try &.first?
+  return unless location
+
+  location = location.try &.expanded_location
+  return unless location
+
+  debug_type = get_debug_type(const.value.type)
+  return unless debug_type
+
+  file, dir = file_and_dir(location.filename)
+  file_metadata = di_builder.create_file(file, dir)
+
+  # For global constants, use file as scope (will be part of compilation unit)
+  # Note: Currently creates metadata but doesn't add to CU retained_nodes
+  di_builder.create_global_variable_expression(
+    scope: file_metadata,
+    name: const.llvm_name,
+    linkage_name: const.llvm_name,
+    file: file_metadata,
+    line: location.line_number,
+    type: debug_type,
+    local_to_unit: @single_module
+  )
+end
+```
+
+**Root Cause**:
+LLVM requires DIGlobalVariableExpression to be added to the compilation unit's `globals` or `retained_nodes` array. Current Crystal compiler creates the CU in `debug.cr` without exposing an API to add global variable metadata.
+
+**Path Forward** (Future Work):
+1. Modify `debug.cr` to maintain a list of global variable expressions
+2. Add method `register_global_variable_expr(gv_expr)` to debug context
+3. Call `di_builder.di_compile_unit_replace_globals(cu, globals_array)` before finalizing
+4. OR use LLVM 9+ `LLVMDIBuilderCreateGlobalVariableExpression` with proper CU scope
+
+**Decision**: Defer to future work - requires architectural changes in debug.cr
+
+### Phase 3.6: Block Debugging Support
+
+**Status**: 🔜 PENDING
+
+**Goal**: Enable debugging of block/closure execution with proper variable visibility
+
+**Requirements**:
+- Variables captured in blocks visible in debugger
+- Proper lexical scope for block bodies
+- Block parameters appear in stack frames
+- Closure context accessible
+
+**Test Case**:
+```crystal
+def process_items
+  multiplier = 2
+  [1, 2, 3].each do |item|
+    result = item * multiplier  # Both 'item' and 'multiplier' should be visible
+    puts result
+  end
+end
+```
+
+**Implementation Plan**:
+1. Research current block compilation in codegen
+2. Add lexical block scope for `do...end` / `{...}` blocks
+3. Generate debug info for block parameters
+4. Handle closure context variables (captured from outer scope)
+5. Test with LLDB
+
+### Phase 3.7: Macro Debugging Support
+
+**Status**: 🔜 PENDING
+
+**Goal**: Map macro-generated code back to macro definitions
+
+**Requirements**:
+- Macro expansion tracking in location metadata
+- Debug info points to macro definition when appropriate
+- Differentiate macro-generated code from handwritten code
+- Show macro expansion context in debugger
+
+**Test Case**:
+```crystal
+macro create_getter(name)
+  def {{name}}
+    @{{name}}
+  end
+end
+
+class Foo
+  create_getter(value)
+
+  def initialize(@value : Int32)
+  end
+end
+```
+
+**Implementation Plan**:
+1. Research macro expansion location tracking
+2. Add `original_location` metadata for macro-generated AST nodes
+3. Emit debug info with macro context
+4. Test macro debugging workflow
+5. Document macro debugging best practices
+
 ---
 
 ## Phase 4: Expression Evaluation (4 weeks)

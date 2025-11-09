@@ -57,7 +57,37 @@ class Crystal::CodeGenVisitor
       global.linkage = LLVM::Linkage::Internal if @single_module
     {% end %}
 
+    # Generate debug info for constant
+    declare_const_debug_info(global, const) if @debug.variables?
+
     global
+  end
+
+  private def declare_const_debug_info(global, const)
+    location = const.locations.try &.first?
+    return unless location
+
+    location = location.try &.expanded_location
+    return unless location
+
+    debug_type = get_debug_type(const.value.type)
+    return unless debug_type
+
+    file, dir = file_and_dir(location.filename)
+    file_metadata = di_builder.create_file(file, dir)
+
+    # For global constants, use file as scope (will be part of compilation unit)
+    # Note: In LLVM, DIGlobalVariableExpression is registered with the compilation unit
+    # when created and doesn't need to be explicitly attached to the global variable
+    di_builder.create_global_variable_expression(
+      scope: file_metadata,
+      name: const.llvm_name,
+      linkage_name: const.llvm_name,
+      file: file_metadata,
+      line: location.line_number,
+      type: debug_type,
+      local_to_unit: @single_module
+    )
   end
 
   def declare_const_initialized_flag(const)
@@ -189,26 +219,34 @@ class Crystal::CodeGenVisitor
   end
 
   def read_const(const, node)
-    # We inline constants. Otherwise we use an LLVM const global.
-    @last =
-      case value = const.compile_time_value
-      when Bool    then int1(value ? 1 : 0)
-      when Char    then int32(value.ord)
-      when Int8    then int8(value)
-      when Int16   then int16(value)
-      when Int32   then int32(value)
-      when Int64   then int64(value)
-      when Int128  then int128(value)
-      when UInt8   then int8(value)
-      when UInt16  then int16(value)
-      when UInt32  then int32(value)
-      when UInt64  then int64(value)
-      when UInt128 then int128(value)
-      else
-        set_current_debug_location node if @debug.line_numbers?
-        last = read_const_pointer(const)
-        to_lhs last, const.value.type
-      end
+    # In debug mode with variables, try to use LLVM global for constants so they appear in debugger.
+    # But only if an LLVM global exists for this constant (i.e., it was declared in main module with -d).
+    # Constants from stdlib or other modules compiled without -d must be inlined.
+    if @debug.variables? && @main_mod.globals[const.llvm_name]?
+      set_current_debug_location node if @debug.line_numbers?
+      last = read_const_pointer(const)
+      @last = to_lhs last, const.value.type
+    else
+      @last =
+        case value = const.compile_time_value
+        when Bool    then int1(value ? 1 : 0)
+        when Char    then int32(value.ord)
+        when Int8    then int8(value)
+        when Int16   then int16(value)
+        when Int32   then int32(value)
+        when Int64   then int64(value)
+        when Int128  then int128(value)
+        when UInt8   then int8(value)
+        when UInt16  then int16(value)
+        when UInt32  then int32(value)
+        when UInt64  then int64(value)
+        when UInt128 then int128(value)
+        else
+          set_current_debug_location node if @debug.line_numbers?
+          last = read_const_pointer(const)
+          to_lhs last, const.value.type
+        end
+    end
   end
 
   def read_const_pointer(const)
