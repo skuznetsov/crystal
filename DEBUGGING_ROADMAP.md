@@ -863,13 +863,53 @@ end
 # Similar for Case, Block, etc.
 ```
 
-### Week 3: Generic Type Parameters
+### Week 3: Generic Type Parameters ✅ ALREADY WORKING
 
 **Problem**: Can't distinguish `Array(Int32)` from `Array(String)`
 
-**Solution**: Add `DW_TAG_template_type_parameter`
+**Status**: ✅ **ALREADY WORKING** (verified 2025-11-08)
 
-**Implementation**:
+**Current Implementation**: Generic types are already fully distinguishable in debuggers through the existing `InstanceVarContainer` path:
+
+**LLDB Verification**:
+```
+(lldb) image lookup -t "Array(Int32)"
+name = "Array(Int32)", compiler_type = "struct Array(Int32) {
+    int size;
+    int capacity;
+    int offset_to_buffer;
+    int *buffer;  // ← typed pointer
+}"
+
+(lldb) image lookup -t "Array(String)"
+name = "Array(String)", compiler_type = "struct Array(String) {
+    int size;
+    int capacity;
+    int offset_to_buffer;
+    String **buffer;  // ← different type
+}"
+
+(lldb) image lookup -t "Hash(Int32, String)"
+name = "Hash(Int32, String)", compiler_type = "struct Hash(Int32, String) {
+    Hash::Entry(Int32, String) *entries;  // ← parameterized
+    (Proc(Hash(Int32, String), Int32, String) | Nil) block;
+}"
+```
+
+**How It Works**:
+1. `GenericClassInstanceType` inherits from `InstanceVarContainer`
+2. `create_debug_type(type : InstanceVarContainer)` (debug.cr:140) generates DW_TAG_structure_type
+3. Type name comes from `original_type.to_s` which includes type parameters: "Array(Int32)"
+4. Member types are correctly typed (e.g., `int *buffer` vs `String **buffer`)
+
+**Result**: Debuggers can:
+- Distinguish `Array(Int32)` from `Array(String)` by name
+- See correct member types (typed pointers)
+- Understand nested generic types (`Hash::Entry(K, V)`)
+
+**No Code Changes Needed** - feature already works!
+
+**Original Planned Implementation** (not needed):
 
 ```crystal
 def create_debug_type(type : GenericClassInstanceType, original_type : Type)
