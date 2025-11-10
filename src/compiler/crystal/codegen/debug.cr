@@ -25,6 +25,10 @@ module Crystal
     @debug_files_per_module = {} of LLVM::Module => Hash(DebugFilename, LibLLVM::MetadataRef)
     @debug_types_per_module = {} of LLVM::Module => Hash(Type, LibLLVM::MetadataRef?)
 
+    # Macro debugging support: temp files for expanded source (only in debug mode)
+    @macro_debug_temp_dir : String?
+    @macro_temp_files = {} of VirtualFile => String
+
     def di_builder(llvm_module = @llvm_mod || @main_mod)
       di_builders = @di_builders ||= {} of LLVM::Module => DIBuilder
       di_builders[llvm_module] ||= DIBuilder.new(llvm_module).tap do |di_builder|
@@ -488,6 +492,67 @@ module Crystal
       }
     end
 
+    # Creates a temporary file containing the expanded macro source for debugging.
+    # Only called in debug mode (-d flag) to improve macro debugging DX.
+    # Returns the path to the temp file.
+    private def create_temp_file_for_virtual_file(virtual_file : VirtualFile) : String
+      return @macro_temp_files[virtual_file] if @macro_temp_files.has_key?(virtual_file)
+
+      # Create temp directory on first use
+      unless temp_dir = @macro_debug_temp_dir
+        # Use predictable location so debuggers can find files
+        # Files are not cleaned up automatically - they're needed for debugging sessions
+        temp_dir = File.join(Dir.tempdir, "crystal-macro-debug-#{Process.pid}")
+        Dir.mkdir_p(temp_dir)
+        @macro_debug_temp_dir = temp_dir
+
+        # Note: Temp files are NOT cleaned up automatically because they're needed
+        # during debugging sessions (which happen after compilation).
+        # Users can manually clean old files: rm -rf /tmp/crystal-macro-debug-*
+      end
+
+      # Generate unique filename based on macro name and invocation location
+      macro_name = virtual_file.macro.name
+      invocation_loc = virtual_file.expanded_location
+      if invocation_loc
+        # Include invocation line to make filename unique per invocation
+        safe_filename = "#{macro_name}_line#{invocation_loc.line_number}.cr"
+      else
+        # Fallback if no invocation location
+        safe_filename = "#{macro_name}_#{virtual_file.object_id}.cr"
+      end
+
+      temp_path = File.join(temp_dir, safe_filename)
+
+      # Write expanded source to temp file
+      File.write(temp_path, virtual_file.source)
+
+      @macro_temp_files[virtual_file] = temp_path
+      temp_path
+    end
+
+    # Resolves a location that may contain a VirtualFile to a debuggable location.
+    # In debug mode, creates temp files for macro expanded source.
+    # Otherwise, falls back to macro invocation site.
+    private def resolve_debug_location(location : Location) : Location
+      # Only create temp files in debug mode with variables (full debug info)
+      return location.expanded_location || location unless @debug.variables?
+
+      filename = location.filename
+      case filename
+      when VirtualFile
+        # Create temp file with expanded macro source
+        temp_path = create_temp_file_for_virtual_file(filename)
+        # Return new location pointing to temp file
+        Location.new(temp_path, location.line_number, location.column_number)
+      when String
+        location
+      else
+        # Nil filename - use expanded location as fallback
+        location.expanded_location || location
+      end
+    end
+
     def set_current_debug_location(node : ASTNode)
       location = node.location
       if location
@@ -524,7 +589,9 @@ module Crystal
     end
 
     def set_current_debug_location(location)
-      location = location.try &.expanded_location
+      # Resolve location: in debug mode, creates temp files for macro expanded source
+      # Otherwise, uses macro invocation site (expanded_location)
+      location = location.try { |loc| resolve_debug_location(loc) }
       return unless location
 
       @current_debug_location = location
@@ -547,7 +614,12 @@ module Crystal
     end
 
     def emit_fun_debug_metadata(func, fun_name, location, *, debug_types = [] of LibLLVM::MetadataRef, is_optimized = false)
-      filename = location.try(&.original_filename) || "??"
+      # For resolved locations (after resolve_debug_location), filename is already a String (possibly temp file)
+      # Use .filename instead of .original_filename to preserve temp file paths for macros
+      filename = location.try do |loc|
+        loc_filename = loc.filename
+        loc_filename.is_a?(String) ? loc_filename : (loc.original_filename || "??")
+      end || "??"
       line_number = location.try(&.line_number) || 0
 
       file, dir = file_and_dir(filename)
@@ -559,7 +631,8 @@ module Crystal
     end
 
     def emit_def_debug_metadata(target_def)
-      location = target_def.location.try &.expanded_location
+      # Resolve location: in debug mode, creates temp files for macro expanded source
+      location = target_def.location.try { |loc| resolve_debug_location(loc) }
       return unless location
 
       emit_fun_debug_metadata(context.fun, target_def.name, location,
