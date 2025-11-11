@@ -1053,23 +1053,32 @@ end
 
 ### Phase 3.5: Constants and Class Variables Debug Info
 
-**Status**: ⚠️ PARTIALLY IMPLEMENTED - Infrastructure added, retained_nodes integration pending
+**Status**: ✅ IMPLEMENTED - Constants visible in debugger, inline optimization preserved
 
 **Implemented**:
 - ✅ LLVM C API bindings: `LLVMGlobalSetMetadata`, `LLVMDIBuilderCreateGlobalVariableExpression`
 - ✅ DIBuilder wrapper: `create_global_variable_expression` method
 - ✅ CodeGen infrastructure: `declare_const_debug_info` method in const.cr
 - ✅ File scope metadata generation for constants
+- ✅ Proper LLVM context handling (switch to @main_mod during debug info generation)
+- ✅ DIGlobalVariableExpression attachment to LLVM global variables
+- ✅ Constants appear in DWARF output and accessible via debugger
 
-**Known Limitations**:
-- ❌ DIGlobalVariableExpression created but not appearing in DWARF output
-- ❌ Requires integration with compilation unit `retained_nodes` (architectural change in debug.cr)
-- ❌ Simple constants (Int32, String literals) continue to be compile-time inlined for performance
-- ❌ Class variables not yet implemented (similar approach needed in class_var.cr)
+**Verified in LLDB**:
+```crystal
+MY_CONSTANT = 42           # Inlined (compile-time evaluated)
+ANOTHER_CONST = "hello"    # ✅ Visible: p ANOTHER_CONST → "hello"
+PI_VALUE = 3.14159         # ✅ Visible: p PI_VALUE → 3.14159
+```
+
+**Design Decisions**:
+- ⚡ Primitive constants (Int32, Bool, etc.) remain inlined for performance
+- ✅ Complex constants (String, Float, Class instances) have debug info
+- ✅ Module/Class variables to be implemented in future (same approach)
 
 **Technical Details**:
 ```crystal
-# src/compiler/crystal/codegen/const.cr:66-95
+# src/compiler/crystal/codegen/const.cr:66-106
 private def declare_const_debug_info(global, const)
   location = const.locations.try &.first?
   return unless location
@@ -1077,36 +1086,58 @@ private def declare_const_debug_info(global, const)
   location = location.try &.expanded_location
   return unless location
 
-  debug_type = get_debug_type(const.value.type)
-  return unless debug_type
+  # CRITICAL: Save current module and switch to main_mod for debug info generation
+  # This ensures debug types and metadata are created in the correct LLVM context
+  old_llvm_mod = @llvm_mod
+  @llvm_mod = @main_mod
 
-  file, dir = file_and_dir(location.filename)
-  file_metadata = di_builder.create_file(file, dir)
+  begin
+    debug_type = get_debug_type(const.value.type)
+    return unless debug_type
 
-  # For global constants, use file as scope (will be part of compilation unit)
-  # Note: Currently creates metadata but doesn't add to CU retained_nodes
-  di_builder.create_global_variable_expression(
-    scope: file_metadata,
-    name: const.llvm_name,
-    linkage_name: const.llvm_name,
-    file: file_metadata,
-    line: location.line_number,
-    type: debug_type,
-    local_to_unit: @single_module
-  )
+    file, dir = file_and_dir(location.filename)
+    # Use di_builder for main_mod explicitly since constants are in main module
+    file_metadata = di_builder(@main_mod).create_file(file, dir)
+
+    # For global constants, use file as scope (will be part of compilation unit)
+    # DIGlobalVariableExpression is automatically registered with the CU when created
+    # and will be finalized when di_builder.end() is called
+    gv_expr = di_builder(@main_mod).create_global_variable_expression(
+      scope: file_metadata,
+      name: const.llvm_name,
+      linkage_name: const.llvm_name,
+      file: file_metadata,
+      line: location.line_number,
+      type: debug_type,
+      local_to_unit: @single_module
+    )
+
+    # Attach debug metadata to the LLVM global variable
+    # This ensures debuggers can find the constant's debug info
+    global.add_debug_info(gv_expr)
+  ensure
+    # Restore original module context
+    @llvm_mod = old_llvm_mod
+  end
 end
 ```
 
-**Root Cause**:
-LLVM requires DIGlobalVariableExpression to be added to the compilation unit's `globals` or `retained_nodes` array. Current Crystal compiler creates the CU in `debug.cr` without exposing an API to add global variable metadata.
+**Key Implementation Insights**:
+1. **LLVM Context Management**: Debug metadata must be created in @main_mod context (where constants live), not current @llvm_mod
+2. **Automatic Registration**: DIBuilder automatically registers DIGlobalVariableExpression with CU on creation - no manual retained_nodes needed
+3. **Metadata Attachment**: `global.add_debug_info(gv_expr)` attaches the debug info to LLVM global variable
+4. **Finalization**: Debug info is finalized when `di_builder.end()` is called at compilation end
 
-**Path Forward** (Future Work):
-1. Modify `debug.cr` to maintain a list of global variable expressions
-2. Add method `register_global_variable_expr(gv_expr)` to debug context
-3. Call `di_builder.di_compile_unit_replace_globals(cu, globals_array)` before finalizing
-4. OR use LLVM 9+ `LLVMDIBuilderCreateGlobalVariableExpression` with proper CU scope
-
-**Decision**: Defer to future work - requires architectural changes in debug.cr
+**DWARF Output**:
+```
+DW_TAG_variable
+  DW_AT_name ("ANOTHER_CONST")
+  DW_AT_type (String *)
+  DW_AT_external (true)
+  DW_AT_decl_file ("/tmp/test_constants_final.cr")
+  DW_AT_decl_line (2)
+  DW_AT_location (DW_OP_addr 0x1000dc378)
+```
 
 ### Phase 3.6: Block Debugging Support
 

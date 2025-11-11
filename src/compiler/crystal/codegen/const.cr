@@ -70,24 +70,39 @@ class Crystal::CodeGenVisitor
     location = location.try &.expanded_location
     return unless location
 
-    debug_type = get_debug_type(const.value.type)
-    return unless debug_type
+    # Save current module and switch to main_mod for debug info generation
+    # This ensures debug types and metadata are created in the correct LLVM context
+    old_llvm_mod = @llvm_mod
+    @llvm_mod = @main_mod
 
-    file, dir = file_and_dir(location.filename)
-    file_metadata = di_builder.create_file(file, dir)
+    begin
+      debug_type = get_debug_type(const.value.type)
+      return unless debug_type
 
-    # For global constants, use file as scope (will be part of compilation unit)
-    # Note: In LLVM, DIGlobalVariableExpression is registered with the compilation unit
-    # when created and doesn't need to be explicitly attached to the global variable
-    di_builder.create_global_variable_expression(
-      scope: file_metadata,
-      name: const.llvm_name,
-      linkage_name: const.llvm_name,
-      file: file_metadata,
-      line: location.line_number,
-      type: debug_type,
-      local_to_unit: @single_module
-    )
+      file, dir = file_and_dir(location.filename)
+      # Use di_builder for main_mod explicitly since constants are in main module
+      file_metadata = di_builder(@main_mod).create_file(file, dir)
+
+      # For global constants, use file as scope (will be part of compilation unit)
+      # DIGlobalVariableExpression is automatically registered with the CU when created
+      # and will be finalized when di_builder.end() is called
+      gv_expr = di_builder(@main_mod).create_global_variable_expression(
+        scope: file_metadata,
+        name: const.llvm_name,
+        linkage_name: const.llvm_name,
+        file: file_metadata,
+        line: location.line_number,
+        type: debug_type,
+        local_to_unit: @single_module
+      )
+
+      # Attach debug metadata to the LLVM global variable
+      # This ensures debuggers can find the constant's debug info
+      global.add_debug_info(gv_expr)
+    ensure
+      # Restore original module context
+      @llvm_mod = old_llvm_mod
+    end
   end
 
   def declare_const_initialized_flag(const)
