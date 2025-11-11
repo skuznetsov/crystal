@@ -65,12 +65,16 @@ class CrystalHashSyntheticProvider:
         self.first = 0
 
     def update(self):
-        if self.valobj.type.is_pointer:
+        if self.valobj.GetType().IsPointerType():
             self.valobj = self.valobj.Dereference()
 
-        self.first = int(self.valobj.child[0].value or 0)
-        self.entries = self.valobj.child[1]
-        self.size = int(self.valobj.child[3].value or 0)
+        # Get raw hash structure (bypass synthetic provider recursion)
+        valobj_raw = self.valobj.GetNonSyntheticValue()
+
+        # Hash struct: [0] first, [1] entries*, [2] indices, [3] size, [4] deleted_count
+        self.first = int(valobj_raw.GetChildAtIndex(0).GetValueAsUnsigned())
+        self.entries = valobj_raw.GetChildAtIndex(1)
+        self.size = int(valobj_raw.GetChildAtIndex(3).GetValueAsUnsigned())
 
     def num_children(self):
         return self.size
@@ -86,8 +90,8 @@ class CrystalHashSyntheticProvider:
             return None
         try:
             # Get Entry(K, V) type from entries pointer
-            entry_type = self.entries.type.GetPointeeType()
-            entry_size = entry_type.size
+            entry_type = self.entries.GetType().GetPointeeType()
+            entry_size = entry_type.GetByteSize()
 
             # Calculate offset: start from first non-deleted entry
             actual_index = self.first + index
@@ -96,13 +100,13 @@ class CrystalHashSyntheticProvider:
 
             # Entry struct: [0] hash: UInt32, [1] key: K, [2] value: V
             # Check if entry is deleted (hash == 0)
-            hash_code = int(entry.child[0].value)
+            hash_code = int(entry.GetChildAtIndex(0).GetValueAsUnsigned())
             if hash_code == 0:
                 # Skip deleted entries
                 return None
 
-            key = entry.child[1]
-            value = entry.child[2]
+            key = entry.GetChildAtIndex(1)
+            value = entry.GetChildAtIndex(2)
 
             # Create a synthetic "key => value" child
             # For now, just return the entry itself for debugging
@@ -122,35 +126,38 @@ def CrystalSet_SummaryProvider(value, dict):
             value = value.Dereference()
 
         # Set struct: [0] hash: Hash(T, Nil)*
-        hash_ptr = value.child[0]
+        hash_ptr = value.GetChildAtIndex(0)
         if hash_ptr.TypeIsPointerType():
             hash_obj = hash_ptr.Dereference()
         else:
             hash_obj = hash_ptr
 
-        # Get size from hash
-        size = int(hash_obj.child[3].value or 0)
+        # Get raw hash structure (bypass synthetic provider)
+        hash_raw = hash_obj.GetNonSyntheticValue()
+
+        # Hash struct: [0] first, [1] entries*, [2] indices, [3] size, [4] deleted_count
+        size = int(hash_raw.GetChildAtIndex(3).GetValueAsUnsigned())
 
         if size == 0:
             return 'Set{}'
 
-        # Get entries
-        first = int(hash_obj.child[0].value or 0)
-        entries = hash_obj.child[1]
+        # Get entries pointer and metadata
+        first = int(hash_raw.GetChildAtIndex(0).GetValueAsUnsigned())
+        entries = hash_raw.GetChildAtIndex(1)
 
         elements = []
-        entry_type = entries.type.GetPointeeType()
-        entry_size = entry_type.size
+        entry_type = entries.GetType().GetPointeeType()
+        entry_size = entry_type.GetByteSize()
 
         for i in range(min(size, 10)):  # Show max 10 elements
             offset = entry_size * (first + i)
             entry = entries.CreateChildAtOffset('', offset, entry_type)
 
             # Entry: [0] hash, [1] key, [2] value (Nil)
-            hash_code = int(entry.child[0].value)
+            hash_code = int(entry.GetChildAtIndex(0).GetValueAsUnsigned())
             if hash_code != 0:  # Not deleted
-                key = entry.child[1]
-                elements.append(key.value)
+                key = entry.GetChildAtIndex(1)
+                elements.append(key.GetValue())
 
         if size > 10:
             return 'Set{' + ', '.join(str(e) for e in elements) + ', ... (%d total)}' % size
@@ -167,13 +174,10 @@ def CrystalRange_SummaryProvider(value, dict):
             value = value.Dereference()
 
         # Range struct: [0] begin, [1] end, [2] exclusive
-        begin_val = value.child[0].value
-        end_val = value.child[1].value
-        # LLDB returns bool as 0/1, need explicit check
-        exclusive_val = value.child[2].value
-        if exclusive_val is None:
-            exclusive_val = value.child[2].GetValueAsUnsigned()
-        exclusive = (exclusive_val != 0)
+        begin_val = value.GetChildAtIndex(0).GetValue()
+        end_val = value.GetChildAtIndex(1).GetValue()
+        # LLDB bool field: use GetValueAsUnsigned() for reliable bool reading
+        exclusive = value.GetChildAtIndex(2).GetValueAsUnsigned() != 0
 
         if exclusive:
             return '%s...%s' % (begin_val, end_val)

@@ -57,7 +57,12 @@ Click in the left margin of your `.cr` file to set breakpoints (red dots will ap
 
 **Crystal-Specific:**
 - **String Formatting**: Shows `"Hello, Crystal!"` instead of pointers
-- **Array Formatting**: Displays array elements
+- **Array Formatting**: Displays array elements `[1, 2, 3, 4, 5]`
+- **Hash Formatting**: Shows key-value pairs with expandable entries
+- **Set Formatting**: Displays elements like `Set{1, 2, 3, 4, 5}`
+- **Range Formatting**: Distinguishes `1..10` (inclusive) from `1...10` (exclusive)
+- **Tuple Formatting**: Shows elements `(42, "answer", 3.14)`
+- **NamedTuple Formatting**: Shows named fields `(name: "Crystal", version: 1)`
 - **Constants**: Visible in debugger (Phase 3.5)
 - **Macros**: Step through expanded macro source (Phase 3.7)
 - **Procs**: Debug info for Proc types (Phase 3.1)
@@ -88,6 +93,56 @@ Variables:
 
 Watch:
   name.size → 7
+```
+
+### Crystal Type Formatters
+
+Crystal-specific type formatters make debugging easier by showing human-readable values:
+
+**String and Array:**
+```
+(lldb) p my_string
+(String *) "Hello, Crystal!"
+
+(lldb) p my_array
+(Array(Int32)) [1, 2, 3, 4, 5]
+```
+
+**Hash (use `*` to dereference):**
+```
+(lldb) p *my_hash
+(Hash(String, Int32)) {
+  [0] = (hash = 454616463, key = "one", value = 1)
+  [1] = (hash = 1673748108, key = "two", value = 2)
+  [2] = (hash = 1680372361, key = "three", value = 3)
+}
+```
+
+**Set:**
+```
+(lldb) p my_set
+(Set(Int32)) Set{10, 20, 30, 40, 50}
+```
+
+**Range (inclusive vs exclusive):**
+```
+(lldb) p my_range_incl
+(Range(Int32, Int32)) 1..10
+
+(lldb) p my_range_excl
+(Range(Int32, Int32)) 1...10
+```
+
+**Tuple:**
+```
+(lldb) p my_tuple
+(Tuple(Int32, String, Float64)) ([0] = 42, [1] = "answer", [2] = 3.14)
+```
+
+**NamedTuple:**
+```
+(lldb) p my_named_tuple
+(NamedTuple(name: String, version: Int32)) (name = "Crystal", version = 1)
 ```
 
 ## Command Line Debugging (LLDB)
