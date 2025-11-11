@@ -3,7 +3,35 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": [    
+    "configurations": [
+        {
+            "type": "lldb-dap",
+            "request": "launch",
+            "name": "Crystal: Debug Current File",
+            "program": "${workspaceFolder}/${fileBasenameNoExtension}",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "initCommands": [
+                "command script import ${workspaceFolder}/etc/lldb/crystal_formatters.py",
+                "settings set target.inline-breakpoint-strategy always"
+            ],
+            "preLaunchTask": "crystal: build current file (debug)",
+            "sourceMap": {},
+            "enableSyntheticChildDebugging": true
+        },
+        {
+            "type": "lldb-dap",
+            "request": "launch",
+            "name": "Crystal: Debug Program",
+            "program": "${workspaceFolder}/${input:programName}",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "initCommands": [
+                "command script import ${workspaceFolder}/etc/lldb/crystal_formatters.py",
+                "settings set target.inline-breakpoint-strategy always"
+            ],
+            "enableSyntheticChildDebugging": true
+        },
         {
             "type": "lldb-dap",
             "request": "launch",
@@ -28,7 +56,10 @@
                 // "./crweb.cr"
                 "./test/debug_tests.cr"
             ],
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "initCommands": [
+                "command script import ${workspaceFolder}/etc/lldb/crystal_formatters.py"
+            ]
         },
         {
             "type": "lldb",
@@ -36,7 +67,10 @@
             "name": "Debug crweb",
             "program": "${workspaceFolder}/test/crweb",
             "args": [],
-            "cwd": "${workspaceFolder}/test"
+            "cwd": "${workspaceFolder}/test",
+            "initCommands": [
+                "command script import ${workspaceFolder}/etc/lldb/crystal_formatters.py"
+            ]
         },
         {
             "type": "lldb",
@@ -44,7 +78,18 @@
             "name": "Debug debug_tests",
             "program": "${workspaceFolder}/test/debug_tests",
             "args": [],
-            "cwd": "${workspaceFolder}/test"
+            "cwd": "${workspaceFolder}/test",
+            "initCommands": [
+                "command script import ${workspaceFolder}/etc/lldb/crystal_formatters.py"
+            ]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "programName",
+            "type": "promptString",
+            "description": "Name of the program to debug (relative to workspace)",
+            "default": "bin/program"
         }
     ]
 }

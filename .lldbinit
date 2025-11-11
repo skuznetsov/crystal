@@ -1,0 +1,15 @@
+# Crystal LLDB Configuration
+# Auto-load Crystal type formatters
+
+# Load Crystal formatters
+command script import etc/lldb/crystal_formatters.py
+
+# Settings for better Crystal debugging experience
+settings set target.inline-breakpoint-strategy always
+settings set target.load-script-from-symbol-file true
+
+# Display settings
+settings set frame-format "frame #${frame.index}: ${frame.pc}{ ${module.file.basename}\`${function.name-with-args}${function.pc-offset}}{ at ${line.file.basename}:${line.number}}{${function.is-optimized} [opt]}\n"
+
+# Print helpful message
+script print("Crystal LLDB formatters loaded from etc/lldb/crystal_formatters.py")
