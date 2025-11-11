@@ -247,6 +247,186 @@ class CrystalNamedTupleSyntheticProvider:
         return self.count > 0
 
 
+# Custom LLDB commands for Crystal
+class CrystalSizeCommand:
+    """Get the size of a Crystal collection (Array, Hash, Set, String)"""
+
+    def __init__(self, debugger, unused):
+        self.help_string = "crystal size <variable> - Get size of Array, Hash, Set, or String"
+
+    def __call__(self, debugger, command, exe_ctx, result):
+        args = command.strip()
+        if not args:
+            result.SetError("Usage: crystal size <variable>")
+            return
+
+        frame = exe_ctx.GetFrame()
+        if not frame:
+            result.SetError("No frame available")
+            return
+
+        var = frame.FindVariable(args)
+        if not var.IsValid():
+            result.SetError(f"Variable '{args}' not found")
+            return
+
+        type_name = var.GetTypeName()
+
+        try:
+            # Handle pointers
+            if var.TypeIsPointerType():
+                var = var.Dereference()
+                type_name = var.GetTypeName()
+
+            # Get raw structure
+            var_raw = var.GetNonSyntheticValue()
+
+            if 'Array' in type_name:
+                size = var_raw.GetChildMemberWithName('size').GetValueAsUnsigned()
+                result.AppendMessage(f"{args}.size = {size}")
+            elif 'Hash' in type_name:
+                size = var_raw.GetChildMemberWithName('size').GetValueAsUnsigned()
+                result.AppendMessage(f"{args}.size = {size}")
+            elif 'Set' in type_name:
+                # Set wraps Hash
+                hash_ptr = var_raw.GetChildAtIndex(0)
+                if hash_ptr.TypeIsPointerType():
+                    hash_obj = hash_ptr.Dereference().GetNonSyntheticValue()
+                    size = hash_obj.GetChildMemberWithName('size').GetValueAsUnsigned()
+                    result.AppendMessage(f"{args}.size = {size}")
+                else:
+                    result.SetError("Could not access Set's internal hash")
+            elif 'String' in type_name:
+                length = var_raw.GetChildMemberWithName('length').GetValueAsUnsigned()
+                result.AppendMessage(f"{args}.size = {length}")
+            else:
+                result.SetError(f"Type '{type_name}' does not support .size")
+        except Exception as e:
+            result.SetError(f"Error getting size: {str(e)}")
+
+
+class CrystalAtCommand:
+    """Get element at index from Array"""
+
+    def __init__(self, debugger, unused):
+        self.help_string = "crystal at <array> <index> - Get element at index"
+
+    def __call__(self, debugger, command, exe_ctx, result):
+        args = command.strip().split()
+        if len(args) != 2:
+            result.SetError("Usage: crystal at <array> <index>")
+            return
+
+        var_name, index_str = args
+
+        try:
+            index = int(index_str)
+        except ValueError:
+            result.SetError(f"Invalid index: {index_str}")
+            return
+
+        frame = exe_ctx.GetFrame()
+        if not frame:
+            result.SetError("No frame available")
+            return
+
+        var = frame.FindVariable(var_name)
+        if not var.IsValid():
+            result.SetError(f"Variable '{var_name}' not found")
+            return
+
+        try:
+            # Handle pointers
+            if var.TypeIsPointerType():
+                var = var.Dereference()
+
+            # Get raw structure
+            var_raw = var.GetNonSyntheticValue()
+
+            # Get size and buffer
+            size = var_raw.GetChildMemberWithName('size').GetValueAsUnsigned()
+
+            if index < 0 or index >= size:
+                result.SetError(f"Index {index} out of bounds (size = {size})")
+                return
+
+            buffer = var_raw.GetChildMemberWithName('buffer')
+            element_type = buffer.GetType().GetPointeeType()
+            element_size = element_type.GetByteSize()
+
+            offset = element_size * index
+            element = buffer.CreateChildAtOffset(f'[{index}]', offset, element_type)
+
+            result.AppendMessage(f"{var_name}[{index}] = {element.GetValue()}")
+        except Exception as e:
+            result.SetError(f"Error getting element: {str(e)}")
+
+
+class CrystalKeysCommand:
+    """Get keys from a Hash"""
+
+    def __init__(self, debugger, unused):
+        self.help_string = "crystal keys <hash> - Get all keys from Hash"
+
+    def __call__(self, debugger, command, exe_ctx, result):
+        args = command.strip()
+        if not args:
+            result.SetError("Usage: crystal keys <hash>")
+            return
+
+        frame = exe_ctx.GetFrame()
+        if not frame:
+            result.SetError("No frame available")
+            return
+
+        var = frame.FindVariable(args)
+        if not var.IsValid():
+            result.SetError(f"Variable '{args}' not found")
+            return
+
+        try:
+            # Handle pointers
+            if var.TypeIsPointerType():
+                var = var.Dereference()
+
+            var_raw = var.GetNonSyntheticValue()
+
+            # Get hash fields
+            first = var_raw.GetChildMemberWithName('first').GetValueAsUnsigned()
+            entries = var_raw.GetChildMemberWithName('entries')
+            size = var_raw.GetChildMemberWithName('size').GetValueAsUnsigned()
+
+            if size == 0:
+                result.AppendMessage("Hash is empty")
+                return
+
+            keys = []
+            entry_type = entries.GetType().GetPointeeType()
+            entry_size = entry_type.GetByteSize()
+
+            for i in range(min(size, 20)):  # Limit to 20 keys
+                offset = entry_size * (first + i)
+                entry = entries.CreateChildAtOffset('', offset, entry_type)
+
+                hash_code = entry.GetChildAtIndex(0).GetValueAsUnsigned()
+                if hash_code != 0:  # Not deleted
+                    key = entry.GetChildAtIndex(1)
+                    # Use String formatter if key is String type
+                    key_type = key.GetTypeName()
+                    if 'String' in key_type:
+                        key_str = CrystalString_SummaryProvider(key, {})
+                        keys.append(key_str)
+                    else:
+                        keys.append(str(key.GetValue()))
+
+            if size > 20:
+                result.AppendMessage(f"Keys (showing first 20 of {size}): {', '.join(keys)}")
+            else:
+                result.AppendMessage(f"Keys: {', '.join(keys)}")
+        except Exception as e:
+            result.SetError(f"Error getting keys: {str(e)}")
+
+
 def __lldb_init_module(debugger, dict):
     # Existing formatters
     debugger.HandleCommand(r'type synthetic add -l crystal_formatters.CrystalArraySyntheticProvider -x "^Array\(.+\)(\s*\**)?" -w Crystal')
@@ -260,3 +440,8 @@ def __lldb_init_module(debugger, dict):
     debugger.HandleCommand(r'type synthetic add -l crystal_formatters.CrystalNamedTupleSyntheticProvider -x "^NamedTuple\(.+\)(\s*\**)?" -w Crystal')
 
     debugger.HandleCommand(r'type category enable Crystal')
+
+    # Register custom commands
+    debugger.HandleCommand('command script add -c crystal_formatters.CrystalSizeCommand crystal_size')
+    debugger.HandleCommand('command script add -c crystal_formatters.CrystalAtCommand crystal_at')
+    debugger.HandleCommand('command script add -c crystal_formatters.CrystalKeysCommand crystal_keys')
