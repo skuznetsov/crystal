@@ -16,6 +16,59 @@ Or load it manually in LLDB:
 (lldb) command script import /path/to/crystal/etc/lldb/crystal_formatters.py
 ```
 
+## VSCode Integration
+
+**Good news: Formatters are already enabled automatically in VSCode!**
+
+The `.vscode/launch.json` configuration includes:
+
+```json
+"initCommands": [
+    "command script import ${workspaceFolder}/etc/lldb/crystal_formatters.py",
+    "settings set target.inline-breakpoint-strategy always"
+]
+```
+
+This means:
+- All type formatters work automatically in the **Variables** panel
+- Custom commands are available in the **Debug Console**
+
+### Quick Start
+
+1. Open `test/debug_formatters_demo.cr` in VSCode
+2. Set a breakpoint on line 30 (`puts "Breakpoint here..."`)
+3. Press **F5** or select "Crystal: Debug Current File"
+4. When breakpoint hits:
+   - **Variables panel**: See formatted String, Array, Hash, Set, Range, Tuple values
+   - **Debug Console**: Use custom commands like `crystal_size my_array`
+
+### Using Custom Commands in Debug Console
+
+When stopped at a breakpoint, open the Debug Console (Ctrl+Shift+Y) and type:
+
+```
+> crystal_size my_array
+my_array.size = 5
+
+> crystal_at my_array 2
+my_array[2] = 3
+
+> crystal_keys my_hash
+Keys: "one", "two", "three"
+```
+
+### Variables Panel Formatters
+
+Variables are automatically formatted without any commands:
+
+- `my_string` → `"Hello, Crystal!"` (instead of pointer/struct)
+- `my_array` → `[0] = 1, [1] = 2, [2] = 3, ...`
+- `my_hash` → Hash entries with formatted keys/values
+- `my_set` → `Set{10, 20, 30, ...}`
+- `my_range` → `1..10` or `1...10`
+
+**Note:** Field access with `@` syntax (like `(*my_array).@size`) works in the Debug Console but shows raw DWARF values, not formatted ones. Use `crystal_size` instead for better output.
+
 ## Type Formatters
 
 The following Crystal types have custom formatters for better visualization in LLDB:
