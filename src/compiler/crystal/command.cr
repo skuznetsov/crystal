@@ -40,6 +40,7 @@ class Crystal::Command
 
     Tool:
         context                  show context for given location
+        debug:setup              setup LLDB debugging configuration
         dependencies             show file dependency tree
         expand                   show macro expansion for given location
         flags                    print all macro `flag?` values
@@ -186,6 +187,9 @@ class Crystal::Command
     when "context".starts_with?(tool)
       options.shift
       context
+    when "debug:setup" == tool
+      options.shift
+      debug_setup
     when "format".starts_with?(tool)
       options.shift
       format
