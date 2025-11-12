@@ -36,7 +36,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
       method_node = fetch_method(arena, class_body[0])
       super_node = fetch_super(arena, method_node)
 
-      super_node.args.should be_nil  # nil = implicit args
+      super_node.args.should be_nil # nil = implicit args
     end
 
     it "parses super with empty parentheses (explicit no args)" do
@@ -59,7 +59,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
       super_node = fetch_super(arena, method_node)
 
       args = super_node.args.not_nil!
-      args.size.should eq(0)  # Empty array = explicit no args
+      args.size.should eq(0) # Empty array = explicit no args
     end
 
     it "parses super with single argument" do

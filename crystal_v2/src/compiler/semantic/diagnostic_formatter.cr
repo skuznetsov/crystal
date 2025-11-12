@@ -102,7 +102,7 @@ module CrystalV2
           line : String,
           line_num : Int32,
           span : Frontend::Span,
-          total_lines : Int32
+          total_lines : Int32,
         ) : String
           length = line.size
 

@@ -7,7 +7,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     # String literal tests
 
     it "parses \\xXX ASCII in string" do
-      source = "s = \"\\x41\""  # 'A'
+      source = "s = \"\\x41\"" # 'A'
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -22,7 +22,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\xXX control character in string" do
-      source = "s = \"\\x0A\""  # newline
+      source = "s = \"\\x0A\"" # newline
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -36,7 +36,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\xXX null byte in string" do
-      source = "s = \"\\x00\""  # null
+      source = "s = \"\\x00\"" # null
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -50,7 +50,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\xXX high byte in string" do
-      source = "s = \"\\xFF\""  # 255
+      source = "s = \"\\xFF\"" # 255
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -66,7 +66,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses multiple \\xXX in string" do
-      source = "s = \"\\x41\\x42\\x43\""  # "ABC"
+      source = "s = \"\\x41\\x42\\x43\"" # "ABC"
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -80,7 +80,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses mixed hex and regular text in string" do
-      source = "s = \"Hello\\x20World\""  # "Hello World"
+      source = "s = \"Hello\\x20World\"" # "Hello World"
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -94,7 +94,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses mixed hex and other escapes in string" do
-      source = "s = \"\\x41\\nB\""  # "A\nB"
+      source = "s = \"\\x41\\nB\"" # "A\nB"
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -108,7 +108,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses lowercase hex digits in string" do
-      source = "s = \"\\x61\""  # 'a'
+      source = "s = \"\\x61\"" # 'a'
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -124,7 +124,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     # Character literal tests
 
     it "parses \\xXX ASCII in character" do
-      source = "c = '\\x41'"  # 'A'
+      source = "c = '\\x41'" # 'A'
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -139,7 +139,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\xXX control character in character literal" do
-      source = "c = '\\x09'"  # tab
+      source = "c = '\\x09'" # tab
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -153,7 +153,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\xXX null byte in character" do
-      source = "c = '\\x00'"  # null
+      source = "c = '\\x00'" # null
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -167,7 +167,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\xXX high byte in character" do
-      source = "c = '\\xFF'"  # 255
+      source = "c = '\\xFF'" # 255
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -185,7 +185,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     # Integration tests
 
     it "parses hex escapes in array" do
-      source = "[\"\\x41\", \"\\x42\"]"  # ["A", "B"]
+      source = "[\"\\x41\", \"\\x42\"]" # ["A", "B"]
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -205,7 +205,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses hex escapes in method call" do
-      source = "puts(\"\\x48ello\")"  # puts("Hello")
+      source = "puts(\"\\x48ello\")" # puts("Hello")
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program

@@ -15,7 +15,7 @@ describe "LSP Call Hierarchy" do
 
       item = CrystalV2::Compiler::LSP::CallHierarchyItem.new(
         name: "test_method",
-        kind: 6,  # Method
+        kind: 6, # Method
         uri: "file:///test.cr",
         range: range,
         selection_range: range
@@ -175,7 +175,7 @@ describe "LSP Call Hierarchy" do
 
       item.should_not be_nil
       item.not_nil!.name.should eq("calculate")
-      item.not_nil!.kind.should eq(6)  # Method
+      item.not_nil!.kind.should eq(6) # Method
       detail = item.not_nil!.detail
       detail.should_not be_nil
       detail.not_nil!.should contain("Int32")

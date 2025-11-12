@@ -117,7 +117,7 @@ module CrystalV2
           if original_text.starts_with?(':')
             @output << ':'
             @output << ' '
-            @output << original_text[1..-1]  # Type name without leading colon
+            @output << original_text[1..-1] # Type name without leading colon
             @last_was_newline = false
             return
           end
@@ -153,64 +153,61 @@ module CrystalV2
         # Helper to check if need space after keyword
         # Note: 'puts' is an Identifier, not a keyword, so handled separately
         need_space_after = case current.kind
-        when Frontend::Token::Kind::Def, Frontend::Token::Kind::If,
-             Frontend::Token::Kind::Unless, Frontend::Token::Kind::While,
-             Frontend::Token::Kind::Until, Frontend::Token::Kind::Return,
-             Frontend::Token::Kind::Class, Frontend::Token::Kind::Module,
-             Frontend::Token::Kind::Struct, Frontend::Token::Kind::Elsif,
-             Frontend::Token::Kind::Else, Frontend::Token::Kind::Require,
-             Frontend::Token::Kind::Enum,
-             Frontend::Token::Kind::Include, Frontend::Token::Kind::Extend,
-             Frontend::Token::Kind::Private, Frontend::Token::Kind::Protected,
-             Frontend::Token::Kind::Alias, Frontend::Token::Kind::Case,
-             Frontend::Token::Kind::When,
-             Frontend::Token::Kind::Begin, Frontend::Token::Kind::Rescue,
-             Frontend::Token::Kind::Ensure
-          true
-        else
-          false
-        end
+                           when Frontend::Token::Kind::Def, Frontend::Token::Kind::If,
+                                Frontend::Token::Kind::Unless, Frontend::Token::Kind::While,
+                                Frontend::Token::Kind::Until, Frontend::Token::Kind::Return,
+                                Frontend::Token::Kind::Class, Frontend::Token::Kind::Module,
+                                Frontend::Token::Kind::Struct, Frontend::Token::Kind::Elsif,
+                                Frontend::Token::Kind::Else, Frontend::Token::Kind::Require,
+                                Frontend::Token::Kind::Enum,
+                                Frontend::Token::Kind::Include, Frontend::Token::Kind::Extend,
+                                Frontend::Token::Kind::Private, Frontend::Token::Kind::Protected,
+                                Frontend::Token::Kind::Alias, Frontend::Token::Kind::Case,
+                                Frontend::Token::Kind::When,
+                                Frontend::Token::Kind::Begin, Frontend::Token::Kind::Rescue,
+                                Frontend::Token::Kind::Ensure
+                             true
+                           else
+                             false
+                           end
 
         # Special case: identifier-like calls (puts, p, etc)
         is_identifier_call = current.kind == Frontend::Token::Kind::Identifier &&
-                            next_token.kind != Frontend::Token::Kind::LParen &&
-                            next_token.kind != Frontend::Token::Kind::Colon &&
-                            next_token.kind != Frontend::Token::Kind::Symbol
+                             next_token.kind != Frontend::Token::Kind::LParen &&
+                             next_token.kind != Frontend::Token::Kind::Colon &&
+                             next_token.kind != Frontend::Token::Kind::Symbol
 
         case {current.kind, next_token.kind}
         # No space before function call parens
         when {Frontend::Token::Kind::Identifier, Frontend::Token::Kind::LParen}
           # foo(x) - no space
 
-        # Type annotation: Identifier followed by Symbol (e.g., x:Int32)
-        # No space needed - emit_token splits Symbol into ": Type"
+          # Type annotation: Identifier followed by Symbol (e.g., x:Int32)
+          # No space needed - emit_token splits Symbol into ": Type"
         when {Frontend::Token::Kind::Identifier, Frontend::Token::Kind::Symbol}
           # x:Int32 → "x" + (": Int32" from emit_token)
 
-        # Around type annotations ':'
-        # Space before ':' in type annotations
+          # Around type annotations ':'
+          # Space before ':' in type annotations
         when {Frontend::Token::Kind::Identifier, Frontend::Token::Kind::Colon}
           @output << ' '
-        # Space after ':' in type annotations
-        # (symbols like ':foo' are handled separately with no preceding identifier)
+          # Space after ':' in type annotations
+          # (symbols like ':foo' are handled separately with no preceding identifier)
         when {Frontend::Token::Kind::Colon, _}
           @output << ' '
-
-        # Around assignment '='
+          # Around assignment '='
         when {_, Frontend::Token::Kind::Eq}
           @output << ' '
         when {Frontend::Token::Kind::Eq, _}
           @output << ' '
-
-        # Around binary operators
+          # Around binary operators
         when {_, Frontend::Token::Kind::Plus}, {_, Frontend::Token::Kind::Minus},
              {_, Frontend::Token::Kind::Star}, {_, Frontend::Token::Kind::Slash}
           @output << ' '
         when {Frontend::Token::Kind::Plus, _}, {Frontend::Token::Kind::Minus, _},
              {Frontend::Token::Kind::Star, _}, {Frontend::Token::Kind::Slash, _}
           @output << ' '
-
-        # Around comparison operators
+          # Around comparison operators
         when {_, Frontend::Token::Kind::EqEq}, {_, Frontend::Token::Kind::NotEq},
              {_, Frontend::Token::Kind::Less}, {_, Frontend::Token::Kind::Greater},
              {_, Frontend::Token::Kind::LessEq}, {_, Frontend::Token::Kind::GreaterEq}
@@ -219,24 +216,21 @@ module CrystalV2
              {Frontend::Token::Kind::Less, _}, {Frontend::Token::Kind::Greater, _},
              {Frontend::Token::Kind::LessEq, _}, {Frontend::Token::Kind::GreaterEq, _}
           @output << ' '
-
-        # After comma
+          # After comma
         when {Frontend::Token::Kind::Comma, _}
           @output << ' '
-
-        # No space after/before parens
+          # No space after/before parens
         when {Frontend::Token::Kind::LParen, _}, {_, Frontend::Token::Kind::RParen}
           # (x) or x) - no space
 
-        # After closing paren before various tokens - add space
+          # After closing paren before various tokens - add space
         when {Frontend::Token::Kind::RParen, Frontend::Token::Kind::Identifier}
           @output << ' '
-
-        # No space before dot (method call)
+          # No space before dot (method call)
         when {_, Frontend::Token::Kind::Operator}
           # ex.message - no space before dot
 
-        # Default: after keywords/identifier-calls add space (catch-all)
+          # Default: after keywords/identifier-calls add space (catch-all)
         else
           if (need_space_after || is_identifier_call) &&
              next_token.kind != Frontend::Token::Kind::Newline &&

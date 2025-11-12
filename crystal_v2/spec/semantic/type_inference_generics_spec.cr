@@ -43,7 +43,6 @@ end
 
 describe Semantic::TypeInferenceEngine do
   describe "Week 1: Generic Type Instantiation" do
-
     # ========================================
     # MILESTONE 1: Basic Generic Class
     # ========================================
@@ -318,7 +317,6 @@ describe Semantic::TypeInferenceEngine do
   end
 
   describe "Week 1 Day 2: Generic Methods" do
-
     # ========================================
     # MILESTONE 1: Basic Generic Method
     # ========================================

@@ -26,7 +26,7 @@ module CrystalV2
         getter params : Array(Frontend::Parameter)
         getter return_annotation : String?
         getter scope : SymbolTable
-        getter type_parameters : Array(String)?  # Week 1 Day 2: Generic method type params ["T", "U"]
+        getter type_parameters : Array(String)? # Week 1 Day 2: Generic method type params ["T", "U"]
 
         def initialize(name : String, node_id : ExprId, *, params : Array(Frontend::Parameter) = [] of Frontend::Parameter, return_annotation : String? = nil, scope : SymbolTable, type_parameters : Array(String)? = nil)
           super(name, node_id)
@@ -40,8 +40,8 @@ module CrystalV2
       class ClassSymbol < Symbol
         getter scope : SymbolTable
         getter superclass_name : String?
-        getter instance_vars : Hash(String, String?)  # name → type annotation
-        getter type_parameters : Array(String)?  # Week 1: Generic type params ["T", "U"]
+        getter instance_vars : Hash(String, String?) # name → type annotation
+        getter type_parameters : Array(String)?      # Week 1: Generic type params ["T", "U"]
 
         def initialize(name : String, node_id : ExprId, *, scope : SymbolTable, superclass_name : String? = nil, type_parameters : Array(String)? = nil)
           super(name, node_id)

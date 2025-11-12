@@ -302,7 +302,7 @@ describe "LSP DocumentSymbol" do
 
       # identifier_symbols should contain usages from inside while loop
       counter_count = identifier_symbols.count { |_, sym| sym == counter_symbol }
-      counter_count.should be > 2  # Should have multiple usages from loop
+      counter_count.should be > 2 # Should have multiple usages from loop
     end
   end
 end

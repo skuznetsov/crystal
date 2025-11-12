@@ -7,11 +7,11 @@ counts = Hash(String, Int32).new(0)
 
 Dir.glob("/Users/sergey/Projects/Crystal/crystal/src/**/*.cr") do |file|
   source = File.read(file)
-  
+
   lexer = CrystalV2::Compiler::Frontend::Lexer.new(source)
   parser = CrystalV2::Compiler::Frontend::Parser.new(lexer)
   program = parser.parse_program
-  
+
   total += parser.diagnostics.size
   parser.diagnostics.each do |diag|
     counts[diag.message] += 1

@@ -2,7 +2,6 @@ require "spec"
 
 require "../../src/compiler/frontend/parser"
 
-
 describe "CrystalV2::Compiler::Frontend::Parser" do
   describe "Phase 69: Tuple literals {1, 2, 3} (DISCOVERED - Testing)" do
     it "parses simple tuple with multiple elements" do

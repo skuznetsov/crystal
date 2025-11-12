@@ -2,7 +2,6 @@ require "spec"
 
 require "../../src/compiler/frontend/parser"
 
-
 describe "CrystalV2::Compiler::Frontend::Parser" do
   describe "Phase 43: Method name suffixes (? and !) (PRODUCTION-READY)" do
     it "parses method definition with ? suffix" do

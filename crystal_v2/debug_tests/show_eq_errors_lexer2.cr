@@ -11,7 +11,7 @@ eq_errors = parser.diagnostics.select { |d| d.message.includes?("unexpected Eq")
 puts "Found #{eq_errors.size} 'unexpected Eq' errors:\n"
 
 eq_errors.each_with_index do |diag, i|
-  puts "\n#{i+1}. Line #{diag.span.start_line}, Column #{diag.span.start_column}"
+  puts "\n#{i + 1}. Line #{diag.span.start_line}, Column #{diag.span.start_column}"
   puts "   #{diag.message}"
 
   # Show context (3 lines before and after)

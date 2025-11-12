@@ -400,8 +400,8 @@ describe "LSP InlayHint" do
       lsp_line = node.span.end_line - 1
       lsp_char = node.span.end_column - 1
 
-      lsp_line.should eq(0)  # First line (0-indexed)
-      lsp_char.should eq(1)  # After 'x' (0-indexed)
+      lsp_line.should eq(0) # First line (0-indexed)
+      lsp_char.should eq(1) # After 'x' (0-indexed)
     end
 
     it "calculates correct line numbers for multi-line programs" do
@@ -529,7 +529,7 @@ describe "LSP InlayHint" do
 
       # identifier_symbols should have all usages
       counter_count = identifier_symbols.count { |_, sym| sym == counter_symbol }
-      counter_count.should be > 3  # declaration + multiple uses
+      counter_count.should be > 3 # declaration + multiple uses
     end
 
     it "resolves variables inside if/else branches" do

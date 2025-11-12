@@ -500,7 +500,7 @@ describe "LSP Rename" do
 
       analyzer = CrystalV2::Compiler::Semantic::Analyzer.new(program)
       analyzer.collect_symbols
-      analyzer.resolve_names  # Need this to populate symbol table
+      analyzer.resolve_names # Need this to populate symbol table
 
       # Variable 'x' should be renameable
       x_symbol = analyzer.global_context.symbol_table.lookup("x")
@@ -547,7 +547,7 @@ describe "LSP Rename" do
       edits.each_with_index do |edit, i|
         if i > 0
           # Each subsequent edit should be at same or later line
-          edit.range.start.line.should be >= edits[i-1].range.start.line
+          edit.range.start.line.should be >= edits[i - 1].range.start.line
         end
       end
     end

@@ -65,10 +65,10 @@ module CrystalV2
       # Get statistics about loaded files
       def stats
         {
-          files_loaded: @loaded_files.size,
-          total_nodes: @loaded_files.sum { |_, prog| prog.arena.size },
+          files_loaded:     @loaded_files.size,
+          total_nodes:      @loaded_files.sum { |_, prog| prog.arena.size },
           dependency_count: @dependency_graph.sum { |_, deps| deps.size },
-          parse_count: @parse_count
+          parse_count:      @parse_count,
         }
       end
 
@@ -140,7 +140,7 @@ module CrystalV2
           @mutex.synchronize do
             @loaded_files[file_path] = program
             @dependency_graph[file_path] = [] of String
-            @parse_count += 1  # Track parse operations for deduplication stats
+            @parse_count += 1 # Track parse operations for deduplication stats
           end
 
           # Find all RequireNodes and load them
@@ -259,7 +259,7 @@ module CrystalV2
         # Try with .cr extension
         candidates = [
           File.join(relative_to, req_path),
-          File.join(relative_to, "#{req_path}.cr")
+          File.join(relative_to, "#{req_path}.cr"),
         ]
 
         candidates.each do |path|
@@ -281,7 +281,7 @@ module CrystalV2
           candidates = [
             File.join(search_path, req_path),
             File.join(search_path, "#{req_path}.cr"),
-            File.join(search_path, req_path, "#{File.basename(req_path)}.cr"),  # foo/foo.cr
+            File.join(search_path, req_path, "#{File.basename(req_path)}.cr"), # foo/foo.cr
           ]
 
           candidates.each do |path|

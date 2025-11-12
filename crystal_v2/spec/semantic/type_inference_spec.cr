@@ -1501,7 +1501,7 @@ describe Semantic::TypeInferenceEngine do
       def_node = program.arena[program.roots[0]]
       body = CrystalV2::Compiler::Frontend.node_def_body(def_node)
       body.should_not be_nil
-      while_expr_id = body.not_nil![1]  # Second statement (after x = 0)
+      while_expr_id = body.not_nil![1] # Second statement (after x = 0)
       while_node = program.arena[while_expr_id].as(CrystalV2::Compiler::Frontend::WhileNode)
 
       # Check that while body contains an if with return
@@ -1509,7 +1509,7 @@ describe Semantic::TypeInferenceEngine do
       while_body.should_not be_nil
 
       # Find the if statement in the while body
-      if_expr_id = while_body.not_nil![1]  # Second statement in while (after x = x + 1)
+      if_expr_id = while_body.not_nil![1] # Second statement in while (after x = x + 1)
       if_node = program.arena[if_expr_id].as(CrystalV2::Compiler::Frontend::IfNode)
 
       # Check return in if then branch
@@ -3608,7 +3608,6 @@ describe Semantic::TypeInferenceEngine do
       assign_node = program.arena[program.roots[0]].as(CrystalV2::Compiler::Frontend::AssignNode)
       ternary_id = assign_node.value.not_nil!
       ternary_node = program.arena[ternary_id].as(CrystalV2::Compiler::Frontend::TernaryNode)
-
 
       ternary_type = engine.context.get_type(ternary_id)
       ternary_type.should be_a(PrimitiveType)

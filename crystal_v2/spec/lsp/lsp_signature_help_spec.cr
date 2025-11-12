@@ -9,7 +9,7 @@ describe CrystalV2::Compiler::LSP::Server do
       server = CrystalV2::Compiler::LSP::Server.new
       text = "result = compute(10)"
       line = 0
-      character = 17  # After '('
+      character = 17 # After '('
 
       result = server.find_call_context(text, line, character)
       result.should_not be_nil
@@ -24,7 +24,7 @@ describe CrystalV2::Compiler::LSP::Server do
       server = CrystalV2::Compiler::LSP::Server.new
       text = "result = compute(10, 20)"
       line = 0
-      character = 21  # After ', '
+      character = 21 # After ', '
 
       result = server.find_call_context(text, line, character)
       result.should_not be_nil
@@ -38,7 +38,7 @@ describe CrystalV2::Compiler::LSP::Server do
       server = CrystalV2::Compiler::LSP::Server.new
       text = "result = compute(10, 20, \"test\")"
       line = 0
-      character = 29  # After second comma
+      character = 29 # After second comma
 
       result = server.find_call_context(text, line, character)
       result.should_not be_nil
@@ -52,7 +52,7 @@ describe CrystalV2::Compiler::LSP::Server do
       server = CrystalV2::Compiler::LSP::Server.new
       text = "result = compute(10,"
       line = 0
-      character = 20  # After comma at end
+      character = 20 # After comma at end
 
       result = server.find_call_context(text, line, character)
       result.should_not be_nil
@@ -66,7 +66,7 @@ describe CrystalV2::Compiler::LSP::Server do
       server = CrystalV2::Compiler::LSP::Server.new
       text = "result = outer(inner(10),"
       line = 0
-      character = 25  # After comma in outer call
+      character = 25 # After comma in outer call
 
       result = server.find_call_context(text, line, character)
       result.should_not be_nil
@@ -91,7 +91,7 @@ describe CrystalV2::Compiler::LSP::Server do
     it "extracts simple method name" do
       server = CrystalV2::Compiler::LSP::Server.new
       line = "result = compute(10)"
-      pos = 16  # Position of '('
+      pos = 16 # Position of '('
 
       name = server.extract_method_name_before(line, pos)
       name.should eq("compute")
@@ -100,7 +100,7 @@ describe CrystalV2::Compiler::LSP::Server do
     it "extracts method name with whitespace before paren" do
       server = CrystalV2::Compiler::LSP::Server.new
       line = "result = compute  (10)"
-      pos = 18  # Position of '('
+      pos = 18 # Position of '('
 
       name = server.extract_method_name_before(line, pos)
       name.should eq("compute")
@@ -109,7 +109,7 @@ describe CrystalV2::Compiler::LSP::Server do
     it "extracts method name with underscores" do
       server = CrystalV2::Compiler::LSP::Server.new
       line = "result = my_method_123(10)"
-      pos = 22  # Position of '('
+      pos = 22 # Position of '('
 
       name = server.extract_method_name_before(line, pos)
       name.should eq("my_method_123")
@@ -118,7 +118,7 @@ describe CrystalV2::Compiler::LSP::Server do
     it "returns nil when no identifier before paren" do
       server = CrystalV2::Compiler::LSP::Server.new
       line = "result = (10 + 20)"
-      pos = 9  # Position of '('
+      pos = 9 # Position of '('
 
       name = server.extract_method_name_before(line, pos)
       name.should be_nil
@@ -129,7 +129,7 @@ describe CrystalV2::Compiler::LSP::Server do
     it "creates signature with parameters" do
       params = [
         CrystalV2::Compiler::LSP::ParameterInformation.new(label: "x : Int32"),
-        CrystalV2::Compiler::LSP::ParameterInformation.new(label: "y : Int32")
+        CrystalV2::Compiler::LSP::ParameterInformation.new(label: "y : Int32"),
       ]
 
       sig = CrystalV2::Compiler::LSP::SignatureInformation.new(
@@ -162,16 +162,16 @@ describe CrystalV2::Compiler::LSP::Server do
         CrystalV2::Compiler::LSP::SignatureInformation.new(
           label: "compute(x : Int32) : Int32",
           parameters: [
-            CrystalV2::Compiler::LSP::ParameterInformation.new(label: "x : Int32")
+            CrystalV2::Compiler::LSP::ParameterInformation.new(label: "x : Int32"),
           ]
         ),
         CrystalV2::Compiler::LSP::SignatureInformation.new(
           label: "compute(x : Int32, y : Int32) : Int32",
           parameters: [
             CrystalV2::Compiler::LSP::ParameterInformation.new(label: "x : Int32"),
-            CrystalV2::Compiler::LSP::ParameterInformation.new(label: "y : Int32")
+            CrystalV2::Compiler::LSP::ParameterInformation.new(label: "y : Int32"),
           ]
-        )
+        ),
       ]
 
       help = CrystalV2::Compiler::LSP::SignatureHelp.new(
@@ -189,7 +189,7 @@ describe CrystalV2::Compiler::LSP::Server do
       sig = CrystalV2::Compiler::LSP::SignatureInformation.new(
         label: "compute(x : Int32) : Int32",
         parameters: [
-          CrystalV2::Compiler::LSP::ParameterInformation.new(label: "x : Int32")
+          CrystalV2::Compiler::LSP::ParameterInformation.new(label: "x : Int32"),
         ]
       )
 
@@ -237,14 +237,14 @@ describe CrystalV2::Compiler::LSP::Server do
 
       # Call to helper inside while loop should be in identifier_symbols
       helper_call_count = identifier_symbols.count { |_, sym| sym == helper_symbol }
-      helper_call_count.should eq(1)  # One call inside while loop
+      helper_call_count.should eq(1) # One call inside while loop
 
       # counter should be resolved both outside and inside while
       counter_symbol = analyzer.global_context.symbol_table.lookup("counter")
       counter_symbol.should_not be_nil
 
       counter_count = identifier_symbols.count { |_, sym| sym == counter_symbol }
-      counter_count.should be > 3  # declaration + condition + call arg + assignment
+      counter_count.should be > 3 # declaration + condition + call arg + assignment
     end
   end
 end

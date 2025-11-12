@@ -72,7 +72,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
       method_node = arena[class_body[0]]
 
       String.new(CrystalV2::Compiler::Frontend.node_def_name(method_node).not_nil!).should eq("public_method")
-      CrystalV2::Compiler::Frontend.node_def_visibility(method_node).should be_nil  # nil = public (default)
+      CrystalV2::Compiler::Frontend.node_def_visibility(method_node).should be_nil # nil = public (default)
     end
 
     it "parses mixed visibility methods" do

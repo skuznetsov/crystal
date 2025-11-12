@@ -116,10 +116,10 @@ module CrystalV2
             # TIER 2.1: Convert Slice(UInt8) to String for symbol table
             param_name_str = String.new(param_name)
             param_type_str = if type_ann = param.type_annotation
-              String.new(type_ann)
-            else
-              nil
-            end
+                               String.new(type_ann)
+                             else
+                               nil
+                             end
 
             param_symbol = VariableSymbol.new(param_name_str, node_id, declared_type: param_type_str)
 
@@ -188,18 +188,18 @@ module CrystalV2
 
           symbol = table.lookup_local(name)
           module_symbol = case symbol
-          when ModuleSymbol
-            symbol
-          else
-            new_scope = SymbolTable.new(table)
-            created = ModuleSymbol.new(name, node_id, scope: new_scope)
-            if symbol
-              table.redefine(name, created)
-            else
-              table.define(name, created)
-            end
-            created
-          end
+                          when ModuleSymbol
+                            symbol
+                          else
+                            new_scope = SymbolTable.new(table)
+                            created = ModuleSymbol.new(name, node_id, scope: new_scope)
+                            if symbol
+                              table.redefine(name, created)
+                            else
+                              table.define(name, created)
+                            end
+                            created
+                          end
 
           push_table(module_symbol.scope)
           (node.body || [] of Frontend::ExprId).each { |expr_id| visit(expr_id) }
@@ -225,14 +225,13 @@ module CrystalV2
               # Generate: def name : Type; @name; end
               def_node = build_getter_def(spec, node.span)
               def_id = @arena.add_typed(def_node)
-              visit(def_id)  # Immediately register as MethodSymbol
+              visit(def_id) # Immediately register as MethodSymbol
 
             when Frontend::SetterNode
               # Generate: def name=(value : Type); @name = value; end
               def_node = build_setter_def(spec, node.span)
               def_id = @arena.add_typed(def_node)
               visit(def_id)
-
             when Frontend::PropertyNode
               # Generate both getter and setter
               getter_node = build_getter_def(spec, node.span)
@@ -252,7 +251,7 @@ module CrystalV2
         private def build_getter_def(spec : Frontend::AccessorSpec, base_span : Frontend::Span) : Frontend::DefNode
           # TIER 2.2: spec.name is already Slice(UInt8), spec.type_annotation is Slice(UInt8)?
           # Create instance variable access node: @name
-          spec_name_str = String.new(spec.name)  # Convert for interpolation
+          spec_name_str = String.new(spec.name) # Convert for interpolation
           ivar_name = "@#{spec_name_str}"
           ivar_bytes = ivar_name.to_slice
           ivar_node = Frontend::InstanceVarNode.new(
@@ -262,8 +261,8 @@ module CrystalV2
           ivar_id = @arena.add_typed(ivar_node)
 
           # Create def node with instance variable as body
-          method_name_bytes = spec.name  # Already Slice(UInt8)
-          return_type_bytes = spec.type_annotation  # Already Slice(UInt8)?
+          method_name_bytes = spec.name            # Already Slice(UInt8)
+          return_type_bytes = spec.type_annotation # Already Slice(UInt8)?
 
           Frontend::DefNode.new(
             base_span,
@@ -284,7 +283,7 @@ module CrystalV2
           # Create parameter: value : Type
           # TIER 2.2: spec.name and spec.type_annotation are already Slice(UInt8)
           param_name_slice = "value".to_slice
-          param_type_slice = spec.type_annotation  # Already Slice(UInt8)?
+          param_type_slice = spec.type_annotation # Already Slice(UInt8)?
 
           param = Frontend::Parameter.new(
             param_name_slice,
@@ -296,7 +295,7 @@ module CrystalV2
           )
 
           # Create instance variable node: @name
-          spec_name_str = String.new(spec.name)  # Convert for interpolation
+          spec_name_str = String.new(spec.name) # Convert for interpolation
           ivar_name = "@#{spec_name_str}"
           ivar_bytes = ivar_name.to_slice
           ivar_node = Frontend::InstanceVarNode.new(
@@ -322,7 +321,7 @@ module CrystalV2
           assign_id = @arena.add_typed(assign_node)
 
           # Create def node with assignment as body
-          spec_name_str2 = String.new(spec.name)  # Convert for interpolation
+          spec_name_str2 = String.new(spec.name) # Convert for interpolation
           setter_name = "#{spec_name_str2}="
           setter_name_bytes = setter_name.to_slice
 
@@ -330,7 +329,7 @@ module CrystalV2
             base_span,
             setter_name_bytes,
             [param],
-            param_type_slice,  # FIXED: Was param_type_bytes
+            param_type_slice, # FIXED: Was param_type_bytes
             [assign_id]
           )
         end

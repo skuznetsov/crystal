@@ -20,9 +20,9 @@ module CrystalV2
       #
       # ```
       # pool = StringPool.new
-      # slice1 = pool.intern(some_slice)  # First occurrence - stores
-      # slice2 = pool.intern(same_slice)  # Second occurrence - returns cached
-      # slice1 == slice2  # => true (same object!)
+      # slice1 = pool.intern(some_slice) # First occurrence - stores
+      # slice2 = pool.intern(same_slice) # Second occurrence - returns cached
+      # slice1 == slice2                 # => true (same object!)
       # ```
       #
       # ## Lifetime Management
@@ -53,7 +53,7 @@ module CrystalV2
         # slice2 = "foo".to_slice
         # canonical1 = pool.intern(slice1)
         # canonical2 = pool.intern(slice2)
-        # canonical1.object_id == canonical2.object_id  # => true
+        # canonical1.object_id == canonical2.object_id # => true
         # ```
         def intern(slice : Slice(UInt8)) : Slice(UInt8)
           # Convert to string for hash key

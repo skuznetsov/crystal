@@ -2,7 +2,6 @@ require "spec"
 
 require "../../src/compiler/frontend/parser"
 
-
 describe CrystalV2::Compiler::Frontend::Parser do
   it "produces AST nodes with arena storage" do
     lexer = CrystalV2::Compiler::Frontend::Lexer.new("foo + 1
@@ -377,7 +376,7 @@ bar")
 
     parser.diagnostics.size.should eq(1)
     diagnostic = parser.diagnostics.first
-    diagnostic.message.should eq("unexpected RParen")  # More specific than "Operator"
+    diagnostic.message.should eq("unexpected RParen") # More specific than "Operator"
     diagnostic.span.start_line.should eq(1)
     diagnostic.span.start_column.should eq(1)
     diagnostic.span.end_column.should eq(2)
@@ -501,8 +500,8 @@ bar")
     # Should have span covering full {% if condition %}
     span = control_start.not_nil!.span
     span.should_not be_nil
-    span.not_nil!.start_line.should eq(2)  # Line with {% if
-    span.not_nil!.start_column.should eq(5)  # Start of {%
+    span.not_nil!.start_line.should eq(2)   # Line with {% if
+    span.not_nil!.start_column.should eq(5) # Start of {%
 
     # Find control end piece
     control_end = pieces.find { |p| p.kind == CrystalV2::Compiler::Frontend::MacroPiece::Kind::ControlEnd }
@@ -511,7 +510,7 @@ bar")
     # Should have span covering full {% end %}
     end_span = control_end.not_nil!.span
     end_span.should_not be_nil
-    end_span.not_nil!.start_line.should eq(4)  # Line with {% end
+    end_span.not_nil!.start_line.should eq(4) # Line with {% end
   end
 
   it "captures spans for macro expression pieces" do
@@ -537,8 +536,8 @@ bar")
     # Should have span covering full {{ value }}
     span = expr_piece.not_nil!.span
     span.should_not be_nil
-    span.not_nil!.start_line.should eq(2)  # Line with {{
-    span.not_nil!.start_column.should eq(5)  # Start of {{
+    span.not_nil!.start_line.should eq(2)   # Line with {{
+    span.not_nil!.start_column.should eq(5) # Start of {{
   end
 
   it "handles unary with empty grouping without crashing" do
@@ -643,7 +642,7 @@ bar")
     span = text_piece.span
     span.should_not be_nil
     span.not_nil!.start_line.should eq(2)
-    span.not_nil!.end_line.should eq(5)  # Covers multiple lines
+    span.not_nil!.end_line.should eq(5) # Covers multiple lines
   end
 
   it "captures spans for trimmed text pieces" do

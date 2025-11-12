@@ -50,11 +50,11 @@ describe "Type System" do
       symbol2 = ClassSymbol.new("Foo", expr_id2, scope: scope2)
 
       type1 = ClassType.new(symbol1)
-      type2 = ClassType.new(symbol1)  # Same symbol
-      type3 = ClassType.new(symbol2)  # Different symbol, same name
+      type2 = ClassType.new(symbol1) # Same symbol
+      type3 = ClassType.new(symbol2) # Different symbol, same name
 
-      (type1 == type2).should be_true   # Same symbol
-      (type1 == type3).should be_false  # Different symbol (even if same name)
+      (type1 == type2).should be_true  # Same symbol
+      (type1 == type3).should be_false # Different symbol (even if same name)
     end
 
     it "converts to string with class name" do
@@ -91,9 +91,9 @@ describe "Type System" do
 
       # Should be flattened to Bool | Int32 | String (sorted)
       union2.types.size.should eq(3)
-      union2.types[0].should eq(bool)    # "Bool" comes first alphabetically
-      union2.types[1].should eq(int32)   # "Int32"
-      union2.types[2].should eq(string)  # "String"
+      union2.types[0].should eq(bool)   # "Bool" comes first alphabetically
+      union2.types[1].should eq(int32)  # "Int32"
+      union2.types[2].should eq(string) # "String"
     end
 
     it "removes duplicate types" do
@@ -113,9 +113,9 @@ describe "Type System" do
       string = PrimitiveType.new("String")
 
       union1 = UnionType.new([int32, string])
-      union2 = UnionType.new([string, int32])  # Different order
+      union2 = UnionType.new([string, int32]) # Different order
 
-      (union1 == union2).should be_true  # Normalized to same order
+      (union1 == union2).should be_true # Normalized to same order
     end
 
     it "converts to string with | separator" do
@@ -167,7 +167,7 @@ describe "Type System" do
 
       union = ctx.union_of([ctx.int32_type])
 
-      union.should eq(ctx.int32_type)  # Not a UnionType, just Int32
+      union.should eq(ctx.int32_type) # Not a UnionType, just Int32
     end
 
     it "handles edge case: union of empty array returns Nil" do

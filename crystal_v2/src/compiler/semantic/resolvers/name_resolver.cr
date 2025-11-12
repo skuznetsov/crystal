@@ -169,13 +169,13 @@ module CrystalV2
           symbol = @current_table.lookup(name)
 
           method_symbol = case symbol
-          when MethodSymbol
-            symbol
-          when OverloadSetSymbol
-            symbol.overloads.find { |overload| overload.node_id == node_id } || symbol.overloads.last?
-          else
-            nil
-          end
+                          when MethodSymbol
+                            symbol
+                          when OverloadSetSymbol
+                            symbol.overloads.find { |overload| overload.node_id == node_id } || symbol.overloads.last?
+                          else
+                            nil
+                          end
 
           return unless method_symbol
 

@@ -131,21 +131,21 @@ module CrystalV2
         table.each_local_symbol do |name, symbol|
           indentation = "  " * indent
           label, details = case symbol
-          when Semantic::MacroSymbol
-            {"macro", nil}
-          when Semantic::MethodSymbol
-            params = symbol.params
-            extra = params.empty? ? nil : "(params: #{params.compact_map { |p| p.name.try { |n| String.new(n) } }.join(", ")})"
-            {"method", extra}
-          when Semantic::ClassSymbol
-            super_name = symbol.superclass_name
-            extra = super_name ? "(super: #{super_name})" : nil
-            {"class", extra}
-          when Semantic::VariableSymbol
-            {"variable", nil}
-          else
-            {"symbol", nil}
-          end
+                           when Semantic::MacroSymbol
+                             {"macro", nil}
+                           when Semantic::MethodSymbol
+                             params = symbol.params
+                             extra = params.empty? ? nil : "(params: #{params.compact_map { |p| p.name.try { |n| String.new(n) } }.join(", ")})"
+                             {"method", extra}
+                           when Semantic::ClassSymbol
+                             super_name = symbol.superclass_name
+                             extra = super_name ? "(super: #{super_name})" : nil
+                             {"class", extra}
+                           when Semantic::VariableSymbol
+                             {"variable", nil}
+                           else
+                             {"symbol", nil}
+                           end
 
           span_info = span_summary(program, symbol)
           line = "#{indentation}#{label} #{name}"

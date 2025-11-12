@@ -129,13 +129,13 @@ module CrystalV2
 
             if index < segments.size - 1
               current_table = case symbol
-                when Semantic::ClassSymbol
-                  symbol.scope
-                when Semantic::ModuleSymbol
-                  symbol.scope
-                else
-                  return nil
-                end
+                              when Semantic::ClassSymbol
+                                symbol.scope
+                              when Semantic::ModuleSymbol
+                                symbol.scope
+                              else
+                                return nil
+                              end
             end
           end
 
@@ -191,7 +191,7 @@ module CrystalV2
           arena : Frontend::ArenaLike,
           expr_id : Frontend::ExprId,
           target : Frontend::ExprId,
-          current : Array(String)
+          current : Array(String),
         ) : Array(String)?
           node = arena[expr_id]
 
@@ -247,11 +247,11 @@ module CrystalV2
             next unless path_segments
             next unless path_segments.size >= segments.size
 
-          suffix = path_segments[-segments.size, segments.size]
-          next unless suffix == segments
+            suffix = path_segments[-segments.size, segments.size]
+            next unless suffix == segments
 
-          joined = path_segments.join("::")
-          debug("find_symbol_by_segments candidate=#{joined} uri=#{location.uri} kind=#{symbol.class}")
+            joined = path_segments.join("::")
+            debug("find_symbol_by_segments candidate=#{joined} uri=#{location.uri} kind=#{symbol.class}")
 
             extra = path_segments.size - segments.size
             if extra < best_extra
@@ -278,7 +278,7 @@ module CrystalV2
           expr_id : Frontend::ExprId,
           current : Array(String),
           segments : Array(String),
-          uri : String
+          uri : String,
         ) : Location?
           node = arena[expr_id]
 
@@ -535,10 +535,10 @@ module CrystalV2
 
         private def resolve_require_path(base_dir : String, require_path : String) : String?
           expanded = if require_path.starts_with?("/")
-            require_path
-          else
-            File.expand_path(require_path, base_dir)
-          end
+                       require_path
+                     else
+                       File.expand_path(require_path, base_dir)
+                     end
 
           if File.file?(expanded)
             return expanded
@@ -1541,9 +1541,9 @@ module CrystalV2
           type_str = type.try(&.to_s)
 
           prefer_signature = node.is_a?(Frontend::CallNode) ||
-            node.is_a?(Frontend::MemberAccessNode) ||
-            node.is_a?(Frontend::SafeNavigationNode) ||
-            symbol.is_a?(Semantic::MethodSymbol)
+                             node.is_a?(Frontend::MemberAccessNode) ||
+                             node.is_a?(Frontend::SafeNavigationNode) ||
+                             symbol.is_a?(Semantic::MethodSymbol)
 
           if method_signature
             if type_str.nil? || prefer_signature
@@ -1557,11 +1557,11 @@ module CrystalV2
 
           if type_str.nil?
             fallback_signature = case node
-            when Frontend::DefNode
-              format_def_signature(node, doc_state.text_document.text)
-            else
-              nil
-            end
+                                 when Frontend::DefNode
+                                   format_def_signature(node, doc_state.text_document.text)
+                                 else
+                                   nil
+                                 end
 
             if fallback_signature.nil? && method_signature
               fallback_signature = method_signature
@@ -1821,7 +1821,7 @@ module CrystalV2
 
         private def collect_document_symbols(
           table : Semantic::SymbolTable,
-          program : Frontend::Program
+          program : Frontend::Program,
         ) : Array(DocumentSymbol)
           symbols = [] of DocumentSymbol
           table.each_local_symbol do |_name, symbol|
@@ -1833,7 +1833,7 @@ module CrystalV2
         private def append_document_symbol(
           symbol : Semantic::Symbol,
           program : Frontend::Program,
-          output : Array(DocumentSymbol)
+          output : Array(DocumentSymbol),
         )
           case symbol
           when Semantic::OverloadSetSymbol
@@ -3399,17 +3399,17 @@ module CrystalV2
           arena = doc_state.program.arena
           node = arena[expr_id]
           segments = case node
-            when Frontend::IdentifierNode
-              if name = node.name
-                [String.new(name)]
-              else
-                nil
-              end
-            when Frontend::PathNode
-              collect_path_segments(arena, node)
-            else
-              nil
-            end
+                     when Frontend::IdentifierNode
+                       if name = node.name
+                         [String.new(name)]
+                       else
+                         nil
+                       end
+                     when Frontend::PathNode
+                       collect_path_segments(arena, node)
+                     else
+                       nil
+                     end
           return nil unless segments && !segments.empty?
 
           resolve_path_symbol(doc_state, segments) || find_symbol_by_segments(segments)
@@ -3836,7 +3836,7 @@ module CrystalV2
         end
 
         DECLARATION_MODIFIER = 1 << 0
-        NAME_SEARCH_WINDOW = 512
+        NAME_SEARCH_WINDOW   = 512
 
         private struct SemanticTokenContext
           getter program : Frontend::Program
@@ -3852,7 +3852,7 @@ module CrystalV2
             @bytes : Bytes,
             @identifier_symbols : Hash(Frontend::ExprId, Semantic::Symbol)?,
             @type_context : Semantic::TypeContext?,
-            @symbol_table : Semantic::SymbolTable?
+            @symbol_table : Semantic::SymbolTable?,
           )
           end
         end
@@ -3864,7 +3864,7 @@ module CrystalV2
           source : String,
           identifier_symbols : Hash(Frontend::ExprId, Semantic::Symbol)? = nil,
           type_context : Semantic::TypeContext? = nil,
-          symbol_table : Semantic::SymbolTable? = nil
+          symbol_table : Semantic::SymbolTable? = nil,
         ) : SemanticTokens
           raw_tokens = [] of RawToken
           context = SemanticTokenContext.new(
@@ -4466,7 +4466,7 @@ module CrystalV2
           name_slice : Slice(UInt8),
           token_type : Int32,
           tokens : Array(RawToken),
-          modifiers : Int32 = DECLARATION_MODIFIER
+          modifiers : Int32 = DECLARATION_MODIFIER,
         )
           length = name_slice.size
           return if length <= 0
@@ -4484,7 +4484,7 @@ module CrystalV2
           length : Int32,
           token_type : Int32,
           tokens : Array(RawToken),
-          modifiers : Int32 = 0
+          modifiers : Int32 = 0,
         )
           return unless span
           return if length <= 0
@@ -4497,7 +4497,7 @@ module CrystalV2
           context : SemanticTokenContext,
           expr_id : Frontend::ExprId,
           node : Frontend::IdentifierNode,
-          tokens : Array(RawToken)
+          tokens : Array(RawToken),
         )
           length = node.name.bytesize
           return if length <= 0
@@ -4512,7 +4512,7 @@ module CrystalV2
         private def emit_constant_node_token(
           context : SemanticTokenContext,
           node : Frontend::ConstantNode,
-          tokens : Array(RawToken)
+          tokens : Array(RawToken),
         )
           token_type = token_type_for_constant(node.name)
           emit_name_token(context, node.span, node.name, token_type, tokens, DECLARATION_MODIFIER)
@@ -4522,7 +4522,7 @@ module CrystalV2
           context : SemanticTokenContext,
           span : Frontend::Span?,
           type_slice : Slice(UInt8)?,
-          tokens : Array(RawToken)
+          tokens : Array(RawToken),
         )
           return unless span
           return unless type_slice
@@ -4606,7 +4606,7 @@ module CrystalV2
         private def emit_parameter_tokens(
           context : SemanticTokenContext,
           param : Frontend::Parameter,
-          tokens : Array(RawToken)
+          tokens : Array(RawToken),
         )
           if param_name = param.name
             if name_span = param.name_span
@@ -4635,7 +4635,7 @@ module CrystalV2
           context : SemanticTokenContext,
           specs : Array(Frontend::AccessorSpec),
           tokens : Array(RawToken),
-          token_type : Int32 = SemanticTokenType::Property.value
+          token_type : Int32 = SemanticTokenType::Property.value,
         )
           specs.each do |spec|
             emit_span_token(spec.name_span, spec.name.size, token_type, tokens, DECLARATION_MODIFIER)
@@ -4692,7 +4692,7 @@ module CrystalV2
         private def locate_name_position(
           context : SemanticTokenContext,
           span : Frontend::Span,
-          name_slice : Slice(UInt8)
+          name_slice : Slice(UInt8),
         ) : {Int32, Int32}?
           return nil if name_slice.empty?
           name = String.new(name_slice)
@@ -4721,7 +4721,7 @@ module CrystalV2
           line : Int32,
           col : Int32,
           from_offset : Int32,
-          to_offset : Int32
+          to_offset : Int32,
         ) : {Int32, Int32}
           i = from_offset
           while i < to_offset && i < bytes.size
@@ -4744,7 +4744,7 @@ module CrystalV2
           col : Int32,
           length : Int32,
           token_type : Int32,
-          modifiers : Int32 = 0
+          modifiers : Int32 = 0,
         )
           return if length <= 0 || line < 0 || col < 0
           tokens << RawToken.new(line, col, length, token_type, modifiers)
@@ -5100,7 +5100,6 @@ module CrystalV2
           debug("Range formatting not yet supported, formatting entire document")
           handle_formatting(id, params)
         end
-
       end
     end
   end

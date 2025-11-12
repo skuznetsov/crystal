@@ -7,32 +7,31 @@ module SemanticTokensSpecHelper
   # Legend as defined in LSP::Server::SemanticTokenType
   def self.legend_index(name : String)
     case name
-    when "namespace" then 0
-    when "type" then 1
-    when "class" then 2
-    when "enum" then 3
-    when "interface" then 4
-    when "struct" then 5
+    when "namespace"     then 0
+    when "type"          then 1
+    when "class"         then 2
+    when "enum"          then 3
+    when "interface"     then 4
+    when "struct"        then 5
     when "typeParameter" then 6
-    when "parameter" then 7
-    when "variable" then 8
-    when "property" then 9
-    when "enumMember" then 10
-    when "event" then 11
-    when "function" then 12
-    when "method" then 13
-    when "macro" then 14
-    when "keyword" then 15
-    when "modifier" then 16
-    when "comment" then 17
-    when "string" then 18
-    when "number" then 19
-    when "regexp" then 20
-    when "operator" then 21
-    else -1
+    when "parameter"     then 7
+    when "variable"      then 8
+    when "property"      then 9
+    when "enumMember"    then 10
+    when "event"         then 11
+    when "function"      then 12
+    when "method"        then 13
+    when "macro"         then 14
+    when "keyword"       then 15
+    when "modifier"      then 16
+    when "comment"       then 17
+    when "string"        then 18
+    when "number"        then 19
+    when "regexp"        then 20
+    when "operator"      then 21
+    else                      -1
     end
   end
-  
 
   def self.collect(program, source)
     server = CrystalV2::Compiler::LSP::Server.new

@@ -15,7 +15,7 @@ module CrystalV2
           @start_line : Int32,
           @start_column : Int32,
           @end_line : Int32,
-          @end_column : Int32
+          @end_column : Int32,
         )
         end
 

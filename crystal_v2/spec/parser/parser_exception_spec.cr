@@ -243,7 +243,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
 
       raise_node = arena[rescue_body[0]]
       CrystalV2::Compiler::Frontend.node_kind(raise_node).should eq(CrystalV2::Compiler::Frontend::NodeKind::Raise)
-      CrystalV2::Compiler::Frontend.node_raise_value(raise_node).should be_nil  # Bare raise
+      CrystalV2::Compiler::Frontend.node_raise_value(raise_node).should be_nil # Bare raise
     end
   end
 end

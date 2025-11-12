@@ -7,7 +7,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     # String literal tests
 
     it "parses \\uXXXX ASCII in string" do
-      source = "s = \"\\u0041\""  # 'A'
+      source = "s = \"\\u0041\"" # 'A'
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -22,7 +22,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\uXXXX BMP character in string" do
-      source = "s = \"\\u4E00\""  # Chinese character '一'
+      source = "s = \"\\u4E00\"" # Chinese character '一'
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -36,7 +36,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\u{X} variable length in string" do
-      source = "s = \"\\u{41}\""  # 'A' with variable length
+      source = "s = \"\\u{41}\"" # 'A' with variable length
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -50,7 +50,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\u{XXXX} emoji in string" do
-      source = "s = \"\\u{1F600}\""  # Grinning face emoji 😀
+      source = "s = \"\\u{1F600}\"" # Grinning face emoji 😀
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -64,7 +64,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses multiple Unicode escapes in string" do
-      source = "s = \"\\u0041\\u0042\\u0043\""  # "ABC"
+      source = "s = \"\\u0041\\u0042\\u0043\"" # "ABC"
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -78,7 +78,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses mixed Unicode and regular text in string" do
-      source = "s = \"Hello \\u{1F44B} World\""  # "Hello 👋 World"
+      source = "s = \"Hello \\u{1F44B} World\"" # "Hello 👋 World"
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -92,7 +92,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses mixed Unicode and escape sequences in string" do
-      source = "s = \"\\u0041\\nB\""  # "A\nB"
+      source = "s = \"\\u0041\\nB\"" # "A\nB"
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -108,7 +108,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     # Character literal tests
 
     it "parses \\uXXXX ASCII in character" do
-      source = "c = '\\u0041'"  # 'A'
+      source = "c = '\\u0041'" # 'A'
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -123,7 +123,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\uXXXX BMP character in character literal" do
-      source = "c = '\\u4E00'"  # Chinese character '一'
+      source = "c = '\\u4E00'" # Chinese character '一'
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -137,7 +137,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\u{X} variable length in character" do
-      source = "c = '\\u{42}'"  # 'B' with variable length
+      source = "c = '\\u{42}'" # 'B' with variable length
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -151,7 +151,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\u{XXXX} emoji in character" do
-      source = "c = '\\u{1F602}'"  # Face with tears of joy emoji 😂
+      source = "c = '\\u{1F602}'" # Face with tears of joy emoji 😂
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -167,7 +167,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     # UTF-8 encoding tests
 
     it "parses 2-byte UTF-8 sequence" do
-      source = "s = \"\\u00A9\""  # Copyright symbol ©
+      source = "s = \"\\u00A9\"" # Copyright symbol ©
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -181,7 +181,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses 3-byte UTF-8 sequence" do
-      source = "s = \"\\u2603\""  # Snowman ☃
+      source = "s = \"\\u2603\"" # Snowman ☃
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -195,7 +195,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses 4-byte UTF-8 sequence" do
-      source = "s = \"\\u{1F44D}\""  # Thumbs up 👍
+      source = "s = \"\\u{1F44D}\"" # Thumbs up 👍
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -211,7 +211,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     # Integration tests
 
     it "parses Unicode in array" do
-      source = "[\"\\u0041\", \"\\u{1F600}\"]"  # ["A", "😀"]
+      source = "[\"\\u0041\", \"\\u{1F600}\"]" # ["A", "😀"]
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -231,7 +231,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses Unicode in method call" do
-      source = "puts(\"\\u{1F389}\")"  # puts("🎉")
+      source = "puts(\"\\u{1F389}\")" # puts("🎉")
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program

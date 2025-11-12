@@ -36,7 +36,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
       method_node = fetch_method(arena, class_body[0])
       previous_def_node = fetch_previous_def(arena, method_node)
 
-      previous_def_node.args.should be_nil  # nil = implicit args
+      previous_def_node.args.should be_nil # nil = implicit args
     end
 
     it "parses previous_def with empty parentheses (explicit no args)" do
@@ -59,7 +59,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
       previous_def_node = fetch_previous_def(arena, method_node)
 
       args = previous_def_node.args.not_nil!
-      args.size.should eq(0)  # Empty array = explicit no args
+      args.size.should eq(0) # Empty array = explicit no args
     end
 
     it "parses previous_def with single argument" do

@@ -233,7 +233,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
       assign2 = arena[program.roots[1]]
       path2 = arena[CrystalV2::Compiler::Frontend.node_assign_value(assign2).not_nil!]
       CrystalV2::Compiler::Frontend.node_kind(path2).should eq(CrystalV2::Compiler::Frontend::NodeKind::Path)
-      path2.as(CrystalV2::Compiler::Frontend::PathNode).left.should be_nil  # Absolute path
+      path2.as(CrystalV2::Compiler::Frontend::PathNode).left.should be_nil # Absolute path
 
       # Third: A::B::C
       assign3 = arena[program.roots[2]]
@@ -243,7 +243,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "distinguishes path from method call" do
-      source = "x = Foo::bar"  # Path, not method call
+      source = "x = Foo::bar" # Path, not method call
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program

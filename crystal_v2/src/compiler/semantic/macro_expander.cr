@@ -148,7 +148,6 @@ module CrystalV2
                 # Plain text - append as-is
                 str << piece.text if piece.text
                 index += 1
-
               when .expression?
                 # {{ expr }} - evaluate and stringify
                 if expr_id = piece.expr
@@ -156,7 +155,6 @@ module CrystalV2
                   str << value
                 end
                 index += 1
-
               when .control_start?
                 # {% if %} or {% for %} - delegate to specialized handlers
                 keyword = piece.control_keyword
@@ -174,7 +172,6 @@ module CrystalV2
                   emit_warning("Unknown control keyword: #{keyword}", body_id)
                   index += 1
                 end
-
               else
                 # Skip standalone control flow markers (elsif, else, end)
                 # These are handled inside evaluate_if_block
@@ -219,11 +216,9 @@ module CrystalV2
           when .number?
             # Number literal: 42, 3.14
             Frontend.node_literal_string(node) || ""
-
           when .string?
             # String literal: "hello"
             Frontend.node_literal_string(node) || ""
-
           when .identifier?
             # Variable reference: look up in context
             if name = Frontend.node_literal_string(node)
@@ -231,15 +226,12 @@ module CrystalV2
             else
               ""
             end
-
           when .bool?
             # Boolean: true/false
             Frontend.node_literal_string(node) || ""
-
           when .nil?
             # Nil literal
             ""
-
           else
             # Unsupported expression type for Phase 87B-2
             # Return empty string (graceful degradation)
@@ -261,14 +253,13 @@ module CrystalV2
             literal = Frontend.node_literal_string(node)
             if literal
               return false if literal == "false"
-              return true  # "true"
+              return true # "true"
             end
-            return true  # Default to true if no literal
+            return true # Default to true if no literal
 
           when .nil?
             # nil is falsy
             return false
-
           else
             # EVERYTHING else is truthy in Crystal
             # This includes: 0, "", [], numbers, strings, arrays, etc.
@@ -289,7 +280,6 @@ module CrystalV2
             when .control_start?
               # Nested control structure
               depth += 1
-
             when .control_end?
               depth -= 1
               return index if depth == 0
@@ -300,14 +290,14 @@ module CrystalV2
 
           # Missing {% end %} - emit error
           emit_error("Unmatched control flow block (missing {% end %})")
-          return pieces.size  # Return end of array (graceful degradation)
+          return pieces.size # Return end of array (graceful degradation)
         end
 
         # Find next {% elsif %} / {% else %} / {% end %} at same depth
         private def find_next_branch_or_end(
           pieces : Array(MacroPiece),
           start : Int32,
-          end_limit : Int32
+          end_limit : Int32,
         ) : Int32
           depth = 0
           index = start
@@ -318,11 +308,9 @@ module CrystalV2
             case piece.kind
             when .control_start?
               depth += 1
-
             when .control_end?
               return index if depth == 0
               depth -= 1
-
             when .control_else_if?, .control_else?
               return index if depth == 0
             end
@@ -339,7 +327,7 @@ module CrystalV2
           pieces : Array(MacroPiece),
           start : Int32,
           end_index : Int32,
-          context : Context
+          context : Context,
         ) : String
           String.build do |str|
             index = start
@@ -351,14 +339,12 @@ module CrystalV2
               when .text?
                 str << piece.text if piece.text
                 index += 1
-
               when .expression?
                 if expr_id = piece.expr
                   value = evaluate_expression(expr_id, context)
                   str << value
                 end
                 index += 1
-
               when .control_start?
                 # Nested control flow
                 keyword = piece.control_keyword
@@ -374,7 +360,6 @@ module CrystalV2
                 else
                   index += 1
                 end
-
               else
                 # Skip control flow markers (elsif, else, end)
                 index += 1
@@ -388,7 +373,7 @@ module CrystalV2
         private def evaluate_if_block(
           pieces : Array(MacroPiece),
           start_index : Int32,
-          context : Context
+          context : Context,
         ) : {String, Int32}
           # Get condition from start piece
           start_piece = pieces[start_index]
@@ -433,12 +418,10 @@ module CrystalV2
                 end
 
                 current += 1
-
               elsif piece.kind.control_else?
                 # No conditions matched, use else
                 output = evaluate_pieces_range(pieces, current + 1, end_index - 1, context)
                 return {output, end_index + 1}
-
               else
                 current += 1
               end
@@ -455,7 +438,7 @@ module CrystalV2
         private def evaluate_for_block(
           pieces : Array(MacroPiece),
           start_index : Int32,
-          context : Context
+          context : Context,
         ) : {String, Int32}
           # Get loop metadata
           start_piece = pieces[start_index]
@@ -481,18 +464,16 @@ module CrystalV2
           iterable_node = @arena[iterable_expr]
 
           elem_values = case iterable_node
-          when Frontend::ArrayLiteralNode
-            # Phase 87B-3: Array path
-            iterable_node.elements.map { |elem_id| stringify_expr(elem_id) }
-
-          when Frontend::RangeNode
-            # Phase 87B-4A: Range path
-            expand_range_to_strings(iterable_node)
-
-          else
-            emit_error("For loop requires ArrayLiteral or Range (Phase 87B-4A)")
-            nil
-          end
+                        when Frontend::ArrayLiteralNode
+                          # Phase 87B-3: Array path
+                          iterable_node.elements.map { |elem_id| stringify_expr(elem_id) }
+                        when Frontend::RangeNode
+                          # Phase 87B-4A: Range path
+                          expand_range_to_strings(iterable_node)
+                        else
+                          emit_error("For loop requires ArrayLiteral or Range (Phase 87B-4A)")
+                          nil
+                        end
 
           # Handle error case
           unless elem_values
@@ -545,10 +526,10 @@ module CrystalV2
           # Calculate size (helpers normalize RangeNode.exclusive semantics)
           exclusive = range_node.exclusive
           size = if exclusive
-            end_val - start_val
-          else
-            end_val - start_val + 1
-          end
+                   end_val - start_val
+                 else
+                   end_val - start_val + 1
+                 end
 
           # Check size limit (prevent compilation DOS)
           if size > MAX_RANGE_SIZE
@@ -569,14 +550,14 @@ module CrystalV2
 
         private def emit_error(message : String, location : ExprId? = nil)
           span = if location
-            @arena[location].span
-          else
-            Frontend::Span.new(0, 0, 1, 1, 1, 1)
-          end
+                   @arena[location].span
+                 else
+                   Frontend::Span.new(0, 0, 1, 1, 1, 1)
+                 end
 
           @diagnostics << Diagnostic.new(
             DiagnosticLevel::Error,
-            "E4001",  # Macro error codes start at E4xxx
+            "E4001", # Macro error codes start at E4xxx
             message,
             span
           )
@@ -584,14 +565,14 @@ module CrystalV2
 
         private def emit_warning(message : String, location : ExprId? = nil)
           span = if location
-            @arena[location].span
-          else
-            Frontend::Span.new(0, 0, 1, 1, 1, 1)
-          end
+                   @arena[location].span
+                 else
+                   Frontend::Span.new(0, 0, 1, 1, 1, 1)
+                 end
 
           @diagnostics << Diagnostic.new(
             DiagnosticLevel::Warning,
-            "W4001",  # Macro warning codes
+            "W4001", # Macro warning codes
             message,
             span
           )

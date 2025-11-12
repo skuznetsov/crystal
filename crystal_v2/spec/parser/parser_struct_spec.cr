@@ -219,7 +219,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
       # First is class
       class_node = arena[program.roots[0]]
       CrystalV2::Compiler::Frontend.node_kind(class_node).should eq(CrystalV2::Compiler::Frontend::NodeKind::Class)
-      class_node.as(CrystalV2::Compiler::Frontend::ClassNode).is_struct.should be_falsey  # nil or false
+      class_node.as(CrystalV2::Compiler::Frontend::ClassNode).is_struct.should be_falsey # nil or false
 
       # Second is struct
       struct_node = arena[program.roots[1]]

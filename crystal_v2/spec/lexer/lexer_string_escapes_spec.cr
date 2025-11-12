@@ -202,7 +202,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
 
     it "parses all supported escapes together" do
       source = <<-CRYSTAL
-      x = "\\n\\t\\r\\\\\\\"\\0"
+      x = "\\n\\t\\r\\\\\\"\\0"
       CRYSTAL
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))

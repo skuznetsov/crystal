@@ -13,7 +13,7 @@ module CrystalV2
       # Rich diagnostic with primary + secondary locations (Rust-style)
       struct Diagnostic
         getter level : DiagnosticLevel
-        getter code : String              # e.g., "E2001", "W2001"
+        getter code : String # e.g., "E2001", "W2001"
         getter message : String
         getter primary_span : Frontend::Span
         getter secondary_spans : Array(SecondarySpan)
@@ -23,7 +23,7 @@ module CrystalV2
           @code : String,
           @message : String,
           @primary_span : Frontend::Span,
-          @secondary_spans : Array(SecondarySpan) = [] of SecondarySpan
+          @secondary_spans : Array(SecondarySpan) = [] of SecondarySpan,
         )
         end
       end
@@ -31,7 +31,7 @@ module CrystalV2
       # Secondary location with annotation (e.g., "previous definition here")
       struct SecondarySpan
         getter span : Frontend::Span
-        getter label : String  # "previous definition", "shadowed here", etc.
+        getter label : String # "previous definition", "shadowed here", etc.
 
         def initialize(@span : Frontend::Span, @label : String)
         end

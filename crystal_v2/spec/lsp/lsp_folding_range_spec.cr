@@ -50,7 +50,7 @@ describe "LSP Folding Range" do
       json = range.to_json
       json.should contain("\"startLine\"")
       json.should contain("\"endLine\"")
-      json.should_not contain("\"start_line\"")  # Not snake_case
+      json.should_not contain("\"start_line\"") # Not snake_case
     end
   end
 
@@ -290,8 +290,8 @@ describe "LSP Folding Range" do
 
       # Parser gives 1-indexed: first line of source = line 1 (not 0)
       # This is EXPECTED from parser - conversion happens in collect_folding_ranges
-      def_node.span.start_line.should eq(1)  # "def foo" is on parser line 1
-      def_node.span.end_line.should eq(3)    # "end" is on parser line 3
+      def_node.span.start_line.should eq(1) # "def foo" is on parser line 1
+      def_node.span.end_line.should eq(3)   # "end" is on parser line 3
     end
 
     it "verifies conversion to 0-indexed is needed for LSP" do
@@ -309,8 +309,8 @@ describe "LSP Folding Range" do
       if_node = root.as(CrystalV2::Compiler::Frontend::IfNode)
 
       # Parser: 1-indexed
-      parser_start = if_node.span.start_line  # Will be 1
-      parser_end = if_node.span.end_line      # Will be 3
+      parser_start = if_node.span.start_line # Will be 1
+      parser_end = if_node.span.end_line     # Will be 3
 
       # LSP expects: 0-indexed
       # So collect_folding_ranges MUST do:
@@ -322,8 +322,8 @@ describe "LSP Folding Range" do
       parser_end.should be > parser_start
 
       # The CORRECT LSP result should be:
-      expected_lsp_start = parser_start - 1  # 0
-      expected_lsp_end = parser_end - 1      # 2
+      expected_lsp_start = parser_start - 1 # 0
+      expected_lsp_end = parser_end - 1     # 2
 
       # This is what FoldingRange should contain
       expected_lsp_start.should eq(0)
@@ -348,8 +348,8 @@ describe "LSP Folding Range" do
       # Line 4: "  x + y"
       # Line 5: "end"
 
-      def_node.span.start_line.should eq(1)  # Parser line 1
-      def_node.span.end_line.should eq(5)    # Parser line 5
+      def_node.span.start_line.should eq(1) # Parser line 1
+      def_node.span.end_line.should eq(5)   # Parser line 5
 
       # After conversion (what collect_folding_ranges should produce):
       # start_line: 0 (LSP line 0 = first line)

@@ -7,7 +7,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     # String literal tests
 
     it "parses \\NNN octal in string (single digit)" do
-      source = "s = \"\\7\""  # bell (7)
+      source = "s = \"\\7\"" # bell (7)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -24,7 +24,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\NNN octal in string (two digits)" do
-      source = "s = \"\\101\""  # 'A' (65)
+      source = "s = \"\\101\"" # 'A' (65)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -38,7 +38,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\NNN octal in string (three digits)" do
-      source = "s = \"\\102\""  # 'B' (66)
+      source = "s = \"\\102\"" # 'B' (66)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -52,7 +52,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\0 as octal null byte in string" do
-      source = "s = \"\\0\""  # null (0)
+      source = "s = \"\\0\"" # null (0)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -66,7 +66,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\000 as octal null byte in string" do
-      source = "s = \"\\000\""  # null (0)
+      source = "s = \"\\000\"" # null (0)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -80,7 +80,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\012 as octal newline in string" do
-      source = "s = \"\\012\""  # newline (10)
+      source = "s = \"\\012\"" # newline (10)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -94,7 +94,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\177 as octal DEL character in string" do
-      source = "s = \"\\177\""  # DEL (127)
+      source = "s = \"\\177\"" # DEL (127)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -110,7 +110,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses multiple \\NNN octal escapes in string" do
-      source = "s = \"\\101\\102\\103\""  # "ABC" (65, 66, 67)
+      source = "s = \"\\101\\102\\103\"" # "ABC" (65, 66, 67)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -124,7 +124,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses mixed octal and regular text in string" do
-      source = "s = \"Hello\\040World\""  # "Hello World" (040 = space = 32)
+      source = "s = \"Hello\\040World\"" # "Hello World" (040 = space = 32)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -138,7 +138,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses mixed octal and other escapes in string" do
-      source = "s = \"\\101\\nB\""  # "A\\nB" (101 = 'A' = 65)
+      source = "s = \"\\101\\nB\"" # "A\\nB" (101 = 'A' = 65)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -152,7 +152,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses octal with 1, 2, and 3 digits in same string" do
-      source = "s = \"\\7\\40\\101\""  # bell, space, 'A' (7, 32, 65)
+      source = "s = \"\\7\\40\\101\"" # bell, space, 'A' (7, 32, 65)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -170,7 +170,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "stops parsing at non-octal digit" do
-      source = "s = \"\\78\""  # \7 followed by '8' (7 and 56)
+      source = "s = \"\\78\"" # \7 followed by '8' (7 and 56)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -182,14 +182,14 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
       string_node = arena[CrystalV2::Compiler::Frontend.node_assign_value(assign).not_nil!]
       bytes = CrystalV2::Compiler::Frontend.node_literal(string_node).not_nil!
       bytes.size.should eq(2)
-      bytes[0].should eq(7_u8)   # \7
-      bytes[1].should eq(56_u8)  # '8'
+      bytes[0].should eq(7_u8)  # \7
+      bytes[1].should eq(56_u8) # '8'
     end
 
     # Character literal tests
 
     it "parses \\NNN octal in character (single digit)" do
-      source = "c = '\\7'"  # bell (7)
+      source = "c = '\\7'" # bell (7)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -206,7 +206,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\NNN octal in character (three digits)" do
-      source = "c = '\\101'"  # 'A' (65)
+      source = "c = '\\101'" # 'A' (65)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -220,7 +220,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\0 as octal null byte in character" do
-      source = "c = '\\0'"  # null (0)
+      source = "c = '\\0'" # null (0)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -234,7 +234,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\012 as octal newline in character" do
-      source = "c = '\\012'"  # newline (10)
+      source = "c = '\\012'" # newline (10)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -248,7 +248,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses \\177 as octal DEL character in character literal" do
-      source = "c = '\\177'"  # DEL (127)
+      source = "c = '\\177'" # DEL (127)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -266,7 +266,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     # Integration tests
 
     it "parses octal escapes in array" do
-      source = "[\"\\101\", \"\\102\"]"  # ["A", "B"]
+      source = "[\"\\101\", \"\\102\"]" # ["A", "B"]
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -286,7 +286,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses octal escapes in method call" do
-      source = "puts(\"\\110ello\")"  # puts("Hello") (110 = 'H' = 72)
+      source = "puts(\"\\110ello\")" # puts("Hello") (110 = 'H' = 72)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program
@@ -332,7 +332,7 @@ describe "CrystalV2::Compiler::Frontend::Parser" do
     end
 
     it "parses mixed hex and octal escapes" do
-      source = "s = \"\\x41\\101\""  # "AA" (hex 41 = 65, octal 101 = 65)
+      source = "s = \"\\x41\\101\"" # "AA" (hex 41 = 65, octal 101 = 65)
 
       parser = CrystalV2::Compiler::Frontend::Parser.new(CrystalV2::Compiler::Frontend::Lexer.new(source))
       program = parser.parse_program

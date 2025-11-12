@@ -16,7 +16,7 @@ puts "Found #{eq_errors.size} 'unexpected Eq' errors\n"
 puts "=" * 80
 
 eq_errors.each_with_index do |diag, idx|
-  line_num = diag.span.start_line - 1  # Span uses 1-based line numbers
+  line_num = diag.span.start_line - 1 # Span uses 1-based line numbers
 
   # Show context: 2 lines before and after
   start_line = [0, line_num - 2].max
