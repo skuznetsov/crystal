@@ -291,6 +291,22 @@ module Crystal
     template SpecHelperView, "spec_helper.cr.ecr", "spec/spec_helper.cr"
     template SpecExampleView, "example_spec.cr.ecr", "spec/#{config.name}_spec.cr"
 
+    # VSCode debugging configuration
+    template VSCodeLaunchView, "vscode_launch.json.ecr", ".vscode/launch.json"
+    template VSCodeTasksView, "vscode_tasks.json.ecr", ".vscode/tasks.json"
+
+    # Crystal LLDB formatters (static file, no ECR processing)
+    class VSCodeFormattersView < View
+      def path
+        ".vscode/crystal_formatters.py"
+      end
+
+      def to_s
+        File.read("#{TEMPLATE_DIR}/vscode_crystal_formatters.py")
+      end
+    end
+
+    View.register(VSCodeFormattersView)
     View.register(GitInitView)
   end
 end

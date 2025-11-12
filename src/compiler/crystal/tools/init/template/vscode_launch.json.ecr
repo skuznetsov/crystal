@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb-dap",
+      "request": "launch",
+      "name": "Crystal: Debug Current File",
+      "program": "${workspaceFolder}/${fileBasenameNoExtension}",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "initCommands": [
+        "command script import ${workspaceFolder}/.vscode/crystal_formatters.py",
+        "settings set target.inline-breakpoint-strategy always"
+      ],
+      "preLaunchTask": "crystal: build current file (debug)",
+      "sourceMap": {},
+      "enableSyntheticChildDebugging": true
+    },
+    {
+      "type": "lldb-dap",
+      "request": "launch",
+      "name": "Crystal: Debug Program",
+      "program": "${workspaceFolder}/bin/<%= config.name %>",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "initCommands": [
+        "command script import ${workspaceFolder}/.vscode/crystal_formatters.py",
+        "settings set target.inline-breakpoint-strategy always"
+      ],
+      "enableSyntheticChildDebugging": true
+    }
+  ]
+}
