@@ -17,6 +17,9 @@ class Crystal::CodeGenVisitor
       if !global.initializer && type.includes_type?(@program.nil_type)
         global.initializer = main_llvm_type.null
       end
+
+      # Generate debug info for class variable
+      declare_class_var_debug_info(global, class_var) if @debug.variables?
     end
     global
   end
@@ -332,5 +335,53 @@ class Crystal::CodeGenVisitor
 
   def class_var_global_initialized_name(class_var : MetaTypeVar)
     "#{class_var.owner.llvm_name}#{class_var.name.gsub('@', ':')}:init"
+  end
+
+  private def declare_class_var_debug_info(global, class_var)
+    # Try to get location from initializer
+    initializer = class_var.initializer
+    return unless initializer
+
+    node = initializer.node
+    location = node.location
+    return unless location
+
+    location = location.expanded_location
+    return unless location
+
+    # Save current module and switch to main_mod for debug info generation
+    # This ensures debug types and metadata are created in the correct LLVM context
+    old_llvm_mod = @llvm_mod
+    @llvm_mod = @main_mod
+
+    begin
+      debug_type = get_debug_type(class_var.type)
+      return unless debug_type
+
+      file, dir = file_and_dir(location.filename)
+      # Use di_builder for main_mod explicitly since class vars are in main module
+      file_metadata = di_builder(@main_mod).create_file(file, dir)
+
+      # For global class variables, use file as scope (will be part of compilation unit)
+      # DIGlobalVariableExpression is automatically registered with the CU when created
+      # and will be finalized when di_builder.end() is called
+      global_name = class_var_global_name(class_var)
+      gv_expr = di_builder(@main_mod).create_global_variable_expression(
+        scope: file_metadata,
+        name: global_name,
+        linkage_name: global_name,
+        file: file_metadata,
+        line: location.line_number,
+        type: debug_type,
+        local_to_unit: @single_module
+      )
+
+      # Attach debug metadata to the LLVM global variable
+      # This ensures debuggers can find the class variable's debug info
+      global.add_debug_info(gv_expr)
+    ensure
+      # Restore original module context
+      @llvm_mod = old_llvm_mod
+    end
   end
 end
